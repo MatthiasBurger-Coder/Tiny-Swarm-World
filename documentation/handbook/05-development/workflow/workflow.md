@@ -2,12 +2,12 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: READY_FOR_WORKFLOW; all execution slices PLANNED, no live GO
+Status: EXECUTING; TA440-20261112-01 STARTED at S440O-06; bounded WSL test reset/live consent recorded; exact host admission remains pending
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
 Execution profile: FULL_PATH
-Process strand: workflow create; execution requires separately invoked workflow execute.
+Process strand: workflow execute; current consultation run and scope amendment recorded below. Original authoring facts remain historical.
 
 ## Executive Summary
 
@@ -18,6 +18,62 @@ admit the precise capability, exercise Portainer/components/selection/product
 cases, observe applicable final gates and obtain independent parent acceptance.
 This new documentation-only branch does not contain the uncommitted repair.
 Slice01 must acquire and verify it; absent source is a hard STOP.
+
+## Execution run TA440-20261112-01 — started 2026-11-12
+
+The operator instructed Codex to clear existing installations in the WSL test
+environment at test start, stop applications occupying required ports there,
+continue error remediation and qualification through completion, start a workflow
+for every Three-Amigos consultation, and commit/push each accepted change.
+This run extends the existing workflow at S440O-06; it does not create another
+EPIC, repeat completed source work or declare the parent complete.
+
+Four real reviewers accepted this bounded scope: Senior Requirement Engineer
+(`reset_requirements`), Senior System Architect (`wsl_reset_review`), Senior
+Python Automation Developer (`reset_automation`) and Senior Tester
+(`reset_test_evidence`). Their decision is READY_FOR_WORKFLOW for disposable-test
+preparation, subject to actual target/resource identification before effects.
+
+- Identify the exact disposable WSL distribution, registration/GUID, machine and
+  installation resources before deletion. Retain these private host identities
+  and raw evidence outside disposable state; do not publish them here.
+- Reset test installations once before the suite. Stop/kill only processes
+  attributed to that admitted disposable environment, before capturing the
+  clean qualification baseline. Reobserve required listeners afterward.
+- Preserve original Ubuntu, foreign distributions/resources and the Windows
+  boundary. Original-environment downtime uses the existing bounded cold-handoff
+  and restoration path; the reset permission does not permit deleting it.
+- Preserve each case's `baseline -> add/update -> verify -> repeat -> fault ->
+  recover -> verify` chain. Do not erase data, credentials, source installations
+  or recovery checkpoints between observations that depend on them.
+- Serialize live effects. Continue through host admission, paired listener
+  qualification, capability admission, Portainer, components, selections and
+  remaining product/shared cases, then independent P01-P15 reconciliation.
+- Give each later Three-Amigos consultation a distinct workflow execution-run
+  record with findings, chosen slice, action, verification and outcome. Commit
+  and push each accepted change separately; never turn a failed check into PASS.
+
+The new instruction supplies test reset, test-process termination and live-test
+consent. Earlier missing-consent/no-delete/no-kill notes are historical for this
+bounded test scope. It does not establish ownership, backup usability, restore
+proof, a fresh hash-bound phase GO or a successful test result.
+
+Frozen private campaign C remains
+`77a3356075925edee037bfe009a1f3dfb94cf5d8`; no C/K source or embedded workflow
+is edited by this integration-side record. Before a strict source/workflow
+binding is used, verify its equivalence and admission explicitly. A helper or
+campaign-semantic change requires a reviewed replacement campaign and renewed
+source lease/preparation/GO, not an edit to frozen C. Existing architecture and
+cold-kernel/scoped-capability policy remain unchanged; no new ADR is required
+for this disposable-fixture preparation scope.
+
+Execution ownership: Root integrates and publishes; Senior DevOps owns serial
+host operations; independent requirement/architecture/test-evidence reviews
+remain the completion authority. This amendment locks only workflow.md,
+scenario-plan.md, context-pack.md/json and prerequisite-ledger.md in the
+integration worktree. It leaves the existing S440O-06 evidence-file locks in its
+runtime worktree unchanged. Verification and operational effects are pending;
+no S440O-06 DONE, live PASS, Sonar PASS or parent closure is recorded.
 
 ## Verified Baseline and Target Picture
 
@@ -965,7 +1021,7 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
 
 ### Slice 06 — Admit recoverable hosts and phase-specific approvals
 
-Purpose: Freshly inspect native and WSL owners, exact Incus client/server6.0.5, all-project resources, machine/boot/GUID/VHD, root-owned installed source and original runtime driver. Verify actual usable backups, original running/stopped states, Windows firewall/PortProxy/hosts/archive and an independently rehearsed restore route for all reachable failures. Reserve approved loopback high port61000–65535 and preserve10001. Existing80/443/16080/16081 listeners block the fixture; use separately approved cold isolated guest, never kill active-install listeners or assume two WSL distros are isolated. Record exact outage/fixture/return GO and independent same-hash reviews. Earlier deterministic test consent grants no live operation.
+Purpose: Freshly inspect native and WSL owners, exact Incus client/server6.0.5, all-project resources, machine/boot/GUID/VHD, root-owned installed source and original runtime driver. Verify actual usable backups, original running/stopped states, Windows firewall/PortProxy/hosts/archive and an independently rehearsed restore route for all reachable failures. Reserve approved loopback high port61000–65535 and preserve10001. Existing80/443/16080/16081 listeners block the fixture; use the admitted cold isolated guest and never assume two WSL distros are isolated. TA440-20261112-01 permits reset and attributed listener cleanup only inside the identified disposable WSL test environment before baseline capture; it does not permit killing original/foreign active-install listeners. Record exact outage/fixture/return GO and independent same-hash reviews. Earlier deterministic test consent alone grants no live operation; the new operator instruction supplies bounded live-test consent, not proof of readiness.
 
 Prerequisites: S440O-05. Mode: live prerequisite admission (read-only before scenario consent).
 

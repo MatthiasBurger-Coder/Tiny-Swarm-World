@@ -21,3 +21,18 @@ missing-consent/prerequisite and external unavailable states must be reported.
 Estimated effort:01–05 roughly5–10 engineering days,06–11 roughly5–10 plus
 provisioning/approval waits,12–14 roughly2–4 plus CI/reviewer waits. These are
 planning ranges, not a deadline or permission to skip prerequisites.
+
+## TA440-20261112-01 execution update
+
+| Owner | Current authority or observation | Required next evidence |
+|---|---|---|
+| Root / four-role Three Amigos | Workflow run STARTED; bounded reset/live/test-process-stop consent supplied by the operator on 2026-11-12 | Track the run's action, verification and outcome; commit/push accepted changes separately |
+| DevOps / S440O-06 | Original Ubuntu and a separate stopped disposable qualification distribution observed over the designated SSH host; exact identities retained privately | Revalidate disposable registration/machine/resource ownership immediately before cleanup; preserve original/foreign/Windows state |
+| DevOps / reset | Suite-start test-installation deletion and attributed test-port-owner termination authorized | Record deletion/termination commands and exits, post-reset resource inventory and free-listener observations outside disposable state |
+| Architecture / source owner | Frozen C77a3356075925edee037bfe009a1f3dfb94cf5d8 unchanged by this integration-side amendment | Accept exact source/workflow equivalence before strict binding, or create a reviewed replacement campaign with renewed source lease/GO |
+| Test / independent acceptance | Reset is preparation, not upgrade, preservation, recovery or EPIC success | Retain each dependent case baseline through all observations; continue the existing host/product acceptance order |
+
+Historical LIVE_CONSENT_MISSING notes for the bounded WSL test operation are
+superseded by this instruction. Fresh ownership, usable backup, safe restoration,
+current source/phase admission and actual results remain unverified until captured.
+No S440O-06 completion or operational effect is recorded by this update.

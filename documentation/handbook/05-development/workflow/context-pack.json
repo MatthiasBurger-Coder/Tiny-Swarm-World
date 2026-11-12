@@ -4,8 +4,8 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "READY_FOR_WORKFLOW_PLANNED_NOT_EXECUTED",
-  "process_strand": "workflow create",
+  "status": "EXECUTING_TA440_20261112_01_S440O_06_ADMISSION_PENDING",
+  "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
     "lifecycle qualification",
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "6c30d7174e2cff752b1b064ef8b59eee3acc9d6958c79f902da0f77feb1b60db",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "4c4a59a7e2f5d9b3c7d5e9dc91a4e7e57b4ddfb68c92be527b007fef5094bb77",
+    "documentation/handbook/05-development/workflow/context-pack.md": "57e6e9ba5806bc4cc6182295012fbcae92c2dab2a1932494f97fbd97d1a4a1d8",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "062ceca9cb1954ecc2fde1bb69f1c47b80cfd0b3309bfbd2a5e647d2d6349b32",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
-    "documentation/handbook/05-development/workflow/scenario-plan.md": "41b413c19a8a808203c76df8acdaacbb1e3b5bbc64f169d1072f9653b4289c19",
+    "documentation/handbook/05-development/workflow/scenario-plan.md": "bc1731073e30bf63e7bc282a696142f14d1b5cbd55a571d1b8550b09bf4e0124",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "8608ca69d1e7b222f79d62599a81a9f0f510c8c961a8c37ed900bf97ca496833"
+    "documentation/handbook/05-development/workflow/workflow.md": "d24669bbf7caaf67eb2c0a439509e4990d87a85f65fe89f1538d36d44dc7ef91"
   },
   "slices": [
     "S440O-01",
@@ -93,5 +93,23 @@
   "proposed_files": [
     "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py"
-  ]
+  ],
+  "execution_run": {
+    "id": "TA440-20261112-01",
+    "state": "STARTED",
+    "slice_id": "S440O-06",
+    "operator_authority_date": "2026-11-12",
+    "scope": "identified disposable WSL test suite-start reset, attributed test-process termination and continued live qualification",
+    "preserve": [
+      "original Ubuntu",
+      "foreign distributions/resources",
+      "Windows boundary",
+      "dependent per-case baseline"
+    ],
+    "frozen_campaign_commit": "77a3356075925edee037bfe009a1f3dfb94cf5d8",
+    "campaign_modified": false,
+    "strict_source_admission": "PENDING",
+    "live_result": "NOT_RUN",
+    "parent_status": "INCOMPLETE"
+  }
 }

@@ -56,8 +56,17 @@ are not proven automatically recoverable. If a route is missing, stop before
 downtime. Fixture runs original-stopped/unbound; full PortProxy/firewall/hosts/
 payload equality applies within that window. A separate original restoration
 may refresh only existing owned destinations to the restored WSL address.
-No listener killing, wildcard route, unowned resource cleanup or generic intent
-clearing. Source, process and ownership drift invalidate the next effect.
+TA440-20261112-01 authorizes a suite-start reset of installations and termination
+of attributed port occupants inside the identified disposable WSL test
+environment, before qualification baseline capture. Identify registration,
+machine, resources and process ownership first; retain evidence externally and
+reobserve listener absence after cleanup. Original Ubuntu, foreign resources,
+Windows listeners and the captured Windows boundary are outside this cleanup
+scope. Never reset between dependent add/update/no-op/fault/recovery observations.
+No wildcard route, unowned resource cleanup or generic intent clearing is
+permitted. Source, process and ownership drift invalidate the next effect.
+The integration-side authority record does not modify frozen C or replace its
+exact source/preparation/phase-GO validation.
 
 ## Attribution and reporter
 
