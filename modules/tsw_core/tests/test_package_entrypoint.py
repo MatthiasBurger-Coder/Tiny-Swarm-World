@@ -87,6 +87,12 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         root = Path(directory.name)
         source = Path(__file__).resolve().parents[3]
         shutil.copytree(source / 'modules/tsw_core/infra', root / 'modules/tsw_core/infra')
+        # These dispatch tests exercise the legacy setup path before scoped admission.
+        capability = root / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+        capability.write_text(json.dumps({
+            'schema_version': 1, 'capability': 'installation-scoped-incus-manager-profile',
+            'admitted_versions': [],
+        }), encoding='utf-8')
         for name in ('AGENTS.md', 'QUALITY.md'):
             shutil.copy2(source / name, root / name)
         package = root / 'modules/tsw_core/src'
