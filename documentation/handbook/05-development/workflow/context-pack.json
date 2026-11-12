@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA440_20261112_01_S440O_06_ADMISSION_PENDING",
+  "status": "EXECUTING_TA440_20261112_02_TARGET_CLARIFICATION_PENDING",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -64,7 +64,7 @@
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "bc1731073e30bf63e7bc282a696142f14d1b5cbd55a571d1b8550b09bf4e0124",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "d24669bbf7caaf67eb2c0a439509e4990d87a85f65fe89f1538d36d44dc7ef91"
+    "documentation/handbook/05-development/workflow/workflow.md": "6cacf49cecf3dcc2b167364af2fc6d6cc9f2d96721db21d77251e1ca5a742c8c"
   },
   "slices": [
     "S440O-01",
@@ -111,5 +111,6 @@
     "strict_source_admission": "PENDING",
     "live_result": "NOT_RUN",
     "parent_status": "INCOMPLETE"
-  }
+  },
+  "current_workflow_run": "TA440-20261112-02"
 }

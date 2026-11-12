@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-01 STARTED at S440O-06; bounded WSL test reset/live consent recorded; exact host admission remains pending
+Status: EXECUTING; TA440-20261112-02 target clarification pending at S440O-06; separate disposable test reset complete; exact host admission remains pending
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -74,6 +74,38 @@ scenario-plan.md, context-pack.md/json and prerequisite-ledger.md in the
 integration worktree. It leaves the existing S440O-06 evidence-file locks in its
 runtime worktree unchanged. Verification and operational effects are pending;
 no S440O-06 DONE, live PASS, Sonar PASS or parent closure is recorded.
+
+## Execution run TA440-20261112-02 — original-state mismatch
+
+Started after the actual read-only original-runtime baseline check returned
+`AUTOSTART_UNSAFE`. All three default-project TSW nodes currently report
+`boot.autostart=true`; all four historical TSW nodes are running. The retained
+original driver requires disabled autostart and stopped workers. Do not alter
+these states merely to satisfy its historical assertions.
+
+Review the operator's requested suite-start deletion against the exact original
+test-installation boundary. Target clarification is pending: deletion of the
+separate disposable registration is complete; deletion of the existing TSW
+installations in the original test distribution has not been performed. Keep
+the original running while this distinction is unresolved. The independent
+read-only registration PLAN reached the actual baseline observation, then
+refused with `BRIDGE_FILE_DRIFT`; no import was attempted. Active original
+bridge files did not remain stable during the protected read. Preserve frozen C.
+
+All four independent roles completed this consultation: requirements require
+the pending exact-target answer; architecture, automation and test/evidence
+reviewed both bounded alternatives. An authorized original-installation reset
+can enable direct listener qualification after fresh inventory. Preserving the
+original requires a reviewed transaction that restores its actual autostart
+configuration and running states. Neither route may fabricate historical driver
+receipts or treat listener qualification as product qualification. The latter
+still requires the existing disposable-distribution/coordinator contract.
+
+Decision: REQUIRES_REFINEMENT for the destructive-target boundary only. No
+original installation, bridge, autostart setting or process was changed. This
+run records actual prerequisite failures and conditional execution paths, not a
+product-test failure or a completed acceptance. Publish it as a separate
+operator-authorized documentation checkpoint after designated-host diff check.
 
 ## Verified Baseline and Target Picture
 
