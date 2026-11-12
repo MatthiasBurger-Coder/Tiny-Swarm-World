@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA440-20261112-05 STARTED; native manager stop/test/restart consent RESOLVED; native preparation/review NOT_RUN; bounded WSL PASS retained; parent INCOMPLETE.
+Status: EXECUTING; TA440-20261112-05 all six native approvals complete; READY_FOR_BOUNDED_ATTEMPT; Root pre-outage designated SSH/WSL documentation gate PASS; guarded publication READY; no native execution; WSL PASS retained; parent INCOMPLETE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -106,3 +106,24 @@ owned cold snapshot, paused baseline/fixture and FINALLY restart/allfour-state/
 config/routes/porttuple/liveness verification. Workers/foreign/stoppedmanager
 unchanged; no native deletion/reset/permanentprofilechange. WSLPASS retained;
 C frozen, perhostsplit unchanged, native/pairK/product/global/parent OPEN.
+
+## TA05 exact artifact admission checkpoint
+
+Final wrapperSHA3b84e0bcb8175a9d9b752863bacdb12be50324fd9654f063dbd73d5ca9eda893;
+canonical contextSHA584c4703a4d6a93b5762aa146addb84f0f77a38ebbf1729fb39821a5d55bc7f5;
+canonical GOdraftSHAf7a1172d9933385d69f5dfd1c11518750325f63858163feb7568b9d280dc52ba;
+resourceSHA5ed5dbcaccbe5d1e3e25fc1811a819cd706b3b60c4f5f79241c9769ca104cf93.
+Root actual final --inspect exit0 INSPECTED_READ_ONLY; allfour original states/
+configs unchanged. All six real reviewers APPROVED exact final wrapper/context/
+context-embedded canonical GO. READY_FOR_BOUNDED_ATTEMPT only; Root pre-outage
+designated SSH/WSL documentation gate PASS; guarded checkpoint publication READY. No native outage/snapshot/fixture;
+fixedGO/reservation absent. Standalone pretty native-fixture-go-draft.json is
+stale/superseded; only context-embedded canonical GO is executable. SourceC/tree/1811
+files matched in root-owned nativeext4 runtimeclone; standalonePython3.14.4 only.
+Finite1200/reserve240/pre-outage>=1100; only manager gracefully stopped; owned
+snapshot retained; FINALLYrestore allfour and Docker identities after settling
+operations. Producthealth NOT_VERIFIED; WSLboundedPASS retained. Root alone
+finalizes permitted approval/status/hash delta after actual reviewer decisions.
+
+TA05 actual review receipt installed native root-owned0600, SHA07409c6e221e1f1fdb20645e8ba5fe0ee643181c3508b958d9f4b9555c559a0a;
+wrapper/context hashes reverified unchanged. No outage. Root documentation gate PASS; guarded publication READY before outage.

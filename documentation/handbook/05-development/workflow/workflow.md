@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-05 STARTED; native temporary manager stop/test/restart consent RESOLVED; exact preparation/reviews NOT_RUN; bounded WSL PASS retained
+Status: EXECUTING; TA440-20261112-05 all six exact native approvals complete; READY_FOR_BOUNDED_ATTEMPT; pre-outage designated SSH/WSL documentation gate PASS; guarded checkpoint publication READY; no outage/snapshot/fixture; WSL PASS retained
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -234,13 +234,18 @@ real approvals and an independently accepted WSL-only fixture PASS. Native
 qualification needs separate live-pause authority; no native mutation was made.
 Paired K and remaining product/component acceptance remain gated.
 
-## Execution run TA440-20261112-05 — native consent resolved, exact plan pending
+## Execution run TA440-20261112-05 — exact native admission ready; execution not started
 
 STARTED after the operator answered “ja” to the exact native temporary TSW
 manager stop/test/restart question. Consent is RESOLVED; do not ask it again.
-No native outage or operational preparation has occurred in this record. Root
-is preparing artifacts through reads/copies only; six exact native reviews
-must follow before the admitted maintenance/fixture effects.
+The final exact native operational wrapper/context/GO/resource drafts are now
+prepared; final `--inspect` exited 0 with INSPECTED_READ_ONLY. All four instances
+remain in the captured states/configs. All six actual reviewers APPROVED the
+exact final wrapper/context/context-embedded canonical GO: Requirements,
+Architecture, Python Automation, Test/Evidence, Security and DevOps. Admission
+is READY_FOR_BOUNDED_ATTEMPT, not a native execution PASS. No native outage,
+snapshot or fixture has occurred. Root's exact four-document SSH/WSL diff/hash gate passed. Guarded checkpoint
+publication is READY and must complete before outage.
 
 Fresh native read-only facts: Incus client/server 6.0.5, native ext4 and Python
 3.14.4; the default profile has empty config, its existing default-pool root disk
@@ -269,18 +274,50 @@ uses existing generic C fixture code with a finite reviewed operator preparation
    service liveness. Account for the approved owned recovery snapshot explicitly;
    do not fabricate recovery from a command exit or healthy old task alone.
 
-Exact artifacts, finite budgets, cold-snapshot/recovery identity and native
-fixture GO remain pending; user consent alone is not their acceptance. Python
-3.14.4 attribution applies to the standalone fixture, not product/full-quality
-qualification. Source C stays frozen and unchanged; no new helper/orchestrator
+Exact artifact bindings accepted by all six native reviewers:
+
+| Artifact | SHA-256 |
+|---|---|
+| Finite native operator wrapper | `3b84e0bcb8175a9d9b752863bacdb12be50324fd9654f063dbd73d5ca9eda893` |
+| Canonical context | `584c4703a4d6a93b5762aa146addb84f0f77a38ebbf1729fb39821a5d55bc7f5` |
+| Context-embedded canonical GO | `f7a1172d9933385d69f5dfd1c11518750325f63858163feb7568b9d280dc52ba` |
+| Resource draft | `5ed5dbcaccbe5d1e3e25fc1811a819cd706b3b60c4f5f79241c9769ca104cf93` |
+
+The root-owned mode0600 wrapper/context and source-identical native ext4 runtime
+clone bind unchanged C/tree/1811files. Actual final inspection was read-only;
+its success is not outage/backup/fixture acceptance. Fixed fixture GO and port
+reservation remain absent. The exclusively created private NOT_RUN stub is not
+a test result. Only the context-embedded canonical GO is executable; the
+separate pretty-printed native-fixture-go-draft.json is stale/superseded and must
+not be used. The six actual approvals are retained against the exact hashes;
+only the admitted review-status/hash-reference finalization is permitted.
+The actual six-role review receipt was installed root-owned mode0600 on the
+native host, SHA-256 `07409c6e221e1f1fdb20645e8ba5fe0ee643181c3508b958d9f4b9555c559a0a`;
+wrapper/context hashes were reverified unchanged. This is admission evidence,
+not an outage or fixture result.
+
+The reviewed finite plan budgets total1200seconds with reserve240 and at least
+1100seconds remaining before outage; graceful no-force stop60, cold snapshot90,
+fixture650 and restored Docker-identity convergence wait180. Bound daemon
+operations must settle before same-UUID restart. FINALLY recovery verifies all
+four configs/states/listener tuples plus observed Docker NodeID/ClusterID/local/
+control identity equality. The bound `--recover` route ignores the expired effect
+deadline only for recovery and never replays the fixture; signals affect only
+owned children. The owned backup snapshot is retained, not deleted or hidden
+as zero graph change. Actual product health remains NOT_VERIFIED.
+
+Python3.14.4 attribution applies to the standalone fixture, not product/full-
+quality qualification. Source C stays frozen and unchanged; no new helper/orchestrator
 or source/ADR change is introduced by this plan.
 
 Actual independently accepted WSL TA04 listener PASS is retained. Native result,
 paired K, component/product/recovery cases, global S06/S07 and parent acceptance
 remain OPEN. Per-host sequencing already accepted elsewhere is unchanged. Root
 owns serial host execution, actual outcome/recovery evidence and a separate
-checked commit/push for each accepted change. This run is STARTED, with native
-preparation/review/fixture NOT_RUN, not an inferred native or EPIC PASS.
+checked commit/push for each accepted change. This run is READY_FOR_BOUNDED_ATTEMPT:
+artifacts, read-only inspection and six exact approvals complete; pre-outage
+Root designated SSH/WSL documentation gate PASS; guarded publication READY before outage. Outage/snapshot/fixture NOT_RUN.
+No native or EPIC PASS is inferred.
 
 ## Verified Baseline and Target Picture
 

@@ -89,3 +89,14 @@ Root owns actual results and separate checked commit/push.
 
 No native reset/deletion or permanent profile change planned. C unchanged.
 Standalone interpreter attribution is not a full-quality/product result.
+
+## TA05 exact native admission draft checkpoint
+
+| Owner | Executed preparation / fixed binding | Remaining gate |
+|---|---|---|
+| Root / source | Root-owned0600 finalwrapperSHA3b84e0bcb8175a9d9b752863bacdb12be50324fd9654f063dbd73d5ca9eda893; contextSHA584c4703a4d6a93b5762aa146addb84f0f77a38ebbf1729fb39821a5d55bc7f5; unchangedC/tree1811source/nativeext4 | No source/context/wrapper substitution during remaining review/effects |
+| Six reviewers | All six actual roles APPROVED exact wrapper/context/embeddedcanonicalGOSHAf7a1172d9933385d69f5dfd1c11518750325f63858163feb7568b9d280dc52ba; resourceSHA5ed5dbcaccbe5d1e3e25fc1811a819cd706b3b60c4f5f79241c9769ca104cf93 | READY_FOR_BOUNDED_ATTEMPT only; Root designated SSH/WSL documentation gate PASS; guarded checkpoint publication READY before outage; standalone pretty GO stale/superseded |
+| Root / inspect | Final --inspect exit0 INSPECTED_READ_ONLY; allfour states/configs unchanged; fixedGO/reservation absent | Gracefulmanagerstop/coldsnapshot/fixture NOT_RUN; exact admission remains gated |
+| Recovery / runtime | Finite1200/reserve240/pre-outage>=1100; only boundmanager, retainedsnapshot, settled operations, FINALLY sameUUID restart/allfour/Docker identity equality | Actual outage/cleanup/recovery and producthealth not verified; no fixture replay through recover |
+
+Native/WSL pairing, K, product/global/parent remain OPEN; actual WSLPASS retained.

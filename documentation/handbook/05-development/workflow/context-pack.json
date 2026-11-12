@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA440_20261112_05_NATIVE_CONSENT_RESOLVED_ADMISSION_PENDING",
+  "status": "EXECUTING_TA440_20261112_05_READY_FOR_BOUNDED_ATTEMPT_DOC_GATE_PASS_PUBLICATION_READY",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "b2104551bef41392dc464f21f4091f552482968f9254cb1d8e318ce2f4f35c72",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "5b257c9b8b6abfabd89f9526614d3b5cec22294d6e864529d35c1bbdc4f4d450",
+    "documentation/handbook/05-development/workflow/context-pack.md": "275036b4a9ab48ad75315b5c48aa21cb67d3599d708d8fa24806f8a205123c4a",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "ae734b886fe8581d70f96859f9a63884b1b97927e78d5a6d9c3b73f6587ac4b0",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "d3250c1566387074d760587f1da55787bc7ab1531740ab9fd0cbfb81386f7213"
+    "documentation/handbook/05-development/workflow/workflow.md": "02ff081cc526cff4fd78262e6aa5727e841ef9ed25a6bd1d24e6ff4738a7eb4b"
   },
   "slices": [
     "S440O-01",
@@ -96,21 +96,21 @@
   ],
   "execution_run": {
     "id": "TA440-20261112-05",
-    "state": "STARTED_NATIVE_CONSENT_RESOLVED_PREPARATION_REVIEW_NOT_RUN",
+    "state": "READY_FOR_BOUNDED_ATTEMPT",
     "slice_id": "S440O-06",
     "planned_attempt_slice_id": "S440O-07",
     "host_scope": "native temporary TSW default-manager maintenance and standalone fixture",
     "user_consent": "RESOLVED explicit ja to exact manager stop/test/restart question",
-    "artifact_preparation": "Root reads/copies only; exact artifacts pending",
-    "operational_preparation": "NOT_RUN",
+    "artifact_preparation": "COMPLETE_FINAL_BOUND_ARTIFACTS",
+    "operational_preparation": "INSPECTED_READ_ONLY_ONLY",
     "outage": "NOT_STARTED",
     "review_status": {
-      "requirements": "PENDING_EXACT_NATIVE_ARTIFACTS",
-      "architecture": "PENDING_EXACT_NATIVE_ARTIFACTS",
-      "automation": "PENDING_EXACT_NATIVE_ARTIFACTS",
-      "test_evidence": "PENDING_EXACT_NATIVE_ARTIFACTS",
-      "security": "PENDING_EXACT_NATIVE_ARTIFACTS",
-      "devops": "PENDING_EXACT_NATIVE_ARTIFACTS"
+      "requirements": "APPROVED_EXACT_FINAL_ARTIFACTS",
+      "architecture": "APPROVED_EXACT_FINAL_ARTIFACTS",
+      "automation": "APPROVED_EXACT_FINAL_ARTIFACTS",
+      "test_evidence": "APPROVED_EXACT_FINAL_ARTIFACTS",
+      "security": "APPROVED_EXACT_FINAL_ARTIFACTS",
+      "devops": "APPROVED_EXACT_FINAL_ARTIFACTS"
     },
     "native_readonly_facts": {
       "incus_client": "6.0.5",
@@ -157,7 +157,63 @@
     "global_S06_S07_done": false,
     "paired_K_admitted": false,
     "product_result": "NOT_RUN",
-    "parent_status": "INCOMPLETE"
+    "parent_status": "INCOMPLETE",
+    "artifact_sha256": {
+      "wrapper": "3b84e0bcb8175a9d9b752863bacdb12be50324fd9654f063dbd73d5ca9eda893",
+      "canonical_context": "584c4703a4d6a93b5762aa146addb84f0f77a38ebbf1729fb39821a5d55bc7f5",
+      "canonical_GO_draft": "f7a1172d9933385d69f5dfd1c11518750325f63858163feb7568b9d280dc52ba",
+      "resources": "5ed5dbcaccbe5d1e3e25fc1811a819cd706b3b60c4f5f79241c9769ca104cf93"
+    },
+    "final_inspect": {
+      "exit_code": 0,
+      "status": "INSPECTED_READ_ONLY",
+      "all_four_original_state_config": "UNCHANGED",
+      "fixed_GO": "ABSENT",
+      "reservation": "ABSENT"
+    },
+    "runtime_source": {
+      "commit": "77a3356075925edee037bfe009a1f3dfb94cf5d8",
+      "files_matched": 1811,
+      "same_tree": true,
+      "root_owned": true,
+      "filesystem": "native ext4",
+      "standalone_python": "3.14.4"
+    },
+    "finite_budgets_seconds": {
+      "total": 1200,
+      "reserve": 240,
+      "minimum_before_outage": 1100,
+      "graceful_stop": 60,
+      "cold_snapshot": 90,
+      "fixture": 650,
+      "docker_identity_convergence": 180
+    },
+    "retained_snapshot": true,
+    "product_health": "NOT_VERIFIED",
+    "allowed_finalization": "actual six APPROVED fields/resource review status and referenced hash delta only",
+    "actual_reviewers": {
+      "requirements": "reset_requirements",
+      "architecture": "wsl_reset_review",
+      "automation": "reset_automation",
+      "test_evidence": "reset_test_evidence",
+      "security": "reset_operation_review",
+      "devops": "prepare_fresh_registration"
+    },
+    "documentation_gate": "PASS_DESIGNATED_SSH_WSL_EXACT_FOUR_DOCUMENT_DIFF_AND_HASH",
+    "publication": "READY_GUARDED_CHECKPOINT_BEFORE_OUTAGE",
+    "GO_provenance": {
+      "executable": "context-embedded canonical GO only",
+      "canonical_sha256": "f7a1172d9933385d69f5dfd1c11518750325f63858163feb7568b9d280dc52ba",
+      "standalone_pretty_native_fixture_go_draft": "STALE_SUPERSEDED_NOT_EXECUTABLE"
+    },
+    "actual_review_receipt": {
+      "sha256": "07409c6e221e1f1fdb20645e8ba5fe0ee643181c3508b958d9f4b9555c559a0a",
+      "native_installed": true,
+      "owner": "root",
+      "mode": "0600",
+      "wrapper_context_hashes": "REVERIFIED_UNCHANGED",
+      "local_attestation": "native-ta05-review/actual-review-attestation.json"
+    }
   },
   "current_workflow_run": "TA440-20261112-05"
 }
