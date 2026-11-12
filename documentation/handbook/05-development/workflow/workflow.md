@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-02 target clarification pending at S440O-06; separate disposable test reset complete; exact host admission remains pending
+Status: EXECUTING; TA440-20261112-02 complete old-TSW test-installation reset authorized at S440O-06; operation and clean-baseline admission pending
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -75,37 +75,54 @@ integration worktree. It leaves the existing S440O-06 evidence-file locks in its
 runtime worktree unchanged. Verification and operational effects are pending;
 no S440O-06 DONE, live PASS, Sonar PASS or parent closure is recorded.
 
-## Execution run TA440-20261112-02 — original-state mismatch
+## Execution run TA440-20261112-02 — complete TSW test reset authorized
 
-Started after the actual read-only original-runtime baseline check returned
-`AUTOSTART_UNSAFE`. All three default-project TSW nodes currently report
-`boot.autostart=true`; all four historical TSW nodes are running. The retained
-original driver requires disabled autostart and stopped workers. Do not alter
-these states merely to satisfy its historical assertions.
+The same consultation continues on its reviewed YES path. In response to the
+exact question covering all four existing TSW Incus nodes in the designated
+WSL Ubuntu test environment, the operator answered “Das komplett zurücksetzen!”
+on 2026-11-12. The destructive-target boundary is resolved; do not request the
+same target clarification again. Four-role conditional YES review is now
+READY_FOR_WORKFLOW for this bounded complete test-installation reset.
 
-Review the operator's requested suite-start deletion against the exact original
-test-installation boundary. Target clarification is pending: deletion of the
-separate disposable registration is complete; deletion of the existing TSW
-installations in the original test distribution has not been performed. Keep
-the original running while this distinction is unresolved. The independent
-read-only registration PLAN reached the actual baseline observation, then
-refused with `BRIDGE_FILE_DRIFT`; no import was attempted. Active original
-bridge files did not remain stable during the protected read. Preserve frozen C.
+The grant covers all four existing TSW Incus instances, their installation-owned
+data/resources and remaining TSW-owned applications occupying required ports.
+Bind initial node deletion to the freshly captured project/UUID inventory;
+its private snapshot SHA-256 is
+`fd93f9a94796a5d672a8e8e31245fd239d63754acad9f1332abbf7b5525dd082`.
+Before each further cleanup, establish installation ownership and current identity.
+Preserve source checkouts, evidence, the Ubuntu distribution, Incus prerequisite
+package/provider and all foreign or non-TSW resources. This is installation
+reset, not whole-distribution deletion or provider removal.
 
-All four independent roles completed this consultation: requirements require
-the pending exact-target answer; architecture, automation and test/evidence
-reviewed both bounded alternatives. An authorized original-installation reset
-can enable direct listener qualification after fresh inventory. Preserving the
-original requires a reviewed transaction that restores its actual autostart
-configuration and running states. Neither route may fabricate historical driver
-receipts or treat listener qualification as product qualification. The latter
-still requires the existing disposable-distribution/coordinator contract.
+This instruction supersedes TA01's preservation guard for the explicitly
+disposable old TSW installation only. No original-workload restoration or
+historical driver receipt is required to make that deleted installation appear
+preserved. Windows/foreign boundaries and actual post-reset inventory/listener
+observations still apply. No autostart, stage, receipt or source manipulation may
+be used to simulate an accepted preserving cold handoff.
 
-Decision: REQUIRES_REFINEMENT for the destructive-target boundary only. No
-original installation, bridge, autostart setting or process was changed. This
-run records actual prerequisite failures and conditional execution paths, not a
-product-test failure or a completed acceptance. Publish it as a separate
-operator-authorized documentation checkpoint after designated-host diff check.
+Execute serially: fresh bound inventory -> delete the four TSW nodes and owned
+installation state -> stop remaining attributed TSW port applications -> capture
+clean resources/listeners and exact source -> admit direct listener qualification.
+The later product-preservation/update cases still require their real supported
+installation identity and coordinator path. Direct listener success alone does
+not admit an arbitrary product environment, capability or EPIC acceptance.
+Frozen C remains unchanged; a required helper/semantic change needs its own
+reviewed source campaign and renewed admission, not a spoofed identity.
+
+Historical cause: the original-runtime baseline returned `AUTOSTART_UNSAFE`;
+three default-project nodes had autostart enabled and all four old TSW nodes
+were running. Registration PLAN separately refused with `BRIDGE_FILE_DRIFT`,
+without import. Those failures and the completed separate disposable-registration
+reset remain historical facts; the new answer selects complete old-installation
+reset instead of preservation of that workload.
+
+Decision: READY_FOR_WORKFLOW on the reviewed complete-reset branch. Actual
+node/resource deletion and clean-baseline verification are pending in this
+record. Keep remaining source/ownership/phase verification explicit, commit and
+push each accepted change separately, and continue this TA02 run without a new
+consultation or duplicate target question. No live qualification, product,
+recovery, Sonar or parent PASS is recorded by this scope amendment.
 
 ## Verified Baseline and Target Picture
 
@@ -1053,7 +1070,7 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-05/` with the six issue-com
 
 ### Slice 06 — Admit recoverable hosts and phase-specific approvals
 
-Purpose: Freshly inspect native and WSL owners, exact Incus client/server6.0.5, all-project resources, machine/boot/GUID/VHD, root-owned installed source and original runtime driver. Verify actual usable backups, original running/stopped states, Windows firewall/PortProxy/hosts/archive and an independently rehearsed restore route for all reachable failures. Reserve approved loopback high port61000–65535 and preserve10001. Existing80/443/16080/16081 listeners block the fixture; use the admitted cold isolated guest and never assume two WSL distros are isolated. TA440-20261112-01 permits reset and attributed listener cleanup only inside the identified disposable WSL test environment before baseline capture; it does not permit killing original/foreign active-install listeners. Record exact outage/fixture/return GO and independent same-hash reviews. Earlier deterministic test consent alone grants no live operation; the new operator instruction supplies bounded live-test consent, not proof of readiness.
+Purpose: Freshly inspect native and WSL owners, exact Incus client/server6.0.5, all-project resources, machine/boot/GUID/VHD, root-owned installed source and original runtime driver. Verify actual usable backups, original running/stopped states, Windows firewall/PortProxy/hosts/archive and an independently rehearsed restore route for all reachable failures. Reserve approved loopback high port61000–65535 and preserve10001. Existing80/443/16080/16081 listeners block the fixture; use the admitted cold isolated guest and never assume two WSL distros are isolated. TA440-20261112-02 explicitly permits complete reset of the four old TSW test nodes and installation-owned data/resources in Ubuntu, plus remaining attributed TSW port applications, before clean-baseline capture. The earlier original-installation preservation restriction is superseded for that disposable workload; preserve source/evidence, the distribution, Incus prerequisite/provider and foreign/non-TSW assets. Direct listener qualification may follow an observed clean baseline; downstream product cases retain their real supported environment/identity requirements. Record exact outage/fixture/return GO and independent same-hash reviews. Earlier deterministic test consent alone grants no live operation; the new operator instruction supplies bounded live-test consent, not proof of readiness.
 
 Prerequisites: S440O-05. Mode: live prerequisite admission (read-only before scenario consent).
 

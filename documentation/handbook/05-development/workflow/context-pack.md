@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA440-20261112-01 STARTED at S440O-06; parent INCOMPLETE.
+Status: EXECUTING; TA440-20261112-02 complete old-TSW installation reset authorized at S440O-06; operation/clean baseline pending; parent INCOMPLETE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -37,3 +37,19 @@ lives in the integration branch; strict workflow/source binding still requires
 explicit equivalence/admission or a reviewed replacement campaign. Earlier
 authoring-baseline descriptions above are historical, not current host readiness.
 No tests, operational reset, live qualification or parent completion is claimed.
+
+## Current TA02 YES-path grant — 2026-11-12
+
+The operator's “Das komplett zurücksetzen!” resolves the exact four-old-TSW-node
+target question. Continue the same TA440-20261112-02 run under its four-role
+reviewed YES path; no repeated target clarification or new consultation is needed.
+Delete the four inventory-bound TSW Incus nodes and their installation-owned
+data/resources in the designated Ubuntu test environment; stop remaining
+attributed TSW port applications. Preserve source/evidence, Ubuntu itself, Incus
+prerequisite package/provider and foreign/non-TSW assets. This supersedes the
+earlier preservation guard for the disposable old TSW installation only.
+
+Operation/clean-baseline results remain pending. Actual clean inventory and
+listener observations precede direct listener admission. Downstream product
+identity/coordinator and preservation cases must use a real supported path; no
+fabricated historical restoration or spoofed identity. Frozen C stays unchanged.

@@ -56,17 +56,23 @@ are not proven automatically recoverable. If a route is missing, stop before
 downtime. Fixture runs original-stopped/unbound; full PortProxy/firewall/hosts/
 payload equality applies within that window. A separate original restoration
 may refresh only existing owned destinations to the restored WSL address.
-TA440-20261112-01 authorizes a suite-start reset of installations and termination
-of attributed port occupants inside the identified disposable WSL test
-environment, before qualification baseline capture. Identify registration,
-machine, resources and process ownership first; retain evidence externally and
-reobserve listener absence after cleanup. Original Ubuntu, foreign resources,
-Windows listeners and the captured Windows boundary are outside this cleanup
-scope. Never reset between dependent add/update/no-op/fault/recovery observations.
-No wildcard route, unowned resource cleanup or generic intent clearing is
-permitted. Source, process and ownership drift invalidate the next effect.
-The integration-side authority record does not modify frozen C or replace its
-exact source/preparation/phase-GO validation.
+TA440-20261112-02 continues its reviewed YES path after the operator explicitly
+confirmed complete reset of all four old TSW Incus nodes in the designated
+Ubuntu test environment. Suite-start cleanup includes those fresh project/UUID-
+bound instances, installation-owned data/resources and remaining attributed
+TSW port applications. The old TSW installation is disposable: its earlier
+preservation guard is superseded by this exact grant. Preserve source/evidence,
+the Ubuntu distribution, Incus prerequisite package/provider and every foreign
+or non-TSW asset. The captured Windows/foreign boundary remains protected.
+
+Retain cleanup evidence externally and reobserve resource/listener state before
+admitting direct listener qualification. Reset is not an upgrade, recovery or
+preservation result. Downstream product cases still require a real supported
+installation identity and coordinator path; no fabricated old-driver receipt,
+identity spoof or generic stage/intent clearing. Never reset between dependent
+add/update/no-op/fault/recovery observations. Source/process/ownership drift
+invalidates the next effect. This integration-side grant does not modify frozen
+C or replace exact source/preparation/phase-GO validation.
 
 ## Attribution and reporter
 

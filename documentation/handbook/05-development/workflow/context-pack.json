@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA440_20261112_02_TARGET_CLARIFICATION_PENDING",
+  "status": "EXECUTING_TA440_20261112_02_COMPLETE_TSW_RESET_AUTHORIZED",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "57e6e9ba5806bc4cc6182295012fbcae92c2dab2a1932494f97fbd97d1a4a1d8",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "062ceca9cb1954ecc2fde1bb69f1c47b80cfd0b3309bfbd2a5e647d2d6349b32",
+    "documentation/handbook/05-development/workflow/context-pack.md": "9ae6dfc91827dde26f463a8be74f8d94dbb0d6eb0037267ee8f0a40478df3995",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "eb5433019c8cc1b0dd8df8e4176a9b83124358bbbda97b732cb8e6bee9c8811e",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
-    "documentation/handbook/05-development/workflow/scenario-plan.md": "bc1731073e30bf63e7bc282a696142f14d1b5cbd55a571d1b8550b09bf4e0124",
+    "documentation/handbook/05-development/workflow/scenario-plan.md": "59200d4e81504d420acac12f77fc36a96c265d2d540774ef4567728194eb182e",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "6cacf49cecf3dcc2b167364af2fc6d6cc9f2d96721db21d77251e1ca5a742c8c"
+    "documentation/handbook/05-development/workflow/workflow.md": "9854f8f545b3ba87828ad29b7dfb798d0052153f284ab10621c78a28e903bbf2"
   },
   "slices": [
     "S440O-01",
@@ -95,20 +95,25 @@
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py"
   ],
   "execution_run": {
-    "id": "TA440-20261112-01",
-    "state": "STARTED",
+    "id": "TA440-20261112-02",
+    "state": "STARTED_COMPLETE_RESET_AUTHORIZED",
     "slice_id": "S440O-06",
     "operator_authority_date": "2026-11-12",
-    "scope": "identified disposable WSL test suite-start reset, attributed test-process termination and continued live qualification",
+    "operator_answer": "Das komplett zur\u00fccksetzen!",
+    "target_question_resolved": true,
+    "scope": "all four inventory-bound old TSW Incus nodes and installation-owned data/resources in designated Ubuntu test environment, plus remaining TSW-owned port applications",
     "preserve": [
-      "original Ubuntu",
-      "foreign distributions/resources",
-      "Windows boundary",
-      "dependent per-case baseline"
+      "source checkouts and evidence",
+      "Ubuntu distribution",
+      "Incus prerequisite package/provider",
+      "foreign and non-TSW assets",
+      "dependent downstream per-case baseline"
     ],
+    "initial_node_inventory_sha256": "fd93f9a94796a5d672a8e8e31245fd239d63754acad9f1332abbf7b5525dd082",
     "frozen_campaign_commit": "77a3356075925edee037bfe009a1f3dfb94cf5d8",
     "campaign_modified": false,
     "strict_source_admission": "PENDING",
+    "operation_result": "PENDING",
     "live_result": "NOT_RUN",
     "parent_status": "INCOMPLETE"
   },

@@ -36,3 +36,16 @@ Historical LIVE_CONSENT_MISSING notes for the bounded WSL test operation are
 superseded by this instruction. Fresh ownership, usable backup, safe restoration,
 current source/phase admission and actual results remain unverified until captured.
 No S440O-06 completion or operational effect is recorded by this update.
+
+## TA440-20261112-02 complete-reset grant
+
+| Owner | Resolved authority | Required next evidence |
+|---|---|---|
+| Root / Requirement | Exact question covering the four existing TSW Incus nodes answered “Das komplett zurücksetzen!”; reviewed YES path READY | Continue same TA02 run; do not ask the resolved target question again |
+| DevOps / reset | Delete all four freshly project/UUID-bound old TSW nodes, installation-owned data/resources and remaining attributed TSW port applications | Per-effect identity/ownership, deletion exits and after-inventory/listener observations; actual operation currently pending |
+| Architecture / preservation | Old TSW installation is explicitly disposable; its old preservation guard is superseded | Preserve source/evidence, Ubuntu distribution, Incus prerequisite/provider and foreign/non-TSW assets; no forged restoring-driver result |
+| Qualification owner | Clean baseline may enable direct listener qualification without pretending old workload preservation | Actual clean resource/listener/source admission, then real supported downstream product identity/coordinator path; C unchanged |
+
+Initial node deletion binds private inventory snapshot SHA-256
+fd93f9a94796a5d672a8e8e31245fd239d63754acad9f1332abbf7b5525dd082.
+This is the resolved scope, not a deletion, qualification or parent-success receipt.
