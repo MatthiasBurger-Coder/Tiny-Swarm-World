@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA10 all six fresh native approvals complete; READY_FOR_BOUNDED_NATIVE_ATTEMPT requires exact Root receipt/guarded push before outage; no native effects; renewed WSL PASS accepted; K/product/parent OPEN.
+Status: EXECUTING; TA11 targeted67 PASS/full K-prime gate FAIL (4124/37skip/1failure2errors); K-prime uncommitted/unadmitted; narrow TA13 review proposed; host PASS scopes retained; TA12 public HOLD.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -235,3 +235,18 @@ GO/events,NOT_RUN0600. Same1800/360/snapshot300/fixture650/restore360/recover480
 manager-only gracefulpause/backup/FINALLYallfour proof, both oldbackups retained.
 Actual WSLpostcheck41776a82 confirms0inst/vol/defaultconsumers/no10001or61080/
 sourceclean. Static Root exactreceipt/guardedpush required; no native/K/productPASS.
+
+TA11 START/matrix before capability consultation. Native58f4b8b4/180all0/window
+restore+backup+postcheckPASS and WSL30e09ef1/155all0/post41776a82 accepted separately
+on same224/de623/fce9. Root external proposal/pairedmanifest→independentreview/
+preflight→sole directchild Kprime/only existing capabilityJSON100644→required
+targeted/full gates. No Kprimeconstruction/admission yet; frozenCprime private/
+clean unchanged, no hostchanges. Fullproducthealth/backuprestore UNVERIFIED.
+
+TA11 final preview: proposal sixACCEPT/preflightPASS,67targetedPASS0skip; full
+qualityFAIL4124run/37skip/1failure2errors. Legacy-entrypoint fixture copies filled
+capability, causing intended selective refusal before mocked legacydispatcher;
+no productbug/waiver proven. Narrow fixture review pendingTA13, no patch here.
+KprimeUNCOMMITTED/NOTADMITTED/Cprimeunchanged/integrationcapgateNOT_RUN. Exact
+Root docreceipt required for four-doc failure checkpoint; this report's fullgate
+NOT_RUN_DOC_ONLY is not a KprimePASS. TA12 public remainsHOLD until checkpoint.

@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA10 all six fresh C-prime native approvals complete, READY_FOR_BOUNDED_NATIVE_ATTEMPT conditioned on exact Root receipt/guarded push; no native outage/fixture; renewed WSL PASS accepted; K/product/EPIC OPEN
+Status: EXECUTING; TA11 K-prime preview targeted67 PASS but full quality FAIL (4124run/37skip/1failure/2errors); K-prime UNCOMMITTED/NOT_ADMITTED; narrow fixture review pending TA13; both host PASS scopes retained; TA12 public HOLD
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -545,6 +545,39 @@ No reset/deletion/security/provider/nativeinstall change. No outage/GO/events ye
 literalNOT_RUNslot0600. Producthealth NOT_VERIFIED; no native/K/product/EPIC PASS.
 Only reviewed approval/resource-status/dependent-hash finalization is admitted;
 wrapper/context/source remain fixed. Existing consent retained, no new question.
+
+## Execution run TA440-20261112-11 — paired capability/source review
+
+STARTED/matrix before consultation. Native C-prime fixture PASS independently
+accepted:180commands all0/exact nonce, UUID/devices/source/default/postpause-routes/
+cleanup. ResultSHA `58f4b8b4527c10a7183002454d056e65e057abae4f6de4029c0487e6b7fc19d7`;
+archiveSHA `3cd36fc0e94ce9866d9c0acb96e956ba92eb13692204b1dc5afb9e11224660ea`.
+Separate native window PASS restored allfour original UUID/config/states/ports/
+Docker identities; both old plus new cold backup retained and postcheck PASS.
+WSL30e09ef1/155all0/post41776a82 accepted separately. Same22435e96/de623/fce9,
+no old-proof transfer. Full product health/backup restoration remain UNVERIFIED.
+
+All six roles ACCEPTED the exact paired proposal/manifest; Root S3/S3D verified
+14DAG/serial08/one-file locks/frozen C-prime. Isolated K-prime preview changes only
+the existing capability JSON/mode100644 against parent22435e96. Its67 targeted
+tests passed (0skip), but full quality FAILED:4124run/37skip/1failure/2errors,
+exit1. Full logSHA `ed458dee297d017bdccce99b43970d703c6ee4d5792b865c1f86c1dbea8034e6`;
+receiptSHA `1bbba48fc34ff09a6217578e7f5fd083a1ccdc27224e2fd23fb788d4450b8dea`.
+
+Tester diagnosis: `test_package_entrypoint.py`'s fresh-repository helper copies
+all shipped infrastructure, so the filled capability matrix changes its intended
+legacy fixture. `composition_profile.legacy_full_setup_available` deliberately
+returns false when admitted; three CLI cases mock legacy dispatch but encounter
+the selective block first. Separate `test_profile_legacy_compatibility.py` tests
+both empty/admitted states. No product defect or gate waiver is established;
+a narrow fixture-isolation review is proposed for TA13, not implemented here.
+
+K-prime remains UNCOMMITTED/NOT_ADMITTED; C-prime is unchanged and no capability
+integration gate ran. Legal future K-prime remains a sole direct single-parent
+child changing ONLY that100644file. Root exact documentation receipt is required
+before this four-doc-only checkpoint; report full quality NOT_RUN_DOC_ONLY is
+separate from the executed failing K-prime gate. No source patch, host change,
+product/EPIC PASS or TA12 public application is included.
 
 ## Verified Baseline and Target Picture
 

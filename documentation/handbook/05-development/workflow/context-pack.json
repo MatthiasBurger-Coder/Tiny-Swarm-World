@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA10_READY_FOR_BOUNDED_NATIVE_ATTEMPT",
+  "status": "EXECUTING_TA11_KPRIME_FULL_GATE_FAILED_UNCOMMITTED",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "0938e6fd11052bb9da83b64d9059bb0b1401d668d118d630997494da9a78cf68",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "9767a1f3f739a517e74adeabb45abed0c608646fd710de6061139a432e9b44f9",
+    "documentation/handbook/05-development/workflow/context-pack.md": "675f97c9d7a8de91c7b3e920e030468c0ea035d3f147eb3c2cfed34c05d6b8de",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "42d393a4f605990851693fd9474ed49d7062d87a968c217db47699d17f238387",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "6b8e0c63e78f07c58d5bd2413ffa93061cca031251d4e16699e766418bf2b8f4"
+    "documentation/handbook/05-development/workflow/workflow.md": "9702fc1788340fd4d37adf840d809a4846f7bd670edd3c833fb0c11d3f0cb508"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-10",
+  "current_workflow_run": "TA440-20261112-11",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,68 +355,51 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-10",
-    "state": "READY_FOR_BOUNDED_NATIVE_ATTEMPT",
-    "slice_id": "S440O-06",
-    "related_attempt_slice_id": "S440O-07",
-    "source": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
-    "native_source_copy": "1811match0/read-copy-only proofprivateb497\u2026",
-    "native_helper_sha256": "c6f19912a35e90547117ec22ad18aacbac88a890b4a6e8b6121afb5edc88dc58",
-    "native_helper_status": "INSTALLED_ROOT0600_READONLY_INSPECT_EXIT0",
-    "retained_budgets": "1800total/360reserve/snapshot300",
-    "fresh_context_resources_GOs": "CAPTURED_EXACT",
-    "six_exact_reviews": {
-      "requirements": "APPROVED",
-      "architecture": "APPROVED",
-      "automation": "APPROVED",
-      "test_evidence": "APPROVED",
-      "security": "APPROVED",
-      "devops": "APPROVED"
+    "id": "TA440-20261112-11",
+    "state": "KPRIME_PREVIEW_FULL_QUALITY_FAIL_UNCOMMITTED",
+    "slice_id": "S440O-08",
+    "paired_source": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
+    "fixture_runner": "de623e56",
+    "fixture_test": "fce9aff2",
+    "actual_tuple": "Incus client6.0.5/server6.0.5",
+    "exact_external_proposal_and_manifest": "SIX_ACTUAL_ACCEPTED",
+    "independent_policy_review": "ACCEPT_PAIRED_EVIDENCE_AND_CAPABILITY_PROPOSAL_ALL_SIX",
+    "K_prime": "PREVIEW_CONSTRUCTED_UNCOMMITTED_NOT_ADMITTED",
+    "required_topology": "sole direct single-parent child of clean immutable private Cprime",
+    "only_changed_path": "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+    "required_file_mode": "100644",
+    "targeted_full_quality": {
+      "targeted": {
+        "result": "PASS",
+        "tests": 67,
+        "skips": 0,
+        "exit_code": 0,
+        "log_sha256": "29efe0dadf53c19e5e8e0ff2b325eb4ac205241cbd57554bf1c396fe35b62b9f"
+      },
+      "full": {
+        "result": "FAIL",
+        "run": 4124,
+        "skips": 37,
+        "failures": 1,
+        "errors": 2,
+        "exit_code": 1,
+        "log_sha256": "ed458dee297d017bdccce99b43970d703c6ee4d5792b865c1f86c1dbea8034e6",
+        "receipt_sha256": "1bbba48fc34ff09a6217578e7f5fd083a1ccdc27224e2fd23fb788d4450b8dea"
+      }
     },
-    "native_original_manager": "RUNNING",
-    "scope": "sameUUID manager gracefulpause/newownedcoldbackup/exactCprimefixture/FINALLYallfourconfigs-states-routes-listeners-DockerID",
-    "previous_owned_cold_backups": "BOTH_RETAINED",
-    "user_consent": "RETAINED_NO_NEW_QUESTION",
-    "new_native_reset_deletion_install": false,
-    "host_security_provider_changes": false,
-    "native_effects": {
-      "outage": "NOT_STARTED",
-      "GO": "ABSENT",
-      "events": "NONE",
-      "fixture_slot": "LITERAL_NOT_RUN_ROOT0600"
-    },
-    "pairK_product_parent": "OPEN",
+    "source_C_prime": "CLEAN_IMMUTABLE_PRIVATE",
+    "host_changes": false,
+    "product_EPIC_PASS": false,
+    "full_product_health_backup_restoration": "UNVERIFIED",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_EFFECTS",
-    "exact_packet_sha256": {
-      "context": "d2a6fd24cb8d5b25278bbfab7379157f5d317c528a07cc0dc56000cef45079d9",
-      "embedded_canonical_GO": "8025887bb0dc4ae6cc66e78552432cff591b05114ccd28fe7318e2bb53217942",
-      "resource": "f9de8b56b8574e5028709493f27a0dd7033231cdfde86f199291f205eeb3192d",
-      "packet": "b1c32c56d5402d9c8d1bd3529db761188a0f0f44bf678589df4d44bbbaf4c4e9"
-    },
-    "finite_budgets_seconds": {
-      "total": 1800,
-      "reserve": 360,
-      "snapshot": 300,
-      "fixture": 650,
-      "restore": 360,
-      "recover": 480
-    },
-    "fresh_baseline": {
-      "original_states": "3Running/historyStopped",
-      "default_profile": "existingroot+NIC/onehistoricalconsumer",
-      "five_ports": "managerproxies",
-      "previous_backups": "BOTH_RETAINED",
-      "disk_available_bytes": 696975437824
-    },
-    "attempt": {
-      "run_id": "bff32fadb091486caab870391922029f",
-      "deadline": "2026-11-12T21:34:55Z",
-      "admission": "CONDITIONED_ON_EXACT_ROOT_DOCRECEIPT_AND_GUARDED_PUSH_BEFORE_OUTAGE",
-      "result": "NOT_RUN"
-    },
-    "allowed_finalization": "actual approval/resource-status/dependent-hash fields only; source/context/wrapper fixed",
-    "product_health": "NOT_VERIFIED"
+    "publication": "EXACT_DOCUMENTATION_RECEIPT_REQUIRED_FOUR_DOC_FAILURE_CHECKPOINT_ONLY",
+    "preflight": "ROOT_S3_S3D_EXECUTION_PLAN_14DAG_SERIAL08_ONE_FILE_LOCKS",
+    "diagnosis": "test_package_entrypoint fresh helper copies filled shipped capability; intended legacy fixture enters selective refusal before mocked legacy dispatcher; separate legacy compatibility suite covers empty/admitted",
+    "product_bug_or_gate_waiver": "NOT_ESTABLISHED",
+    "proposed_remediation": "TA13 narrow test-fixture isolation review pending; no source patch in this checkpoint",
+    "integration_capability_gate": "NOT_RUN",
+    "report_full_quality": "NOT_RUN_DOC_ONLY",
+    "TA12_public_apply": "HOLD_UNTIL_TA11_SEPARATE_CHECKPOINT"
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -479,5 +462,24 @@
       "sha256": "41776a82b2e4845fcb8816fc742f4a723cabe8a56f6fe3a22ab53e9b0f225f27",
       "facts": "0instances/0volumes/0defaultconsumers/no10001or61080/sourceclean"
     }
+  },
+  "renewed_native_TA10_result": {
+    "source": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
+    "runner": "de623e56",
+    "test": "fce9aff2",
+    "fixture_status": "PASS_INDEPENDENTLY_ACCEPTED",
+    "commands": 180,
+    "all_command_exit_codes_zero": true,
+    "exact_nonce": "VERIFIED",
+    "fixture_sha256": "58f4b8b4527c10a7183002454d056e65e057abae4f6de4029c0487e6b7fc19d7",
+    "archive_sha256": "3cd36fc0e94ce9866d9c0acb96e956ba92eb13692204b1dc5afb9e11224660ea",
+    "raw_reference": "private S07/native-ta10-result",
+    "window_status": "PASS",
+    "original_four_UUID_config_states_ports_Docker": "RESTORED",
+    "cold_backups": "BOTH_OLD_PLUS_NEW_RETAINED",
+    "independent_postcheck": "PASS",
+    "product_health": "UNVERIFIED",
+    "backup_restoration_exercise": "UNVERIFIED",
+    "old_proof_transfer": false
   }
 }

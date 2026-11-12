@@ -191,3 +191,16 @@ historyStopped, defaults/5ports/both oldbackups/disk bound. SourceCprime224/help
 c6f unchanged; samegracefulpause/backup/FINALLY1800/360 guards. Nooutage/GO/events;
 NOT_RUN0600. Exact Root receipt/guardedpush required beforeoutage. WSL actual
 acceptance plus additivepostcheckPASS retained; native/K/product/EPICPASS not inferred.
+
+TA11 source-policy review STARTED. Both freshCprime host results independently
+accepted; native original4 restored/backupsretained/postcheckPASS. Root external
+Kprimebytes/pairedmanifest pending before independentreview/preflight; sole
+directchildCprime only corecapabilityJSON100644, targeted/full gates required.
+No Kprimeadmission/commit/hostchange/productPASS; health/backuprestore unverified.
+
+TA11 blocked at required full quality: targeted67PASS, full4124/37skip/1failure
+2errorsFAIL. Tester found legacy-entrypoint fixture copies admittedcapability,
+then intended selective refusal precedes mocked legacydispatch. No productbug/
+gatewaiver established; proposed TA13 narrow fixture review only. Kprime remains
+uncommitted/unadmitted; Cprime+hostPASS unchanged; no capabilityintegrationgate.
+Exact Root docreceipt/four-doc-only publication first; TA12 publicHOLD retained.
