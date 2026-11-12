@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-02 complete old-TSW test-installation reset authorized at S440O-06; operation and clean-baseline admission pending
+Status: EXECUTING; TA440-20261112-03 old draft withdrawn; root-disk prerequisite prepared; fresh post-preparation baseline and distinct review pending
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -123,6 +123,74 @@ record. Keep remaining source/ownership/phase verification explicit, commit and
 push each accepted change separately, and continue this TA02 run without a new
 consultation or duplicate target question. No live qualification, product,
 recovery, Sonar or parent PASS is recorded by this scope amendment.
+
+## Execution run TA440-20261112-03 — root-disk prerequisite correction required
+
+STARTED after actual complete old-TSW installation reset and independent clean
+resource/listener observations. Root created a source-identical root-owned WSL
+runtime clone of frozen C: all 1811 source files match, zero mismatches and the
+same tree; original C remains unchanged. Actual standalone route and all-project
+captures both exited 0. These are preparation facts, not listener qualification.
+
+Six real perspectives reviewed the fresh WSL admission. Architecture, Python
+Automation, Security and DevOps identified a concrete pre-execution prerequisite
+gap: the consumer-free default profile had `devices={}`, while the frozen fixture
+derives existing devices and `incus init` supplies no `--storage`. No root disk
+is available for that planned instance. Requirements and Test/Evidence approved
+the bounded scope; those approvals do not admit the uncorrected draft. Security
+also returned CORRECTION_REQUIRED for the same missing-root-disk prerequisite.
+No fixture was executed under this draft.
+
+TA03 decision: CORRECTION_REQUIRED; the old GO draft below remains withdrawn.
+Root has now prepared the prerequisite: after verifying the retained default
+pool was driver `dir` and status `Created`, one
+`incus profile device add default root disk path=/ pool=default` exited 0.
+Readback exactly matched the expected root device, with profile config `{}`
+and zero consumers. Root's private preparation-result proof SHA-256 is
+`221471d710da7fc8514bd012a208b09bcc53d4d25cc88f39cd615c56672ca996`.
+This is executed prerequisite preparation, not fixture admission or success.
+A fresh post-preparation baseline/GO and a distinct TA04 review remain pending;
+that next consultation is not started by this record. Source C remains unchanged. The actual standalone-fixture
+interpreter is Python 3.14.4; this is not a product/full-suite qualification.
+The superseded GO draft SHA-256 is
+`8551c162c59ae4b62c3502957041a7da0be463195e3134462706c9a2c4da2ba8`;
+resource draft SHA-256 is
+`edf7b26a06f3c7eca76faeafcb8d7c303ff8c12864c2674c100673b8f9e15e2b`;
+source proof SHA-256 is
+`9edd270a8426ef682810ea767cbe02c77a54beb85ab3ce734dc75cf976d7525f`.
+Exact run/host/resource identities and the complete drafts remain private.
+
+Scope is the existing standalone fixture on the cleaned WSL host with actual
+Incus client/server 6.0.5 and the pinned local Alpine 3.21 image. Only
+`127.0.0.1:61080 -> 8080` is planned. There is no external-route mutation.
+Cleanup may remove only the three exact newly run-owned fixture objects under
+the existing ownership receipts. Default profile/config/consumers, foreign
+state, route10001 and Windows firewall/PortProxy must match the post-reset
+baseline exactly after cleanup. Capture listener timing, process/device/profile
+identity, HTTP response and final resource/Windows equality; an exit alone is
+not acceptance.
+
+Per-host dependency clarification: the WSL portion of S440O-06 may admit this
+bounded WSL S440O-07 fixture after its own fresh source/target/GO reviews, even
+while native S440O-06 remains unadmitted. Keep the native and WSL admission and
+result records separate. This does not mark global S440O-06 or S440O-07 DONE,
+admit a paired capability K, qualify components/products or bypass any fixture
+check. Paired K still requires both accepted same-runner host receipts under
+its unchanged C/K/source contract.
+
+The clean direct-listener path uses existing fixture code; the confirmed reset
+removed the old workload and its listener conflict. Do not fabricate an old
+preserving-driver restoration receipt or spoof WSL/product identity. Later
+product cases retain a real supported identity/coordinator and their own
+preservation/recovery baselines. No new ADR or C source change is introduced.
+The embedded C workflow hash stays pinned as source provenance; the new user
+reset/target authority and this per-host execution record remain outside C.
+
+TA03 outcome: old draft withdrawn after CORRECTION_REQUIRED. The root-disk
+prerequisite has been prepared, but the per-host dependency split does not waive
+a new exact post-preparation baseline and review. Root next captures the
+corrected draft and starts its distinct review run. No old GO execution, fixture,
+S06/S07/global completion, K, product, recovery, Sonar or parent PASS is claimed.
 
 ## Verified Baseline and Target Picture
 
@@ -1166,9 +1234,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-06/` with the six issue-com
 
 ### Slice 07 — Qualify same-runner native/WSL listeners and restore
 
-Purpose: Execute only admitted exact-source loopback fixtures on both hosts under their own GO. Keep Windows bridge original-stopped and unbound during fixture; no BindNew/product action. Prove no prestart listener, attributable127.0.0.1 HTTP after start, no wildcard/forbidden listener, unchanged10001 and full fixture-window Windows/foreign state, exact cleanup and settled workers. Seal and return via fixture-only route; verify actual original resources, service/bridge/payload, routes and data restored. Original owned destination refresh is its own approved maintenance boundary. Retain source-specific native history without treating it as the fresh pair; unknown outcomes stay recovery-required.
+Purpose: Execute admitted exact-source loopback fixtures per host under each host's own GO. TA440-20261112-03 uses the existing standalone direct-listener path after complete reset of the old WSL TSW workload; preserve the actual post-reset Windows/foreign/default-profile baseline and remove only newly owned fixture objects. Where the preserving cold-guest path applies, keep its original-stopped/unbound fixture window, Seal/Return and actual restoration checks; never fabricate restoration for a deliberately deleted workload. No BindNew/product action in either listener fixture. Prove no prestart listener, attributable127.0.0.1 HTTP after start, no wildcard/forbidden listener, unchanged10001, exact cleanup, settled workers and full applicable Windows/foreign equality. Retain source-specific native history without treating it as the fresh pair. Global completion/paired capability requires both accepted same-runner host results; unknown effects stay recovery-required.
 
-Prerequisites: S440O-06. Mode: LIVE.
+Prerequisites: S440O-06 admission for the same host. TA440-20261112-03 permits the standalone WSL fixture only after its own fresh reviews/source/target/GO checks; missing native admission does not block that bounded per-host execution. Global S440O-06/07 completion and paired K still require all applicable host evidence. Mode: LIVE after that exact host admission.
 
 Done criteria: all stated observations and required checks have attributable evidence; independent owner review accepts the exact slice. No planned result counts as executed.
 

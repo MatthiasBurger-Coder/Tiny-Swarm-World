@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA440_20261112_02_COMPLETE_TSW_RESET_AUTHORIZED",
+  "status": "EXECUTING_TA440_20261112_03_ROOT_DISK_PREPARED_NEW_REVIEW_PENDING",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "9ae6dfc91827dde26f463a8be74f8d94dbb0d6eb0037267ee8f0a40478df3995",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "eb5433019c8cc1b0dd8df8e4176a9b83124358bbbda97b732cb8e6bee9c8811e",
+    "documentation/handbook/05-development/workflow/context-pack.md": "a5f3cc2dccf6a533df30e8fad725697e464c67cafea133ed5e4479ea7a0f24cb",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "450951fc7e821910f88f309d05116a08432b0d4164cd3a9e9591bd0f77a51698",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
-    "documentation/handbook/05-development/workflow/scenario-plan.md": "59200d4e81504d420acac12f77fc36a96c265d2d540774ef4567728194eb182e",
+    "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "9854f8f545b3ba87828ad29b7dfb798d0052153f284ab10621c78a28e903bbf2"
+    "documentation/handbook/05-development/workflow/workflow.md": "e717f97f47bb516bd0cb482eae05698aa25c33940eaf8f269d1ef9acede3cc63"
   },
   "slices": [
     "S440O-01",
@@ -95,27 +95,77 @@
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py"
   ],
   "execution_run": {
-    "id": "TA440-20261112-02",
-    "state": "STARTED_COMPLETE_RESET_AUTHORIZED",
+    "id": "TA440-20261112-03",
+    "state": "OLD_DRAFT_WITHDRAWN_PREREQUISITE_PREPARED_NEW_REVIEW_PENDING",
     "slice_id": "S440O-06",
-    "operator_authority_date": "2026-11-12",
-    "operator_answer": "Das komplett zur\u00fccksetzen!",
-    "target_question_resolved": true,
-    "scope": "all four inventory-bound old TSW Incus nodes and installation-owned data/resources in designated Ubuntu test environment, plus remaining TSW-owned port applications",
-    "preserve": [
-      "source checkouts and evidence",
-      "Ubuntu distribution",
-      "Incus prerequisite package/provider",
-      "foreign and non-TSW assets",
-      "dependent downstream per-case baseline"
+    "next_bounded_slice": "S440O-07 WSL standalone only after exact approvals/JIT",
+    "scope": "fresh WSL standalone listener after complete old TSW reset",
+    "source_clone": {
+      "commit": "77a3356075925edee037bfe009a1f3dfb94cf5d8",
+      "root_owned": true,
+      "files_matched": 1811,
+      "mismatches": 0,
+      "same_tree": true,
+      "original_C_modified": false
+    },
+    "capture_results": {
+      "standalone_routes": "exit0",
+      "all_projects": "exit0"
+    },
+    "draft_sha256": {
+      "go": "8551c162c59ae4b62c3502957041a7da0be463195e3134462706c9a2c4da2ba8",
+      "resources": "edf7b26a06f3c7eca76faeafcb8d7c303ff8c12864c2674c100673b8f9e15e2b",
+      "source_proof": "9edd270a8426ef682810ea767cbe02c77a54beb85ab3ce734dc75cf976d7525f"
+    },
+    "review_status": {
+      "Requirements": "SCOPE_APPROVED_PREREQUISITE_CORRECTION_REQUIRED",
+      "Architecture": "CORRECTION_REQUIRED_MISSING_ROOT_DISK",
+      "Automation": "CORRECTION_REQUIRED_MISSING_ROOT_DISK",
+      "Test_Evidence": "SCOPE_APPROVED_PREREQUISITE_CORRECTION_REQUIRED",
+      "Security": "CORRECTION_REQUIRED_MISSING_ROOT_DISK",
+      "DevOps": "CORRECTION_REQUIRED_MISSING_ROOT_DISK"
+    },
+    "per_host_dependency_scope": "Accepted in scope; WSL-only admission after corrected own exact review/JIT; does not waive prerequisite or paired gate",
+    "paired_K_requires": "both accepted same-runner host receipts and unchanged C/K source topology",
+    "planned_listener": "127.0.0.1:61080->8080",
+    "cleanup_scope": "three exact newly run-owned fixture objects only",
+    "preservation": [
+      "default profile/config/consumers",
+      "foreign resources",
+      "route10001",
+      "Windows firewall/PortProxy"
     ],
-    "initial_node_inventory_sha256": "fd93f9a94796a5d672a8e8e31245fd239d63754acad9f1332abbf7b5525dd082",
-    "frozen_campaign_commit": "77a3356075925edee037bfe009a1f3dfb94cf5d8",
-    "campaign_modified": false,
-    "strict_source_admission": "PENDING",
-    "operation_result": "PENDING",
-    "live_result": "NOT_RUN",
-    "parent_status": "INCOMPLETE"
+    "source_authority_boundary": "embedded C workflow hash pinned as provenance; renewed user reset/target authority recorded outside C",
+    "live_result": "NOT_RUN_CORRECTION_REQUIRED",
+    "global_S06_S07_done": false,
+    "parent_status": "INCOMPLETE",
+    "old_GO_executable": false,
+    "prerequisite_correction": {
+      "observed_fixture_init_storage_argument": false,
+      "gap": "missing root disk",
+      "preparation_status": "EXECUTED_EXIT_0_READBACK_EXACT",
+      "observed_default_profile_devices_before": {},
+      "observed_pool": {
+        "name": "default",
+        "driver": "dir",
+        "status": "Created"
+      },
+      "executed_action": "incus profile device add default root disk path=/ pool=default",
+      "profile_readback": {
+        "devices": {
+          "root": {
+            "type": "disk",
+            "path": "/",
+            "pool": "default"
+          }
+        },
+        "config": {},
+        "used_by": 0
+      },
+      "result_proof_sha256": "221471d710da7fc8514bd012a208b09bcc53d4d25cc88f39cd615c56672ca996",
+      "next_action": "fresh post-preparation baseline/GO and distinct TA04 exact review; not started here"
+    },
+    "standalone_interpreter": "Python 3.14.4; standalone fixture only"
   },
-  "current_workflow_run": "TA440-20261112-02"
+  "current_workflow_run": "TA440-20261112-03"
 }

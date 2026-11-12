@@ -74,6 +74,39 @@ add/update/no-op/fault/recovery observations. Source/process/ownership drift
 invalidates the next effect. This integration-side grant does not modify frozen
 C or replace exact source/preparation/phase-GO validation.
 
+## Per-host standalone WSL admission — TA440-20261112-03
+
+The old TSW workload was actually reset; Root's root-owned runtime clone is
+source-identical to frozen C (1811 files, zero mismatches, same tree). Actual
+standalone route/all-project captures exited 0, using Python 3.14.4 for the
+standalone fixture only. TA03 returned CORRECTION_REQUIRED: Architecture,
+Automation, Security and DevOps found an empty default-profile device map and
+no fixture `incus init --storage`, leaving no root disk. Requirements/Test-
+Evidence scope approval does not admit that withdrawn draft. Root then verified
+the retained default `dir` pool (`Created`) and added its root disk to the empty
+consumer-free default profile; exit 0 and exact device/config/zero-consumer
+readback. Private result proof SHA-256:
+`221471d710da7fc8514bd012a208b09bcc53d4d25cc88f39cd615c56672ca996`.
+A fresh post-preparation baseline/exact GO and distinct TA04 review are pending.
+No old GO is executable; no fixture success is inferred. C stays unchanged.
+
+After all required exact approvals and immediate JIT checks, the WSL S440O-06
+admission may release only its bounded standalone S440O-07 fixture before native
+admission is complete. Plan only127.0.0.1:61080 -> 8080 with pinned local Alpine
+3.21 and Incus client/server6.0.5. Delete only the three newly run-owned objects;
+keep default profile/config/consumers, route10001, foreign resources and Windows
+firewall/PortProxy equal to the actual post-reset baseline. Record actual timing,
+process/device identity, HTTP and complete cleanup/equality before any success.
+
+This does not satisfy global S06/S07 or the paired K gate: both accepted
+same-runner native/WSL receipts and unchanged source/topology remain mandatory.
+Product cases still need real supported identity/coordinator and preservation/
+recovery baselines. Existing direct fixture code and immutable C are unchanged;
+embedded C workflow bytes remain provenance, while new reset/target authority
+and this per-host sequencing record remain outside C. No fake restoration or
+identity spoof is allowed. Superseded TA03 GO draft, not executable:
+`8551c162c59ae4b62c3502957041a7da0be463195e3134462706c9a2c4da2ba8`.
+
 ## Attribution and reporter
 
 Record run ID, commit/file/workflow hashes, installed package, fixed redacted

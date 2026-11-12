@@ -49,3 +49,17 @@ No S440O-06 completion or operational effect is recorded by this update.
 Initial node deletion binds private inventory snapshot SHA-256
 fd93f9a94796a5d672a8e8e31245fd239d63754acad9f1332abbf7b5525dd082.
 This is the resolved scope, not a deletion, qualification or parent-success receipt.
+
+## TA440-20261112-03 fresh per-host WSL admission
+
+| Owner | Observed or reviewed | Remaining release gate |
+|---|---|---|
+| Root / source | Full reset preparation actual; source-identical root-owned clone,1811matching files/same tree; standalone route/project captures exit0 | Immediate exact runtime/target/resource JIT before live fixture; C unchanged |
+| Six real reviewers / TA03 | CORRECTION_REQUIRED: Architecture/Automation/Security/DevOps found no root disk; Requirements/Test-Evidence scope approved only | Do not execute old draftSHA8551c162c59ae4b62c3502957041a7da0be463195e3134462706c9a2c4da2ba8; corrected exact draft needs a distinct run/review |
+| Root / prerequisite | Retained default dir pool verified Created; one root-disk add exited0; exact expected devices/config{}/used_by0 read back; proofSHA221471d710da7fc8514bd012a208b09bcc53d4d25cc88f39cd615c56672ca996; standalone interpreter Python3.14.4 | Fresh post-preparation baseline/source/GO capture and distinct TA04 review pending; old draft remains withdrawn, no fixture success |
+| DevOps / WSL S06→S07 | Bounded standalone WSL part may proceed after its own fresh admission independently of native readiness | Onlyloopback61080->8080, pinnedAlpine3.21/Incus6.0.5, three new owned objects, default/foreign/Windows equality and cleanup |
+| Capability / product owners | No globalS06/S07 DONE, pairK or product result follows | Both accepted same-runner host receipts for K; real supported product identity/coordinator/preservation afterward |
+
+Source/resource/GO drafts and exact identities remain private. The source proof
+and embedded C workflow hashes are immutable provenance; new reset/target
+authority stays in integration evidence outside C. Actual fixture result pending.

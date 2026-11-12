@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA440-20261112-02 complete old-TSW installation reset authorized at S440O-06; operation/clean baseline pending; parent INCOMPLETE.
+Status: EXECUTING; TA440-20261112-03 old draft withdrawn; root disk prepared; new post-preparation baseline/review pending; parent INCOMPLETE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -53,3 +53,25 @@ Operation/clean-baseline results remain pending. Actual clean inventory and
 listener observations precede direct listener admission. Downstream product
 identity/coordinator and preservation cases must use a real supported path; no
 fabricated historical restoration or spoofed identity. Frozen C stays unchanged.
+
+## Current TA03 fresh WSL fixture review
+
+Actual full reset preparation is complete. Root-owned source-identical runtime
+clone:1811files match C, zero mismatches, same tree; route/all-project captures
+exit0. Actual standalone interpreter Python3.14.4; no full-product/test claim.
+TA03 CORRECTION_REQUIRED: Architecture/Automation/Security/DevOps found no root
+disk. Root has since verified retained default pool dir/Created and added the
+root disk: exit0, exact expected devices, config{}, used_by0. Private result
+proofSHA221471d710da7fc8514bd012a208b09bcc53d4d25cc88f39cd615c56672ca996.
+Requirements/Test-Evidence scope approvals do not admit the withdrawn old
+GO8551c162c59ae4b62c3502957041a7da0be463195e3134462706c9a2c4da2ba8.
+Fresh post-preparation baseline/draft and distinct TA04 review remain pending;
+no fixture execution or acceptance follows from prerequisite preparation.
+
+After all required reviews and JIT checks, per-host WSL S06 admission may release
+only its standalone WSL S07 fixture, without implying native admission/global
+completion. PairK still needs both accepted same-runner receipts. Plan only
+loopback61080->8080, three new owned fixture objects, full default-profile/foreign/
+Windows preservation and exact cleanup. Actual fixture/product result NOT_RUN.
+C unchanged; embedded workflow hash is provenance, new user/reset authority
+recorded outside C. Real downstream product identity/coordinator remains required.
