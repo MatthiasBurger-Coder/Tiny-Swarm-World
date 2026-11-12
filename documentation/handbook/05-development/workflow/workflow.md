@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA09 all six exact new-C-prime WSL approvals complete, READY_FOR_BOUNDED_WSL_ATTEMPT conditioned on Root receipt/publication; renewed fixture NOT_RUN; native/K/product/parent OPEN
+Status: EXECUTING; TA10 all six fresh C-prime native approvals complete, READY_FOR_BOUNDED_NATIVE_ATTEMPT conditioned on exact Root receipt/guarded push; no native outage/fixture; renewed WSL PASS accepted; K/product/EPIC OPEN
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -512,6 +512,39 @@ reservation are absent. No reset/security/provider/newsource change or renewed
 fixture result is claimed. Native follows actual independently accepted new WSL
 result under retained pause/backup/FINALLY consent; any prepared native helper
 alone is not admission. OldC/WSLPASS remain historical; newK/product/parent OPEN.
+
+## Execution run TA440-20261112-10 — fresh C-prime native admission
+
+STARTED/matrix before the next native consultation. Renewed C-prime WSL fixture
+exited0/PASS with155commands all0 and nonce HTTP verified; independent Tester
+accepted permitted finalization, effective profile/UUID receipts, Windows/default/
+routes preservation and exact owned cleanup/no final listener. ResultSHA
+`30e09ef1354f8a60907fce6d124931a700ca5a9c0c1e30ac7732277315656fe4`; finalGOSHA
+`66e8c5298e23b9715a9861c2867c10b96026bf2f46ea36f7c0575258e317186d`; archiveSHA
+`19b4b58b3e68dae508d93ca80253df4eef0cb9fc2ab5a76a40cfa57904121c19`. This is new22435e96/de623/fce9 proof,
+not transferred old-C evidence. Additive Root postcheck also passed:0instances/
+0volumes/0defaultconsumers/no10001or61080/sourceclean; private proof41776a82… .
+
+All six actual roles APPROVED the exact fresh native packet. Root0600 installed
+wrapperc6f19912 read-only inspect exited0; source22435e96/runtime1811/0 matched.
+
+| Reviewed binding | SHA-256 |
+|---|---|
+| Context | `d2a6fd24cb8d5b25278bbfab7379157f5d317c528a07cc0dc56000cef45079d9` |
+| Embedded canonical GO | `8025887bb0dc4ae6cc66e78552432cff591b05114ccd28fe7318e2bb53217942` |
+| Resource | `f9de8b56b8574e5028709493f27a0dd7033231cdfde86f199291f205eeb3192d` |
+| Packet | `b1c32c56d5402d9c8d1bd3529db761188a0f0f44bf678589df4d44bbbaf4c4e9` |
+
+READY_FOR_BOUNDED_NATIVE_ATTEMPT requires exact Root docreceipt and guarded push
+before outage. Same guards:1800total/360reserve/snapshot300/fixture650/restore360/
+recover480; graceful sameUUID managerpause/newownedbackup/C-prime61081fixture/
+FINALLY allfour states-config-routes-listeners/observed Docker identity restore.
+Fresh baseline:3Running/historyStopped, existing defaultroot+NIC/oneconsumer,
+manager fiveports, both prior backups retained,696975437824diskbytes available.
+No reset/deletion/security/provider/nativeinstall change. No outage/GO/events yet;
+literalNOT_RUNslot0600. Producthealth NOT_VERIFIED; no native/K/product/EPIC PASS.
+Only reviewed approval/resource-status/dependent-hash finalization is admitted;
+wrapper/context/source remain fixed. Existing consent retained, no new question.
 
 ## Verified Baseline and Target Picture
 

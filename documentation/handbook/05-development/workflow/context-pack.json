@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA09_READY_FOR_BOUNDED_WSL_ATTEMPT",
+  "status": "EXECUTING_TA10_READY_FOR_BOUNDED_NATIVE_ATTEMPT",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "395772ba7c61ab8e9c2ffd22fbadad2c1279ecdb57f893f7b7b2ac123b02629d",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "4a911a7cccacf85fa9e043bc95dc58f789163c91aec12c825ecdd41dcba7d8fa",
+    "documentation/handbook/05-development/workflow/context-pack.md": "0938e6fd11052bb9da83b64d9059bb0b1401d668d118d630997494da9a78cf68",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "9767a1f3f739a517e74adeabb45abed0c608646fd710de6061139a432e9b44f9",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "ddeca8c97c4f8c9b54ec43bb1394e8f6136ef1bb830d42ba5b5b9c955febaf18"
+    "documentation/handbook/05-development/workflow/workflow.md": "6b8e0c63e78f07c58d5bd2413ffa93061cca031251d4e16699e766418bf2b8f4"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-09",
+  "current_workflow_run": "TA440-20261112-10",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,18 +355,17 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-09",
-    "state": "READY_FOR_BOUNDED_WSL_ATTEMPT",
+    "id": "TA440-20261112-10",
+    "state": "READY_FOR_BOUNDED_NATIVE_ATTEMPT",
     "slice_id": "S440O-06",
-    "source_campaign": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
-    "runtime_copies": {
-      "native": "1811matches0; proofprivateb497a3fb\u2026",
-      "WSL": "1811matches0; proofprivate0adad98d\u2026",
-      "mode": "READ_COPY_ONLY_NO_INFRA_EFFECTS",
-      "python": "3.14.4 standalone only"
-    },
-    "fresh_WSL_packet": "READY_EXACT_NEW_CPRIME",
-    "exact_new_reviews": {
+    "related_attempt_slice_id": "S440O-07",
+    "source": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
+    "native_source_copy": "1811match0/read-copy-only proofprivateb497\u2026",
+    "native_helper_sha256": "c6f19912a35e90547117ec22ad18aacbac88a890b4a6e8b6121afb5edc88dc58",
+    "native_helper_status": "INSTALLED_ROOT0600_READONLY_INSPECT_EXIT0",
+    "retained_budgets": "1800total/360reserve/snapshot300",
+    "fresh_context_resources_GOs": "CAPTURED_EXACT",
+    "six_exact_reviews": {
       "requirements": "APPROVED",
       "architecture": "APPROVED",
       "automation": "APPROVED",
@@ -374,56 +373,50 @@
       "security": "APPROVED",
       "devops": "APPROVED"
     },
-    "new_live_effects": "CONDITIONED_ON_EXACT_ROOT_RECEIPT_AND_GUARDED_PUBLICATION",
-    "sequence": "renewed WSL fixture and acceptance first, native sameUUIDpause/ownedbackup/FINALLY after",
-    "existing_user_live_consent": "RETAINED_NO_NEW_QUESTION",
+    "native_original_manager": "RUNNING",
+    "scope": "sameUUID manager gracefulpause/newownedcoldbackup/exactCprimefixture/FINALLYallfourconfigs-states-routes-listeners-DockerID",
+    "previous_owned_cold_backups": "BOTH_RETAINED",
+    "user_consent": "RETAINED_NO_NEW_QUESTION",
+    "new_native_reset_deletion_install": false,
     "host_security_provider_changes": false,
-    "new_reset_or_native_install": false,
-    "old_C_WSL_result": "IMMUTABLE_HISTORICAL",
-    "original_signal_errno": "UNPROVEN",
+    "native_effects": {
+      "outage": "NOT_STARTED",
+      "GO": "ABSENT",
+      "events": "NONE",
+      "fixture_slot": "LITERAL_NOT_RUN_ROOT0600"
+    },
     "pairK_product_parent": "OPEN",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
     "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_EFFECTS",
-    "reviewed_packet_sha256": {
-      "GO_draft": "2c6aac6beeee1d3201d23960613ea60e6ebb77243e337c1f6976e770e74f3c54",
-      "resource_draft": "2d6e2fa318415f1b8734e03004211c5d79cd13bb678c06645e0c4f7c39379cec",
-      "archive": "a60b99cefb2561527493bef564a9ccf9d8b37d012a1c48ba511faa1a5a7bf7e3"
+    "exact_packet_sha256": {
+      "context": "d2a6fd24cb8d5b25278bbfab7379157f5d317c528a07cc0dc56000cef45079d9",
+      "embedded_canonical_GO": "8025887bb0dc4ae6cc66e78552432cff591b05114ccd28fe7318e2bb53217942",
+      "resource": "f9de8b56b8574e5028709493f27a0dd7033231cdfde86f199291f205eeb3192d",
+      "packet": "b1c32c56d5402d9c8d1bd3529db761188a0f0f44bf678589df4d44bbbaf4c4e9"
     },
-    "fresh_captures": {
-      "route_cli_exit": 0,
-      "projects_cli_exit": 0,
-      "all_project_instances": 0,
-      "default_profile_config": {},
-      "default_root_disk_pool": "default",
-      "default_profile_used_by": 0,
-      "linux_10001": "EMPTY",
-      "loopback_61080": "FREE",
-      "Incus_client_server": "6.0.5",
-      "local_Alpine": "PINNED_bb8",
-      "Windows_baseline": "CAPTURED_PRESERVE_EXACT"
+    "finite_budgets_seconds": {
+      "total": 1800,
+      "reserve": 360,
+      "snapshot": 300,
+      "fixture": 650,
+      "restore": 360,
+      "recover": 480
     },
-    "WSL_runtime": {
-      "source_proof_sha256": "0adad98d8158c7caa65324716f4d343ba0402b2cab30ffbe51cbd26b58f1dc93",
-      "source_entries": 1811,
-      "mismatches": 0,
-      "tree_correct": true,
-      "owner": "root",
-      "mode": "0700",
-      "filesystem": "ext4",
-      "standalone_python": "3.14.4",
-      "local_quality_python": "3.12_SEPARATELY_VERIFIED"
+    "fresh_baseline": {
+      "original_states": "3Running/historyStopped",
+      "default_profile": "existingroot+NIC/onehistoricalconsumer",
+      "five_ports": "managerproxies",
+      "previous_backups": "BOTH_RETAINED",
+      "disk_available_bytes": 696975437824
     },
-    "native_helper_preparation": "PREPARED_ONLY_NO_ADMISSION",
-    "allowed_finalization": "actual review statuses/resource APPROVED and dependent hash references only",
-    "execution_contract": "caller resource TTL before existing expected-SHA core CLI; sourceJIT/nonce/UUID/Windows/default/routes/ownedcleanup",
-    "outer_budget_seconds": 1100,
-    "effect_state": {
-      "fixed_GO": "ABSENT",
-      "reservation": "ABSENT",
-      "stub": "NOT_RUN",
-      "renewed_fixture": "NOT_RUN"
+    "attempt": {
+      "run_id": "bff32fadb091486caab870391922029f",
+      "deadline": "2026-11-12T21:34:55Z",
+      "admission": "CONDITIONED_ON_EXACT_ROOT_DOCRECEIPT_AND_GUARDED_PUSH_BEFORE_OUTAGE",
+      "result": "NOT_RUN"
     },
-    "old_proof_transfer": false
+    "allowed_finalization": "actual approval/resource-status/dependent-hash fields only; source/context/wrapper fixed",
+    "product_health": "NOT_VERIFIED"
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -465,5 +458,26 @@
     "source_bundle_sha256": "d7bc56f82e782af1097d5bad38f013804504cbf94bc8d3935d25c1ab9ba15aae",
     "runtime_manifest_reference": "private026a2a\u2026/1811",
     "S05_source_closure_inputs": "ACCEPTED_NOT_HOST_QUALIFICATION"
+  },
+  "renewed_WSL_TA09_result": {
+    "source": "22435e96cef1504ff7f6117c1ae105eb617fecbf",
+    "runner": "de623e56",
+    "test": "fce9aff2",
+    "status": "PASS_INDEPENDENTLY_ACCEPTED",
+    "exit_code": 0,
+    "commands": 155,
+    "all_command_exit_codes_zero": true,
+    "nonce_HTTP": "VERIFIED",
+    "preservation_cleanup": "ACCEPTED_WINDOWS_DEFAULT_ROUTES_UUID_RECEIPT_EFFECTIVE_PROFILE_NO_FINAL_LISTENER",
+    "result_sha256": "30e09ef1354f8a60907fce6d124931a700ca5a9c0c1e30ac7732277315656fe4",
+    "final_GO_sha256": "66e8c5298e23b9715a9861c2867c10b96026bf2f46ea36f7c0575258e317186d",
+    "archive_sha256": "19b4b58b3e68dae508d93ca80253df4eef0cb9fc2ab5a76a40cfa57904121c19",
+    "raw_reference": "private S07/wsl-ta09-result/raw",
+    "old_proof_transfer": false,
+    "root_postcheck": {
+      "result": "PASS",
+      "sha256": "41776a82b2e4845fcb8816fc742f4a723cabe8a56f6fe3a22ab53e9b0f225f27",
+      "facts": "0instances/0volumes/0defaultconsumers/no10001or61080/sourceclean"
+    }
   }
 }

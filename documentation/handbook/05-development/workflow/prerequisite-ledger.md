@@ -179,3 +179,15 @@ SourceCprime224/runtime1811match0;1100s expectedSHA coreCLI after callerTTL/sour
 JIT and exact Root receipt/publication. Only approved status/hash finalization;
 NOT_RUN/fixedGOabsent. Nativehelper preparation not admission; native follows
 actual renewedWSL acceptance. NewK/product/parentOPEN, oldproofhistorical.
+
+TA10 STARTED: renewedCprime WSLactualPASS independently accepted,155all0/nonce/
+Windows-default-routes/ownedcleanup proof retained. Native sourcecopy/helper
+preparation not admission; exact context/resources/GO/sixreviews NOT_RUN. Same
+manager-only pause/backup/FINALLY consent and both oldbackups preserved. Root
+receipt/checkpoint required beforeeffects; no native/K/product/EPICPASS yet.
+
+TA10 exactnative packet allsixAPPROVED/read-onlyinspect0; manager+2workersRunning/
+historyStopped, defaults/5ports/both oldbackups/disk bound. SourceCprime224/helper
+c6f unchanged; samegracefulpause/backup/FINALLY1800/360 guards. Nooutage/GO/events;
+NOT_RUN0600. Exact Root receipt/guardedpush required beforeoutage. WSL actual
+acceptance plus additivepostcheckPASS retained; native/K/product/EPICPASS not inferred.

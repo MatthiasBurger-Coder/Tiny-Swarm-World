@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA09 all six fresh C-prime WSL approvals complete; READY_FOR_BOUNDED_WSL_ATTEMPT requires Root receipt/publication; renewed fixture NOT_RUN, native/K/product/parent OPEN.
+Status: EXECUTING; TA10 all six fresh native approvals complete; READY_FOR_BOUNDED_NATIVE_ATTEMPT requires exact Root receipt/guarded push before outage; no native effects; renewed WSL PASS accepted; K/product/parent OPEN.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -221,3 +221,17 @@ kept separate. Only status/dependenthash finalization; callerTTL+expectedSHA
 coreCLI1100s, full ownership/nonce/Windows/default/routes cleanup proof. Exact
 Root receipt/publication before effects; fixedGOabsent/stubNOT_RUN. Native only
 after renewedWSLacceptance; no new qualification/K/productPASS.
+
+TA10 START/matrix before native consultation. Actual newCprime WSLexit0/PASS155
+all0/nonceHTTP/preservation/ownedcleanup independently accepted (result30e09ef1/
+finalGO66e8c529/archive19b4b58b), no oldtransfer. Native1811/0 sourcecopy/helper
+c6f19912 prepared only; six fresh context/GO reviews NOT_RUN. Authorized sameUUID
+managerpause/backup/FINALLY, both oldbackups retained, no security/provider/reset/
+nativeinstall change. Static Root receipt/checkpoint required; no native/K/product/parent PASS.
+
+TA10 native exact six-role admission approved: wrapperc6f19912/contextd2a6fd24/
+embeddedGO8025887b/resourcef9de8b56/packetb1c32c56. Readonlyinspect0, nooutage/
+GO/events,NOT_RUN0600. Same1800/360/snapshot300/fixture650/restore360/recover480;
+manager-only gracefulpause/backup/FINALLYallfour proof, both oldbackups retained.
+Actual WSLpostcheck41776a82 confirms0inst/vol/defaultconsumers/no10001or61080/
+sourceclean. Static Root exactreceipt/guardedpush required; no native/K/productPASS.
