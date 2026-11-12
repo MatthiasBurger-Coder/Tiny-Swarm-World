@@ -125,3 +125,18 @@ bytes; no duplicate public status edits or inherited prior receipt.
 
 TA06 actual installed-native0600 review receipt SHA4aa24e263d9a868dfaa16fd14ae0f265b2a07a4c3be1971ee6678b0ea7fa18e4; exactsource/admitted_go/
 unchangedfixture validate_go passed; no native events/GO and stubNOT_RUN.
+
+## TA440-20261112-07 responder diagnosis
+
+| Actual outcome | Next gate |
+|---|---|
+| TA06snapshot84s ack/retainedtrue; FAILED_RESTORED/allfour originalconfigs/states/listeners/Dockeridentity restored | Root postcheck/archive and actual-result review |
+| Fixtureexit2BLOCKED_TARGET_DRIFT/JIT_COMMAND_FAILED;160records/index95incus.exec exit1, emptyout/err, responder_script mapping | Read-only rootcause diagnosis; no race assertion or new attempt/source edit |
+| TA07 STARTED before Amigos; exact new review NOT_RUN; WSLPASS/C/prior outcomes retained | Exact Root documentation receipt before checkpoint; guarded publication before any admitted outage |
+
+TA07 plan review: actual Requirements/Architecture/Automation/Test-Evidence all
+READY_FOR_BOUNDED_DIAGNOSTIC_PLAN. Native TA06 actual FAILED_RESTORED/ownedcleanup
+audit accepted. DevOps prepares private exact script; effectreview pending. New
+owned Alpine/derivedbase only, no hostproxy/original-manager/default/network
+change; source-faithful responder first before probes/sleep. Instrumented branch
+separate; UUID/spec/marker cleanup and original proof required. No effects admitted.

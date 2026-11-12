@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA05 FAILED_RESTORED accepted; TA06 six exact approvals complete, READY_FOR_BOUNDED_ATTEMPT conditioned on actual documentation receipt/guarded publication before outage; no TA06 execution; WSL PASS retained; parent INCOMPLETE.
+Status: EXECUTING; TA06 failed/restored audit accepted; TA07 four-role diagnostic PLAN accepted, exact effects review pending; cause unproven; no effects/source edit admitted; WSL PASS retained.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -164,3 +164,20 @@ WSLPASS retained, native/pairK/product/global/parentOPEN.
 TA06 actual six-review receipt installed native root-owned0600 SHA4aa24e263d9a868dfaa16fd14ae0f265b2a07a4c3be1971ee6678b0ea7fa18e4.
 Exact source/admitted_go/unchanged-fixture validate_go passed; no events/GO, stub
 NOT_RUN. Exact documentation receipt/guarded publication remain required before outage.
+
+## Current TA07 diagnosis
+
+TA06snapshot84s ack/retainedtrue; nativefixture160commands, index95incus.exec
+exit1/emptyout/err, BLOCKED_TARGET_DRIFT/JIT_COMMAND_FAILED. Ownedcleanup done,
+wrapperFAILED_RESTORED/allfour config-state-listeners/Dockeridentity restored.
+Rootpostcheck/archive underway; respondercauseunproven. TA07matrix before Amigos;
+read-only diagnosis/boundedplan only, no newattempt/sourceedit. C/WSLPASS/prior
+outcomes retained. Static exactRootreceipt/publication requirements apply.
+
+TA07 update: four real Amigos READY_FOR_BOUNDED_DIAGNOSTIC_PLAN, not effect
+admission. New owned Alpine/derived base/no hostproxy; original Running/Stopped states unchanged, no
+manager/default/network changes. Exact C-faithful responder first before guest
+probes/sleep; instrumented probes explicitly separate, no inferred cause/PASS.
+UUID/spec/marker cleanup + original-state proof required. DevOps private script
+preparation only; exact script/context/effectsGO review and guarded publication
+precede effects. TA06 actual-result audit accepted; C/WSLPASS retained.

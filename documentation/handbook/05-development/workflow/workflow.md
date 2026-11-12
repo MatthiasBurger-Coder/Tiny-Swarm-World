@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA05 FAILED_RESTORED independently accepted; TA06 all six exact approvals complete, READY_FOR_BOUNDED_ATTEMPT subject to actual designated-host documentation receipt and guarded publication before outage; no TA06 outage/fixture; WSL PASS retained
+Status: EXECUTING; TA06 FAILED_RESTORED audit accepted; TA07 four-role diagnostic PLAN accepted, exact effects review pending; root cause unproven; no diagnostic effects/source edit admitted; WSL PASS retained
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -403,6 +403,37 @@ Actual independently accepted WSL listener PASS remains retained. Native
 listener, paired K, component/product/recovery/global/parent acceptance remain
 OPEN. A new actual attempt/result and restoration must be attributed and audited
 separately; current admission alone proves none of those outcomes.
+
+## Execution run TA440-20261112-07 — native responder diagnosis
+
+STARTED with its matrix before new Amigos. Actual TA06 exited2 FAILED_RESTORED:
+all four original configs/states/listeners and observed Docker identities were
+restored. Cold snapshot18:12:06–18:13:30UTC (~84s) was acknowledged and retained;
+private metadata SHA-256 `31b7e4ba864cc71a46b49f26d322c8222053b36f02d54e2ae5c79f59b94a2619`.
+
+The actual fixture18:13:30–18:13:50 exited2 BLOCKED_TARGET_DRIFT with
+JIT_COMMAND_FAILED. Of160 command records, index95 `incus.exec` returned1 with
+recorded stdout/stderr byte counts0; underlying diagnostics were discarded and
+are unavailable. It maps to unchanged fixture `responder_script` execution.
+Exact root cause is NOT_YET_PROVEN; no scheduling/race explanation is asserted.
+Owned cleanup and TA06 FAILED_RESTORED outcome have independent Test/Evidence
+acceptance; detailed raw evidence is retained.
+
+Four actual Amigos roles (Requirements, Architecture, Automation, Test/Evidence)
+returned READY_FOR_BOUNDED_DIAGNOSTIC_PLAN. The scoped proposal uses a new owned
+Alpine instance and derived base profile without host proxies; original nodes
+retain their captured Running/Stopped states, with no manager/default-profile/
+network change. Run the exact
+source-C-faithful responder first, before guest probes or sleeps. Later
+instrumented diagnostics are explicitly different and cannot establish fixture
+success or a cause without evidence. Cleanup binds UUID/spec/marker and proves
+all original state unchanged.
+
+DevOps is preparing only the private exact diagnostic script. Exact script/
+context/effects-GO review remains pending; no effects, source edit or new fixture
+attempt is admitted by plan acceptance. Preserve C, prior outcomes and WSL PASS;
+native/pairK/product/global/parent remain OPEN. Exact designated SSH/WSL receipt
+is required before checkpoint, with guarded publication before admitted effects.
 
 ## Verified Baseline and Target Picture
 

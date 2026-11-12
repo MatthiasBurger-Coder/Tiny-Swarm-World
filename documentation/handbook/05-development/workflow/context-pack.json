@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA06_READY_FOR_BOUNDED_ATTEMPT",
+  "status": "EXECUTING_TA07_DIAGNOSTIC_PLAN_ACCEPTED_EFFECT_REVIEW_PENDING",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "80f6349191fe3d4fedfbfd65b9c95465a8700f3c6ac739b9684177a1b4db422d",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "4a98b0b9956c70d985d83ed912212ca684362cabab8a12449b9fa8bc1cff2f8b",
+    "documentation/handbook/05-development/workflow/context-pack.md": "b6f1f72f25a4424e3f008f2320f98b4fb5bddde2e9f97dc1d216fde83041d5b1",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "b357b221a074d1aee1a3dbd028f5a15ca4d6d67033bd7982544b3327896cf17f",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "faf07d749f998c555fece8b351db875dd0adeab1f62d04941b27b2f6a6cc01d9"
+    "documentation/handbook/05-development/workflow/workflow.md": "0f7a944d8c8aa5f3e729e540c051890682f1391992e42af9ad83b030785a8ce8"
   },
   "slices": [
     "S440O-01",
@@ -96,7 +96,7 @@
   ],
   "execution_run": {
     "id": "TA440-20261112-06",
-    "state": "READY_FOR_BOUNDED_ATTEMPT",
+    "state": "FAILED_RESTORED_RESPONDER_EXEC_FAILURE",
     "slice_id": "S440O-06",
     "related_attempt_slice_id": "S440O-07",
     "trigger": "snapshotclient90s timeout; daemon completed around117s; FINALLY restored observed original state",
@@ -111,7 +111,7 @@
     "replacement_effect_GO_admitted": false,
     "active_native_recovery": "TA05_COMPLETED_AND_INDEPENDENTLY_ACCEPTED",
     "retained_WSL_result": "PASS_BOUNDED_TA04_UNCHANGED",
-    "native_fixture_result": "TA05_NOT_RUN; TA06_NOT_STARTED",
+    "native_fixture_result": "BLOCKED_TARGET_DRIFT_JIT_COMMAND_FAILED",
     "paired_K_admitted": false,
     "global_S06_S07_done": false,
     "product_health": "NOT_VERIFIED",
@@ -142,21 +142,27 @@
       "resource_draft": "6c3911be5138457d74e4c0408c5ee5ce49b8c631c256ee3228c227ea58a90837"
     },
     "new_attempt": {
-      "state": "NOT_STARTED",
-      "outage": "NOT_STARTED",
-      "snapshot": "NOT_RUN",
-      "fixture": "NOT_RUN",
-      "runtime_inspection": {
-        "exit_code": 0,
-        "status": "INSPECTED_READ_ONLY",
-        "installed_owner": "root",
-        "mode": "0600"
-      },
-      "baseline_includes": "retained TA05 owned cold snapshot",
-      "disk_available_bytes_at_capture": 709315608576,
-      "run_id": "17cae92dadca48b0b11db067a8ec9989",
-      "deadline": "2026-11-12T19:33:58Z",
-      "source_C_modified": false
+      "state": "COMPLETE_FAILED_RESTORED",
+      "snapshot": "ACKNOWLEDGED_AND_ACTUALLY_RETAINED",
+      "snapshot_metadata_sha256": "31b7e4ba864cc71a46b49f26d322c8222053b36f02d54e2ae5c79f59b94a2619",
+      "snapshot_utc": "18:12:06\u201318:13:30",
+      "snapshot_seconds_approx": 84,
+      "fixture_utc": "18:13:30\u201318:13:50",
+      "fixture_exit_code": 2,
+      "fixture_status": "BLOCKED_TARGET_DRIFT",
+      "fixture_code": "JIT_COMMAND_FAILED",
+      "commands": 160,
+      "failing_command_index": 95,
+      "failing_command": "incus.exec responder_script",
+      "failing_exit_code": 1,
+      "failing_stdout_bytes": 0,
+      "failing_stderr_bytes": 0,
+      "owned_cleanup": "COMPLETE",
+      "root_postcheck_archive": "DETAILED_RAW_EVIDENCE_AVAILABLE",
+      "original_four_configs_states_listeners_restored": true,
+      "observed_docker_identity": "EXACT_RESTORED",
+      "underlying_responder_diagnostics": "DISCARDED_UNAVAILABLE; recorded bytecounts0 do not establish cause",
+      "independent_result_audit": "ACCEPTED_FAILED_RESTORED_BLOCKED_FIXTURE_OWNED_CLEANUP"
     },
     "finite_budgets_seconds": {
       "snapshot": 300,
@@ -189,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-06",
+  "current_workflow_run": "TA440-20261112-07",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -347,5 +353,40 @@
     "fixture_stub": "NOT_RUN",
     "raw_archive_sha256": "81dabf43ee9470fbc22d667ffed052a6f7499e7d0130c3e2a51718c32edcb4b4",
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
+  },
+  "current_consultation": {
+    "id": "TA440-20261112-07",
+    "state": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN_EFFECT_REVIEW_PENDING",
+    "slice_id": "S440O-07",
+    "cause": "NOT_YET_PROVEN",
+    "new_exact_review": "PENDING_EXACT_SCRIPT_CONTEXT_EFFECTS_GO",
+    "new_live_attempt_admitted": false,
+    "source_edit_admitted": false,
+    "scope": "new owned Alpine and derived no-host-proxy base; original Running/Stopped states unchanged; no manager/default/network changes",
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_ADMITTED_DIAGNOSTIC_EFFECTS",
+    "WSL_result": "PASS_RETAINED",
+    "parent_status": "INCOMPLETE",
+    "plan_reviews": {
+      "requirements": {
+        "reviewer": "reset_requirements",
+        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
+      },
+      "architecture": {
+        "reviewer": "wsl_reset_review",
+        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
+      },
+      "automation": {
+        "reviewer": "reset_automation",
+        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
+      },
+      "test_evidence": {
+        "reviewer": "reset_test_evidence",
+        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
+      }
+    },
+    "diagnostic_order": "exact source-C-faithful responder before guest probes/sleep, then explicitly separate instrumented diagnostics",
+    "cleanup": "UUID/spec/marker bound plus all original-state proof",
+    "DevOps_preparation": "PRIVATE_EXACT_SCRIPT_ONLY_NO_EFFECTS"
   }
 }
