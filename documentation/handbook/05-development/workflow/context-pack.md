@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA11 failing gate preserved/checkpointed; TA13 LOCAL one-test-file scope approved, Root source preflight before code; tests NOT_RUN; TA12 public HOLD.
+Status: EXECUTING; TA12 approved route wording applied after Root preflight/TA13 checkpoint; K-prime unadmitted/TA11 FAIL retained; successor fullEMPTYgate RUNNING; no live GO or product completion.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -256,3 +256,11 @@ targetedgate; allother14metadata unchanged/PLANNED. Five actual plan approvals
 and Root S3_DOCpreflight accepted; source-executionS3/S3D/isolatedworker pending.
 No code yet; nearest EMPTY+ADMITTED disposable tests/fullgate required. Clean
 test-only Cdoubleprime/freshactualbothhosts/cap-onlyKdoubleprime required, no waiver.
+
+TA12 four APPROVE_S3_DOC decisions applied exactly to existing continuity/S09
+opening afterfbdc010c/Rootpreflight; private contracts retained, ordinarypublic
+route uses actual source/runtime/credentials/backup/phaseapproval/evidence, no
+fake private reporter/identity.14metadata/acceptance unchanged. Source-test6line
+change independently Architecture/Test approved; nearestEMPTY+SYNTHETIC_ADMITTED
+each70PASS0skip/fullEMPTYRUNNING. No freeze/Kadmission/liveGO/completion inferred.
+Root exactfivefile receipt/guarded checkpoint required.

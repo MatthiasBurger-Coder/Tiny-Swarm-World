@@ -211,3 +211,10 @@ sourcepreflight/isolatedworker beforewrites; code/testsNOT_RUN. Temporarylegacy
 matrix isolation only, assertions/admittedguards preserved; EMPTY+ADMITTED
 disposable tests/fullgates before Cdoubleprime/freshbothhosts/Kdoubleprime.
 ActualTA11FAIL remains, no waiver; TA12public waits for this scope checkpoint.
+
+TA12 route wording applied afterfbdc010c/Root S3_DOCpreflight/four exactapprovals.
+Strictprivate route contracts stay; actualordinarypublic admitted-source runtime
+requires full credentials/ownership/backup/phaseapproval/evidence/review, no fake
+identity/privateGO/faultreporter. S09suffix/14metadata unchanged. TA11FAIL/Kprime
+unadmitted retained; sixline testfix nearesttwo states70eachPASS/fullEMPTYRUNNING
+are scoped progress only. Root fivefile receipt/checkpoint before further effects.

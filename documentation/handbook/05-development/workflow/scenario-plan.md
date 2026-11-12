@@ -135,13 +135,21 @@ No new external CI or default merge/release is part of this workflow.
 
 ## Fixture-to-product window continuity
 
-Slice07 ends with actual original restoration and a stopped retained fixture
-guest. Existing coordination cannot simply EnterNew again from stage restored;
-a fresh run/registration collides with the exact two-distro contract. Slice02
-must implement/test the reviewed re-entry before C freezes: immutable prior
-receipts, exact existing GUID/VHD/source ownership, chained journal, fresh
-quiescence/boot/boundary/backup and phase-specific GO. No bookmark editing or
-implicit registration disposal. Slice09 explicitly reopens through that route.
-If it is unavailable, LIVE_PREREQUISITE_MISSING blocks before downtime.
-Products execute on admitted K with preparation receipts pinned to C; structural
-acceptance of C alone does not admit a still-empty capability matrix.
+Products execute on the actually admitted Kprime/source and a verified owned
+runtime. Select and document the actual route before effects:
+
+- Optional strict private-harness route: retain every existing preparation,
+  identity/registration, retained-guest, re-entry, journal, phaseGO and recovery
+  contract. If its required re-entry is unavailable, that route remains blocked;
+  never spoof its distribution/coordinator identity or manufacture receipts.
+- Ordinary public-CLI route: operate the actual supported installed runtime with
+  exact source/capability, credential references, ownership/inventory, usable
+  backup/recovery boundaries, explicit live/phase approval, actual commands and
+  independent evidence review. This route does not pretend to be a private
+  harness and does not require fabricated retained-guest/coordinator/privateGO.
+
+Both routes must prove all applicable Portainer/update/selection/interruption/
+recovery criteria. A normal public command is not private fault-reporter evidence;
+record only actual public journal/process/exit/runtime observations and obtain
+independent attribution. Missing observations remain OPEN. Retained original
+state, data and credentials must be preserved for every dependent product case.

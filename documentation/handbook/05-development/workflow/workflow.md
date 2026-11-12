@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA11 failure checkpoint415c7dbb retained; TA13 approved LOCAL one-test-file S3_DOC scope, Root source-execution preflight required before implementation; no code/tests yet; TA12 public HOLD
+Status: EXECUTING; TA12 four-role-approved route S3_DOC amendment applied after TA13 checkpoint/preflight; actual K-prime unadmitted/TA11 FAIL preserved; test-only successor full gate RUNNING, no live/product completion
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -590,6 +590,19 @@ Exact Root docreceipt/checkpoint requirements apply; source/test publication is
 separate. C-double-prime/fresh both-host/K-double-prime plan is mandatory, not
 old-evidence relabeling. TA12 public route amendment remains HOLD until this
 scope checkpoint. No host effects or production/config/helper changes admitted.
+
+## Execution run TA440-20261112-12 — approved route wording applied
+
+Read-only consultation STARTED before four actual APPROVE_S3_DOC responses on
+proposal6eb11891. After TA13 scope checkpointfbdc010c and Root's specific S3_DOC
+preflight, only existing continuity/S09opening wording is reconciled below.
+Optional private harness retains every contract; ordinary public CLI requires
+actual admitted source/runtime/credentials/backup/phase approval/evidence, never
+fabricated distro/coordinator/privateGO/faultreporter claims. All S09 acceptance
+requirements and14machine metadata remain unchanged. No live GO or source change.
+TA11 failed gate/K-prime unadmitted remains; source-test successor's two nearest
+EMPTY/SYNTHETIC_ADMITTED snapshots each70PASS0skip, fullEMPTYgate RUNNING, not
+completion. Exact Root five-file receipt and separate guarded checkpoint apply.
 
 ## Verified Baseline and Target Picture
 
@@ -1869,7 +1882,7 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-08/` with the six issue-com
 
 ### Slice 09 — Qualify Portainer upgrade and API-down recovery
 
-Purpose: Use preparation receipts pinned to C and execute on admitted K with fresh scenario GO and owned Portainer-managed pre-existing stack. After Slice07 restored the original and retained the stopped fixture guest, reopen the product window ONLY through the Slice02 implemented/reviewed re-entry, rechecking registrations, source, backup, current boot, quiescence, boundary and new GO; otherwise stop. Structural qualification_revision acceptance of C does not admit an empty capability matrix. Validate usable cold /data backup; perform CE Server/Agent2.45.0→2.45.1, authenticated API/admin, unchanged endpoint/data/stack ownership, subsequent managed update and converged tasks. Record repeat no-op, separately attributable SIGINT and actual API-down recovery without exclusive dependence on unavailable API, repeat recovery and final restoration. SIGTERM evidence and reachable login alone do not satisfy these cases.
+Purpose: Execute on actually admitted Kprime and an owned prepared runtime with a real Portainer-managed pre-existing stack and fresh scenario approval. Select the actual supported route: strict private harness requires all existing preparation/ retainedguest/re-entry/identity/GO contracts; ordinary public CLI uses actual source/credentials/runtime/backup/consent/evidence and never fabricates those private contracts. Empty capability/source-only acceptance admits neither. Validate usable cold /data backup; perform CE Server/Agent2.45.0→2.45.1, authenticated API/admin, unchanged endpoint/data/stack ownership, subsequent managed update and converged tasks. Record repeat no-op, separately attributable SIGINT and actual API-down recovery without exclusive dependence on unavailable API, repeat recovery and final restoration. SIGTERM evidence and reachable login alone do not satisfy these cases.
 
 Prerequisites: S440O-08. Mode: LIVE.
 

@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA13_LOCAL_TEST_SCOPE_APPROVED_SOURCE_PREFLIGHT_REQUIRED",
+  "status": "EXECUTING_TA12_ROUTE_S3_DOC_APPLIED_NO_CAPABILITY_ADMISSION",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "70f57919be04599ff385578f9ac09c688151c334964b41012273b2bc7fe241bb",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "cc298cc54fd83df1e45dad6b57166e7aca8b8a90a92a503d44bc79d842392f98",
+    "documentation/handbook/05-development/workflow/context-pack.md": "60e1fae0625ed4a1b4c06c952997f4d192973648f872f48c2d24a89fd774578d",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "630880094dc9c8b7f3ee80b75885cd2148dbcf897f13fb44b7a6f49e7da48a83",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
-    "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
+    "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "9b916bb08e286d7d541e78cd146f158ba4d33700885e616188521ef8d0bca499"
+    "documentation/handbook/05-development/workflow/workflow.md": "33fbd78feabc69dc2ce7bcb90efbaca988067d77c98255deb39370b3a7f26ceb"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-13",
+  "current_workflow_run": "TA440-20261112-12",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,36 +355,33 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-13",
-    "state": "APPROVED_LOCAL_TEST_SCOPE_ROOT_EXECUTION_PREFLIGHT_REQUIRED",
-    "slice_id": "S440O-02",
-    "approved_proposal_sha256": "fbf424cf0884b5bf0699207cf1771f0196aed66c2c9a0279b270443bbc29fe6e",
-    "actual_approving_roles": [
-      "Requirement",
-      "Architecture",
-      "Automation",
-      "TestEvidence",
-      "DevOps owner"
+    "id": "TA440-20261112-12",
+    "state": "APPROVED_S3_DOC_ROUTE_WORDING_APPLIED",
+    "process": "existing workflow execute S3_DOC; not workflowcreate",
+    "proposal_sha256": "6eb1189165090822fab32d4150774b47cb77a5b96eb79f9c7ff68b08dd85028d",
+    "actual_reviews": [
+      "Requirement APPROVE_S3_DOC",
+      "Architecture APPROVE_S3_DOC",
+      "Automation APPROVE_S3_DOC",
+      "TestEvidence APPROVE_S3_DOC"
     ],
-    "S3_DOC_preflight": "ROOT_EXECUTION_PLAN_AFTER_TA11_CHECKPOINT",
-    "TA11_checkpoint": "415c7dbba06109a9ecc04cec4a1f6d6373b33383",
-    "only_test_path": "modules/tsw_core/tests/test_package_entrypoint.py",
-    "targeted_gate_append": "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_package_entrypoint modules.tsw_core.tests.test_profile_legacy_compatibility",
-    "root_source_S3_S3D_isolated_admission": "REQUIRED_BEFORE_CODE",
-    "implementation": "NOT_WRITTEN",
-    "tests": "NOT_RUN",
-    "required_pre_freeze_test_states": [
-      "EMPTY shipped matrix disposable snapshot",
-      "ADMITTED shipped matrix disposable snapshot"
+    "root_specific_preflight": "EXECUTION_PLAN",
+    "prior_scope_checkpoint": "fbdc010c948b37633387a9081834e353e857ec4c",
+    "only_behavioral_doc_delta": [
+      "existing scenario-plan continuity section",
+      "existing S09purpose opening route sentences"
     ],
-    "required_full_quality": "UNCHANGED",
-    "source_plan": "immutable test-only Cdoubleprime; renewed actual same-source both-host fixtures; sole directchild cap-only100644 Kdoubleprime",
-    "old_Cprime_and_Kprime_preview": "UNCHANGED; failed Kprime uncommitted/unadmitted",
-    "product_source_config_helper_change": false,
-    "host_effects": false,
-    "TA12_public_apply": "HOLD_UNTIL_TA13_SCOPE_CHECKPOINT",
-    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_SCOPE_CHECKPOINT_REQUIRED_SOURCE_CHECKPOINT_SEPARATE",
+    "S09_remaining_acceptance_suffix": "BYTE_UNCHANGED",
+    "all14machine_metadata": "BYTE_UNCHANGED",
+    "private_harness": "OPTIONAL_ALL_CONTRACTS_RETAINED",
+    "ordinary_public_route": "actual admitted source/runtime/credentials/ownership/backup/phaseapproval/evidence/review; no fabricated private contracts",
+    "private_reporter_claims": "NOT_INFERRED_FROM_NORMAL_PUBLIC_COMMANDS",
+    "live_GO": false,
+    "source_change": false,
+    "frozen_K_change": false,
+    "TA11_FAIL": "RETAINED_KPRIME_UNADMITTED",
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_FIVE_FILE_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "SEPARATE_GUARDED_DOCUMENTATION_CHECKPOINT",
     "parent_status": "INCOMPLETE"
   },
   "diagnostic_TA07_outcome": {
@@ -467,5 +464,27 @@
     "product_health": "UNVERIFIED",
     "backup_restoration_exercise": "UNVERIFIED",
     "old_proof_transfer": false
+  },
+  "test_successor_TA13_progress": {
+    "six_line_test_file_reference": "b0d4c46e\u2026",
+    "independent_code_reviews": [
+      "Architecture APPROVED",
+      "TestEvidence APPROVED"
+    ],
+    "nearest_disposable_states": {
+      "EMPTY": {
+        "tests": 70,
+        "skips": 0,
+        "result": "PASS"
+      },
+      "SYNTHETIC_ADMITTED": {
+        "tests": 70,
+        "skips": 0,
+        "result": "PASS"
+      }
+    },
+    "full_EMPTY_gate": "RUNNING",
+    "source_frozen": false,
+    "capability_admitted": false
   }
 }
