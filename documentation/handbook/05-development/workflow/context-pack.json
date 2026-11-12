@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA07_EXACT_DIAGNOSTIC_EFFECTS_READY",
+  "status": "EXECUTING_TA08_LOCAL_SOURCE_FIX_IN_PROGRESS",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "fc1a56c318566dd6b2feb3c227ccc4d29469c210718618194e4b3b2b6d773f85",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "c3ab087de928ead3dea33aabffb4dbf70501cffe7d5ed578c15db0bfbccd610d",
+    "documentation/handbook/05-development/workflow/context-pack.md": "6320583c08c17609b99c9a45b64e41e4ae0c818da2a538709a14338aa8b7f118",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "30fc014a85545da6757dc3cedfe637beb43f866f58dcfd1069daf6ed9ad264a1",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "879db6047d1fa641bb46e7655a812d4fcf8030587a45846c92ff985733a7b44e"
+    "documentation/handbook/05-development/workflow/workflow.md": "718f676e55d88158df3eb981e20a746ce064a2b1f21bdda824e6d653e594ac84"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-07",
+  "current_workflow_run": "TA440-20261112-08",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,82 +355,69 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-07",
-    "state": "READY_FOR_BOUNDED_DIAGNOSTIC_ATTEMPT",
-    "slice_id": "S440O-07",
-    "cause": "NOT_YET_PROVEN",
-    "new_exact_review": "ALL_SIX_ACTUAL_APPROVED",
-    "new_live_attempt_admitted": "CONDITIONED_ON_EXACT_ROOT_DOCUMENTATION_RECEIPT_AND_GUARDED_PUBLICATION",
-    "source_edit_admitted": false,
-    "scope": "new owned Alpine and derived no-host-proxy base; original Running/Stopped states unchanged; no manager/default/network changes",
-    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_ADMITTED_DIAGNOSTIC_EFFECTS",
+    "id": "TA440-20261112-08",
+    "state": "LOCAL_SOURCE_FIX_IN_PROGRESS",
+    "slice_id": "S440O-02",
+    "scope": "LOCAL ordinary fixture process-liveness probe repair; two exact existing paths only",
+    "exact_review": "ALL_SIX_PLAN_ALIGNED_POSITIVE_PID_IDENTITY",
+    "shell_kill0_errno": "NOT_DIRECTLY_CAPTURED",
+    "cause": "NOT_FULLY_PROVEN; permission-as-livenessguard inference",
+    "host_versions": {
+      "OS": "Ubuntu26.04.1",
+      "kernel": "7.0.0-42",
+      "AppArmor": "5.0.2",
+      "restrict_unprivileged_unconfined": 1,
+      "userns_restriction": 1
+    },
+    "source_edit_admitted": "ROOT_PREFLIGHT_AND_ISOLATED_TWO_FILE_WORKER_ADMISSION_COMPLETE",
+    "host_changes_admitted": false,
+    "global_AppArmor_disable_admitted": false,
+    "guard_weakening_admitted": false,
+    "new_live_attempt_admitted": false,
+    "original_manager": "RUNNING",
+    "source_C": "UNCHANGED",
     "WSL_result": "PASS_RETAINED",
+    "native_fixture_result": "NO_PASS",
     "parent_status": "INCOMPLETE",
-    "plan_reviews": {
-      "requirements": {
-        "reviewer": "reset_requirements",
-        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
-      },
-      "architecture": {
-        "reviewer": "wsl_reset_review",
-        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
-      },
-      "automation": {
-        "reviewer": "reset_automation",
-        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
-      },
-      "test_evidence": {
-        "reviewer": "reset_test_evidence",
-        "decision": "READY_FOR_BOUNDED_DIAGNOSTIC_PLAN"
-      }
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_ANY_REVIEWED_EFFECTS",
+    "S3_S3D_gate": "ROOT_EXECUTION_PLAN_PASS",
+    "implementation": "IN_PROGRESS_SINGLE_TWO_FILE_WORKER",
+    "tests": "NOT_RUN_TESTER_ENVIRONMENT_PREPARATION_ONLY",
+    "added_source_test_paths": [
+      "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
+      "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
+    ],
+    "targeted_gate": "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture",
+    "retained_graph": "14 nodes and dependency edges unchanged",
+    "planned_identity_contract": "bounded procstat comm parentheses/starttime22/expectedparent/nonZ_X_x; samePID nonconnecting netstat and nonceHTTP; unknown fails closed",
+    "superseded_plan": "blanket liveness-guard removal",
+    "campaign_policy": "C77/WSLproof immutable historical; S05newCprime freeze then fresh both-host proofs",
+    "isolated_implementation": {
+      "worktree": "issue440-responder-fix-ta08",
+      "branch": "private/issue440-cprime-ta08",
+      "source_base": "77a3356075925edee037bfe009a1f3dfb94cf5d8",
+      "created_verified_clean": true,
+      "worker": "reset_automation",
+      "control_workflow": "active integration authoritative",
+      "scope": "exact two approved source/test files only"
     },
-    "diagnostic_order": "exact source-C-faithful responder before guest probes/sleep, then explicitly separate instrumented diagnostics",
-    "cleanup": "UUID/spec/marker bound plus all original-state proof",
-    "DevOps_preparation": "EXACT_EFFECTS_ARTIFACTS_INSTALLED_REVIEWED_NO_EXECUTION",
-    "effects_review_status": {
-      "requirements": "APPROVED",
-      "architecture": "APPROVED",
-      "automation": "APPROVED",
-      "test_evidence": "APPROVED",
-      "security": "APPROVED",
-      "devops": "APPROVED"
-    },
-    "artifact_sha256": {
-      "driver": "f11d1c4736cc140f3e38e6ca79989ef91fff210f28a57f04608ec45c57c38d4a",
-      "context": "ce47bd7c70c4f9ab2b92cb6bf8f9abd08db8fe8fe73f4b7dc6ee475e8384ae81",
-      "canonical_diagnostic": "5110b5f0866c4983f83fef89cfb4e21ca9ba310189864a47ff78fe77fc405b32",
-      "actual_review_receipt": "3e056125df8db0e6f4a24cfc06405dedc87c43a2d624fd73b2ade70c5269590f"
-    },
-    "native_preparation": {
-      "installed_owner": "root",
-      "mode": "0600",
-      "readonly_inspect": "PASS",
-      "driver_hash": "UNCHANGED",
-      "effect_journal": "ABSENT",
-      "effects": "NOT_RUN"
-    },
-    "bounded_scope": {
-      "trial_count": 2,
-      "max_alive": 1,
-      "effects_seconds": 600,
-      "cleanup_seconds": 240,
-      "no_host_proxy": true,
-      "original_mutations": false,
-      "faithful_first_before_probes": true,
-      "instrumented_branch": "EXPLICITLY_DIFFERENT",
-      "cleanup": "UUID/spec/marker FINALLY; recover cleanup-only no replay"
-    },
-    "retained_snapshot_proof": {
-      "before_refs_observed": 2,
-      "before_sha256": "5f338a57dccd7347a0a0abb9ccf6ad7d2d5a4363afc24f91df14968af8b44d50",
-      "after_observation": "REQUIRED_SEPARATE_READONLY_ARTIFACT",
-      "driver_compares_snapshot_list": false
-    },
-    "permitted_result_classifications": [
-      "REPRODUCED",
-      "NOT_REPRODUCED",
-      "INCONCLUSIVE"
-    ]
+    "preflight_evidence": "private TA08 s3d-execution-plan.json and ta08-distribution.json",
+    "source_checkpoint": "SEPARATE_LATER_TWO_FILE_CHECKPOINT",
+    "source_freeze": "NOT_YET_FROZEN"
+  },
+  "diagnostic_TA07_outcome": {
+    "classification": "REPRODUCED",
+    "faithful": "exit1,empty24ms",
+    "instrumented": "exit1,empty36ms",
+    "postprobes": "ncPIDlive,127.0.0.1:8080listen,loUP,ncoptionsvalid",
+    "HTTP": "NOT_RUN",
+    "owned_cleanup": "COMPLETE",
+    "original_four_config_state_routes_listeners_Docker": "PRESERVED",
+    "both_original_snapshot_refs": "EXACT_SAME_TWO",
+    "old_fixture_failure": "UNCHANGED",
+    "raw_reference": "private native-ta07-result/raw; archive prefix90d47c99",
+    "kernel_supplement_reference": "private supplement prefix2f873883;23ownedrun AppArmor stacking/signal/ptrace denials",
+    "cause": "INFERENCE_ONLY; shellkill0errno NOT_DIRECTLY_CAPTURED"
   }
 }

@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA07 all six exact effects approvals complete; bounded diagnostic admission conditional on exact Root receipt/publication; no effects; cause unproven; WSL PASS retained.
+Status: EXECUTING; TA08 LOCAL_SOURCE_FIX_IN_PROGRESS; Root S3/S3D and isolated two-file worker admission passed; tests NOT_RUN; C77/WSL proof historical, new freeze/both-host proof required.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -187,3 +187,23 @@ passed, no effects/journal. Driverf11d1c47/contextce47bd7c/diagnostic5110b5f0
 fixed;600effects+240cleanup, maxoneof2trialsalive, UUID/spec/marker recovery only.
 Both oldsnapshotrefs independently observed before (2retained); afterproof
 required. Root exactdocreceipt/publication precede effects; no cause/fix/nativePASS.
+
+TA08/matrix started before Amigos: responder nonzero despite later live nc/listen.
+Own-run23AppArmor denials suggest permission-as-liveness interpretation, but
+actual kill0errno/failureline unproven. Review fixtureprobe vs providercompatibility
+read-only; no globaldisable/guardweakening/source/hostchanges. ManagerRunning,
+all originals/backups/C/WSLPASS preserved; Root staticreceipt/publication required.
+
+TA08 S3_DOC: S02 adds exactly the existing fixture and nearest regression file
+plus targetedtest gate; owner/secondary/deps/serial/no-live/14DAG unchanged.
+Positive procstat PID/starttime/parent/nonZ identity (failclosed), samePID exact
+nonconnecting netstat+nonceHTTP; no hostsecurity change/guardremoval. Root
+S3/S3D/isolatedC-based implementation branch gate precedes code. Tests planned
+REDold/GREENfixed plus adverseidentity/socket cases, NOT_RUN. C77/WSLPASS kept
+historical; S05newCprime freeze/freshbothhostproof required.
+
+TA08 Root actualpreflight EXECUTION_PLAN/PASS:14DAG/locks/gates unchanged, cleanC
+and no overlap. Isolated C-based branch/worktree admitted; single worker owns
+exact2files, controlworkflow authoritative. Sourcefix IN_PROGRESS, testsNOT_RUN
+(Tester envprep only), no newfreeze/fixPASS/liveclaim. Root exact docreceipt/
+guarded publication applies; later two-file source checkpoint separate.

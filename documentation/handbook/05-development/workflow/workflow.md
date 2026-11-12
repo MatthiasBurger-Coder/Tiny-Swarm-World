@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA07 six exact diagnostic effects approvals complete, READY_FOR_BOUNDED_DIAGNOSTIC_ATTEMPT conditioned on exact Root receipt/publication; no effects yet; cause unproven; WSL PASS retained
+Status: EXECUTING; TA08 LOCAL_SOURCE_FIX_IN_PROGRESS after actual Root S3/S3D EXECUTION_PLAN and isolated two-file worker admission; tests NOT_RUN; C77/WSL PASS immutable historical; no live operation
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -454,6 +454,31 @@ Outcomes are bounded REPRODUCED/NOT_REPRODUCED/INCONCLUSIVE; nonzero reproductio
 or instrumented behavior alone proves no root cause, fix or native fixture PASS.
 Preserve prior failed-fixture result, C and WSL PASS; paired K/product/parent OPEN.
 
+## Execution run TA440-20261112-08 — read-only minimal fix-boundary review
+
+STARTED/matrix before new Amigos. TA07 classified REPRODUCED: faithful responder
+exit1/empty24ms and instrumented exit1/empty36ms, while later probes found nc/PID
+live,127.0.0.1:8080 listening, loopback UP and nc options valid. No HTTP, fix or
+native PASS. Owned cleanup/original four states/configs/routes/listeners/Docker
+identities were preserved; both original snapshot refs and old fixture-failure
+artifact stayed unchanged.
+
+An owned-run kernel supplement contains23 AppArmor stacking/signal/ptrace denials,
+including signal-exists checks. Host versions: Ubuntu26.04.1, kernel7.0.0-42,
+AppArmor5.0.2; unprivileged-unconfined/userns restrictions are enabled. Actual
+shell kill0 errno was NOT_DIRECTLY_CAPTURED. Permission interpreted as failed
+liveness is an inference, not a proven failure line or complete root cause.
+
+All six roles now align on the minimal fixture-probe source-fix plan; the
+Architect's positive PID/starttime/parent/non-Z identity supersedes blanket guard
+removal. The S02 LOCAL two-path amendment below records that bounded repair;
+Root S3/S3D and isolated implementation branch/worktree admission have now
+completed; the two-file worker is implementing. Tests/effects have not run. No extra errno capture or host-policy change is
+needed for this boundary; global AppArmor disable/guard weakening are excluded.
+C77 and WSL PASS remain immutable historical evidence. S05 must freeze a new
+corrected C-prime, followed by fresh both-host proofs. Root exact receipt and
+guarded checkpoint requirements apply; native/K/product/parent stay OPEN.
+
 ## Verified Baseline and Target Picture
 
 Original repair remains preserved in the original workspace. Its independent
@@ -736,6 +761,28 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-01/` with the six issue-com
 
 ### Slice 02 — Reconcile gaps and make cold restoration admissible
 
+TA08 execution update: Root S3/S3D returned EXECUTION_PLAN/PASS, confirmed the
+unchanged14-node DAG, exact two-file locks/gate, clean C and no overlap. A clean
+isolated C-based implementation branch/worktree was created and verified; one
+admitted Automation worker owns exactly the two source/test files. Integration
+workflow remains control authority. State LOCAL_SOURCE_FIX_IN_PROGRESS; tests
+NOT_RUN (Tester environment preparation only). No completed fix, new source
+freeze or live result is claimed; source checkpoint remains separate from this
+scope-documentation checkpoint. S05 C-prime/fresh both-host proof remain required.
+
+TA08 approved S3_DOC scope amendment (LOCAL ordinary defect remediation): all six
+roles align on positive responder identity from bounded `/proc/PID/stat`, parsing
+parenthesized comm, starttime field22, expected parent and non-Z/X/x state.
+Unknown/malformed/unreadable metadata fails closed. Keep that same PID identity
+through exact nonconnecting netstat and nonce HTTP; no host security change or
+blanket guard removal. Only the two appended existing source/test paths are
+newly in scope. Root S3/S3D and isolated branch/worktree admission are required
+before writes. Required regression: denied-signal/live PID RED old/GREEN fixed,
+plus dead/zombie/reused PID/wrong parent/malformed/unreadable/foreign/wrong socket.
+Code is in progress after admission; tests have not run. C77/WSL PASS remain immutable historical
+evidence; corrected source requires S05 new C-prime freeze and fresh both-host
+proofs. No live operation is authorized by this LOCAL amendment.
+
 Reviewed execution amendment: Architecture, Security, DevOps and Requirement
 owners accept the two explicitly proposed source/test paths below as necessary
 implementation of this slice's existing re-entry requirement. No new ADR or
@@ -801,7 +848,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
     "documentation/handbook/05-development/workflow/workflow.md",
-    "documentation/handbook/05-development/workflow/context-pack.json"
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
   ],
   "affected_modules": [
     "existing qualification/lifecycle and evidence"
@@ -833,7 +882,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
     "documentation/handbook/05-development/workflow/workflow.md",
-    "documentation/handbook/05-development/workflow/context-pack.json"
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
   ],
   "contract_locks": [
     "frozen C/K source and exact approval"
@@ -855,7 +906,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
     "documentation/handbook/05-development/workflow/workflow.md",
-    "documentation/handbook/05-development/workflow/context-pack.json"
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -880,7 +933,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "modules/tsw_core/tools/linux/qualification/wsl_original_runtime_window.py",
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py",
     "documentation/handbook/05-development/workflow/workflow.md",
-    "documentation/handbook/05-development/workflow/context-pack.json"
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py"
   ],
   "requirement_ids": [
     "P03",
@@ -894,7 +949,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "targeted": [
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch",
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_bridge_binding",
-      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_original_runtime_window"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_original_runtime_window",
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"

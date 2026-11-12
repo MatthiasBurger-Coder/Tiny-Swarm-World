@@ -146,3 +146,23 @@ diagnostic; root0600receipt installed and inspect passed. No effects. Exact Root
 docreceipt/checkpoint publication required first.600effects+240cleanup;2trials
 sequential/maxonealive, no hostproxy/originalmutations; UUID/spec/marker cleanup.
 Independent oldsnapshot before-observation2refs retained; after-proof required.
+
+TA08 STARTED/matrix before boundary Amigos. Actual TA07 reproduced nonzero/live-nc
+combination with cleanup/preservation; own-run AppArmor denials captured, precise
+kill0errno not captured. Read-only fixtureprobe/providercompatibility boundary
+review only; no global AppArmor disable, guard weakening, source/hostchanges.
+ManagerRunning/C/WSLPASS retained; exact Root receipt/checkpoint requirements apply.
+
+TA08 S3_DOC approved: ordinary LOCAL S02 fixture-probe correction, exactly two
+existing source/test paths and targeted unittest gate appended to declared
+locks/write scope. SeniorDevOps/Pythonsecondary/S01/serial02/no-live/14DAG remain.
+Root S3/S3D plus isolated branch/worktree based on frozen C precedes writes.
+Positive bounded procstat identity fails closed; meaningful RED/GREEN/adverse
+tests required. No code/tests yet; no hostsecurity changes. S05newCprime freeze
+and fresh both-host proofs required; C77/WSLPASS historical immutable.
+
+TA08 execution admission actual: Root S3/S3D EXECUTION_PLAN/PASS, isolated clean
+C-based worktree/branch verified, one two-file worker admitted. Sourcefix local
+inprogress; testsNOT_RUN/Tester environmentprep only.14DAG/locks/gates preserved.
+No completed fix/newfreeze/liveproof; C77/WSLPASS historical unchanged, S05Cprime
+and freshbothhostproof mandatory. Docscope/source checkpoints remain separate.
