@@ -233,3 +233,10 @@ timer or completion SLA; no-force. ActualTA14failed→ownedstoppedcleanup→RECO
 allfour originals+snapshots preserved independently accepted; WSLunconsumed.
 Source handoff/REDGREEN/fullsource+integration/freeze/freshpair/K3 pending, no
 completedrepair or liveGO. Exact Root docreceipt/DOC_ONLY checkpoint required.
+
+TA16 exact C3 source/native/WSL packets independently six-role approved; root
+preflight/sourcef993 verified, candidate/integration full4129/37PASS. Native
+readonlyinspect/allfouroriginals/fourbackups; WSLempty/defaultrootdisk/portsfree
+and Windowscaptured. No effects. Serialnative→independentPASS+restorationaudit→
+WSL; failure recovers/stops sequence. Exact Root receipt/preoutagecheckpoint
+required; no nativeinstall/K3/productPASS; history artifacts unchanged.

@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA14 native failed-then-recovered audit accepted, WSL NOT_RUN; TA15 refined LOCAL stop-budget/reserve plan six-role approved; source handoff/gates pending, no fix or EPIC completion
+Status: EXECUTING; TA16 exact C3 native/WSL six-role admissions READY, verified source f9933c4d; serialized native→independent audit→WSL only after Root pre-outage checkpoint; no effects/K3/product PASS
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -661,6 +661,36 @@ C3 freeze/publication/fresh same-source both-host proofs/cap-only K3. Old artifa
 stay immutable; no waiver. Optional private-wrapper sentinel-reporting correction
 requires its own exact review. No host effects or completed repair/incident/EPIC
 claim. Exact Root SSHreceipt/separate DOC_ONLY checkpoint requirements apply.
+
+## Execution run TA440-20261112-16 — exact C3 paired admission
+
+STARTED before host-specific consultation; all six actual roles separately
+APPROVE_EXACT_NATIVE_ADMISSION and APPROVE_EXACT_WSL_ADMISSION, with Root
+EXECUTION_PLAN. Private frozen C3 `a56661915fd640d5574897e86847826b5b574c45`/treeee167093
+and equivalent public sourcef9933c4d are verified. Candidate/separate integration
+full4129run/37skip/0failure PASS; oldRED, GREEN5 and whole181 retained. No waiver
+or old-source proof transfer; TA14 failure/recovery and WSLNOT_RUN stay immutable.
+
+| Exact binding | SHA-256 |
+|---|---|
+| Review brief | `9e0208d017b8f3744d8dccd8d4213f90de2237cc49d8c6d21913453cc0583999` |
+| Native context / driver | `7eda704aebe994bf61aa743f1f326c89d0f0aadea0fecf0ac6120b42f55c29bc` / `8bd5476423e50871ff3e4fbbdaac3e85e1a2484a68f3f72731676a3222f75f5f` |
+| Native GO / resource | `81f9fc669dcb84216d70279ba418ca9165ee8a59ebde1c2ac8359e73e2cf7206` / `35b4be9df8872a19de04675327a22a50a9f0f508d326e8ffd24d15adf0e78029` |
+| WSL GO / resource | `657eb2829f48c481bf119546b23c3bbd29975ca9c911c5b215ec4bf548cdc413` / `ba8e36f91b8a62ccc84f6f85e32a03720b9386fd9d13217787efdee907eca6a4` |
+
+Root/ext4 copies match1811files; standalone3.14.4 and quality3.12.15 remain
+separate. Native readonlyinspect passed, allfour originals/four prior backups
+bound, snapshot300/window1800/reserve360 unchanged. Trusted stop45/generic20,
+nativeforward180/reserveminimum120 on same300deadline; WSL650/reserve300 unchanged.
+WSL currentresources0/defaultrootdiskonly/portsfree/Windows/routes captured.
+
+Execute serial native→independent fixturePASS and preservation audit→WSL. On
+failure recover/audit, no further live phase. Immediate exact source/context/
+review/UUID/deadline/budget JIT and verified Root pre-outage checkpoint required.
+Driver adds only approved bindings and restored-true diagnostic comparison guard;
+no PASS/safety condition relaxed. Finalizer binding/derived-hash edits only,
+contexts/source fixed. Exact SSHreceipt required before checkpoint, no effects/
+nativeinstall/K3/product/backuprestore/EPIC PASS or producthealth claim.
 
 ## Verified Baseline and Target Picture
 

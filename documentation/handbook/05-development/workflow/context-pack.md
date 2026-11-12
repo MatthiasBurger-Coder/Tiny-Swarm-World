@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA14 failed/recovered accepted, WSL NOT_RUN; TA15 refined LOCAL stop45/shared-budget plan approved, code/tests pending handoff; no completion.
+Status: EXECUTING; TA16 C3 exact host-specific six-role admissions READY; source/integration gates PASS; serial native→independent audit→WSL after exact Root checkpoint; no effects/K3/product completion.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -279,3 +279,10 @@ TA14 recovered all4originals/all4backups; DOCKERerror was NOT_RUN sentinel maski
 POOL_CONSUMER_DRIFT, not changedIDs. Isolated2file test-first C3 source/gates/
 integration/freeze/freshpair/K3 pending; no liveGO or incidentDONE. Root static
 exactdocreceipt/separatecheckpoint required;14metadata/source frozen history kept.
+
+TA16 sourceC3a5666191/private/treeee167093/publicf9933c4d verified; bothfull
+4129/37skip0failPASS, RED/GREEN5/whole181 retained. Two rootruntime1811match0;
+separate six actual native/WSL approvals and nativeinspectPASS. Four original
+nodes/four backups preserved; native300sharedclock reserve120 not fresh timer,
+stop45, WSL650reserve300. Serial native→independentPASS+preservationaudit→WSL;
+failure means recover/audit, no nextphase. Root exactreceipt/preoutagepush required.
