@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA16 exact C3 native/WSL six-role admissions READY, verified source f9933c4d; serialized native→independent audit→WSL only after Root pre-outage checkpoint; no effects/K3/product PASS
+Status: EXECUTING; TA17 S08 observed6.0.5 profile capability ADMITTED on verified K3 and published equivalent8e7e8b1f; public-CLI WSL product qualification next; no product/EPIC DONE
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -691,6 +691,30 @@ Driver adds only approved bindings and restored-true diagnostic comparison guard
 no PASS/safety condition relaxed. Finalizer binding/derived-hash edits only,
 contexts/source fixed. Exact SSHreceipt required before checkpoint, no effects/
 nativeinstall/K3/product/backuprestore/EPIC PASS or producthealth claim.
+
+## Execution run TA440-20261112-17 — paired capability admitted
+
+STARTED/matrix before six actual paired-proposal ACCEPTs and Root preflight.
+Both actual C3 fixtures independently accepted: nativebe49…/180all0 plus separate
+allfour-original restoration/five-backup retention audit; WSL7935…/155all0 and
+postcheck9c068750 zero resources/listeners/sourceclean/Windows/routes preserved.
+Samea566/a90c/eb179, no old-source proof transfer.
+
+Private clean K3 `16f5dc770a9055b4672383fe633837d745b43157`/treeef832a4c96bce05acc482be3f989c665c506f827
+is the sole direct single-parent child of C3a566, changing only capabilityJSON
+mode100644, blob `68e10e67fef42c573984b2ccce9b1975757388a7ee362a985fe9b6a48e91b76f`. Real-object paired/promotion
+validation PASS, proofSHA `5efddcc1425b3e823ded19827dfb911ae286c3c8001f8590cdf520d652cf805d`.
+K3 targeted63 and full4129run/37skip PASS; separate exact integration targeted63/
+full4129/37 PASS. Equivalent one-file capability checkpoint
+`8e7e8b1f3735d8f7d0de814b755837f69ed45ad9` is remoteverified/clean; private sources remain private.
+
+S08 admission is only the observed Incusclient/server6.0.5 installation-scoped
+manager-profile capability with exact C3/runner bindings. Unknown/mixed versions
+and direct/recovery guards stay fail-closed; no waiver or broad host/application
+support claim. Public-CLI qualification on an owned WSL runtime is next planning,
+not a live GO or TA18 public amendment. Full product health and backup-restoration
+remain UNVERIFIED; component/update/selection/product/EPIC acceptance stays OPEN.
+Exact Root SSHdocreceipt/separate guarded documentation checkpoint required.
 
 ## Verified Baseline and Target Picture
 

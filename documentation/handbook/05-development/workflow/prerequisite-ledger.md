@@ -240,3 +240,10 @@ readonlyinspect/allfouroriginals/fourbackups; WSLempty/defaultrootdisk/portsfree
 and Windowscaptured. No effects. Serialnative→independentPASS+restorationaudit→
 WSL; failure recovers/stops sequence. Exact Root receipt/preoutagecheckpoint
 required; no nativeinstall/K3/productPASS; history artifacts unchanged.
+
+TA17 S08 admitted: actualpair/sixproposalACCEPT/preflight +legalonefileK3/real
+promotion +K3/separateintegration63targeted/full4129/37PASS. Publiccap8e7e8b1f
+verified; privateK3/C3 immutable. Only observed6.0.5 scopedprofile capability.
+Next ownedWSL publicCLI product qualification needs its own actual admission/
+evidence; no TA18publicchange or producthealth/backuprestore/EPICPASS implied.
+Root exactdocreceipt and separate guarded checkpoint required.

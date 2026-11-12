@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA16 C3 exact host-specific six-role admissions READY; source/integration gates PASS; serial native→independent audit→WSL after exact Root checkpoint; no effects/K3/product completion.
+Status: EXECUTING; TA17 S08 narrow6.0.5 profile capability admitted/K3+integration gates PASS/public8e7e8b1f verified; WSL public-CLI product qualification next, no product/EPIC DONE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -286,3 +286,10 @@ separate six actual native/WSL approvals and nativeinspectPASS. Four original
 nodes/four backups preserved; native300sharedclock reserve120 not fresh timer,
 stop45, WSL650reserve300. Serial native→independentPASS+preservationaudit→WSL;
 failure means recover/audit, no nextphase. Root exactreceipt/preoutagepush required.
+
+TA17 final: privateK3 16f5dc77/parenta566/onlycapJSON100644 blob68e10e67,
+realpromotionPASS5efddcc1; K3+separateintegration targeted63/full4129/37PASS each.
+Publicequivalent8e7e8b1f remoteverified. ActualC3native180/WSL155 independently
+accepted/preservation audited, no oldtransfer. Narrow S08capability only, not
+producthealth/backuprestore/EPICPASS. WSL ordinarypublicCLI qualification next
+planning; no TA18publicamend/liveGO. Exact Root receipt/doccheckpoint required.

@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA16_EXACT_C3_HOST_ADMISSIONS_READY",
+  "status": "EXECUTING_TA17_S08_CAPABILITY_ADMITTED_PRODUCT_QUALIFICATION_NEXT",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "bda52f37a2956b9cb476d2a620a5bad0b3ca5bd4b138ad4b92145c5b04b1a40b",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "dd81c59fbbbe538632a5324afe488589a9665c0c10d8e0deccb0dee6c0d19996",
+    "documentation/handbook/05-development/workflow/context-pack.md": "57ee80c079a90c5e42045e2fcbcbd98c9f1995a1351845481697b2ac6bb59185",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "332b1b298804b107502d133dff91a254a5e0a1353da5d967dd1a67c268c6ba2d",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "ce9c4e34a510a29cb1e7e0ced85057e1d00a09f686aec9b5e8b606a19812e88d"
+    "documentation/handbook/05-development/workflow/workflow.md": "d6a7bde1a421a14ab7e5893e01ee4a409115373d7edefda127c4183daa482d38"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-16",
+  "current_workflow_run": "TA440-20261112-17",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,69 +355,50 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-16",
-    "state": "READY_EXACT_NATIVE_AND_WSL_ADMISSIONS",
-    "slice_id": "S440O-07",
-    "root_preflight": "EXECUTION_PLAN",
-    "source": "a56661915fd640d5574897e86847826b5b574c45",
-    "review_brief_sha256": "9e0208d017b8f3744d8dccd8d4213f90de2237cc49d8c6d21913453cc0583999",
-    "native": {
-      "six_actual_reviews": {
-        "requirements": "APPROVED",
-        "architecture": "APPROVED",
-        "automation": "APPROVED",
-        "test_evidence": "APPROVED",
-        "security": "APPROVED",
-        "devops": "APPROVED"
-      },
-      "context_sha256": "7eda704aebe994bf61aa743f1f326c89d0f0aadea0fecf0ac6120b42f55c29bc",
-      "driver_sha256": "8bd5476423e50871ff3e4fbbdaac3e85e1a2484a68f3f72731676a3222f75f5f",
-      "embedded_GO_sha256": "81f9fc669dcb84216d70279ba418ca9165ee8a59ebde1c2ac8359e73e2cf7206",
-      "resource_sha256": "35b4be9df8872a19de04675327a22a50a9f0f508d326e8ffd24d15adf0e78029",
-      "run_id": "afa95abcf2f1434bbccbcb9365ac3216",
-      "deadline": "2026-11-12T23:52:18Z",
-      "readonly_inspect": "PASS",
-      "prior_snapshots": "ALL_FOUR_RETAINED",
-      "originals": "ALL_FOUR_BOUND",
-      "window_budgets": "1800total/360reserve/snapshot300",
-      "source_proof": "9d1a4b3e80bdc7044004b27d2042640ef84d4ecd401012c7e27366f8b9fb11de",
-      "actual_review_hash_reference": "native16994587\u2026"
+    "id": "TA440-20261112-17",
+    "state": "S08_OBSERVED_PROFILE_CAPABILITY_ADMITTED",
+    "slice_id": "S440O-08",
+    "actual_reviews": "ALL_SIX_ACCEPT_PAIRED_EVIDENCE_AND_CAPABILITY_PROPOSAL",
+    "paired_source": "a56661915fd640d5574897e86847826b5b574c45",
+    "accepted_host_inputs": {
+      "native": "be49ec522c872d816e4810b3982dd6c5dd4b79570ff4da92b063f89a5cd7d33a/180all0",
+      "WSL": "79358dcaac141011181e39681ad8df5a138e887d6d475429eec6965b48c4e512/155all0",
+      "native_preservation": "ALL_FOUR_ORIGINALS_RESTORED_FIVE_BACKUPS_RETAINED",
+      "WSL_postcheck": "9c06875074787bdb63811ae552b2b06e334f988d5fbe9657eff887f36e15b88e/PASS",
+      "old_proof_transfer": false
     },
-    "WSL": {
-      "six_actual_reviews": {
-        "requirements": "APPROVED",
-        "architecture": "APPROVED",
-        "automation": "APPROVED",
-        "test_evidence": "APPROVED",
-        "security": "APPROVED",
-        "devops": "APPROVED"
-      },
-      "GO_sha256": "657eb2829f48c481bf119546b23c3bbd29975ca9c911c5b215ec4bf548cdc413",
-      "resource_sha256": "ba8e36f91b8a62ccc84f6f85e32a03720b9386fd9d13217787efdee907eca6a4",
-      "run_id": "401e21604a774acfb5b414530a4457fc",
-      "deadline": "2026-11-12T23:53:08Z",
-      "baseline": "zero instances/defaultconsumers/rootdiskonly/portsfree/Windows+routescaptured",
-      "source_proof": "c32122bd4d9c25cf7f33bfe2de314503be7d25ebe8fb96a8f58d2ec3f58b094b",
-      "actual_review_hash_reference": "WSL2f8933b9\u2026"
+    "K3": {
+      "commit": "16f5dc770a9055b4672383fe633837d745b43157",
+      "tree": "ef832a4c96bce05acc482be3f989c665c506f827",
+      "sole_parent": "a56661915fd640d5574897e86847826b5b574c45",
+      "only_changed_file": "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+      "mode": "100644",
+      "capability_blob_sha256": "68e10e67fef42c573984b2ccce9b1975757388a7ee362a985fe9b6a48e91b76f",
+      "private_clean_frozen": true,
+      "real_object_promotion": "PASS",
+      "promotion_proof_sha256": "5efddcc1425b3e823ded19827dfb911ae286c3c8001f8590cdf520d652cf805d",
+      "targeted_tests": 63,
+      "full_gate": "PASS_4129_RUN_37_SKIP",
+      "full_log_sha256": "d89ecf673e9141449bca04d985c980ca952e7828324ffcbc5bcb7bebfd75157d",
+      "full_receipt_sha256": "51f80521f2f5b9c426e7286e8e4496fbae63655e4f1815b6b56998853ec68266"
     },
-    "fixture_budget_contract": "stop45 exact trusted shape; generic20; native180/reservemin120/same300deadline, cleanupactualremaining; WSL350/reserve300/same650",
-    "runtime_sources": "root/ext4/1811exact; standalonePython3.14.4 versus quality3.12.15",
-    "driver_delta": "bindings plus approved restoredtrue diagnostic-error guard only; no PASS/safety change",
-    "finalizer_sha256": "fe24a3bf428ca3526aa4c7c444ca0e4b0abd046482f2ccd5f320c237ac593102",
-    "finalization_scope": "declared bindings/review-resource-status/derivedhash only; contexts/source fixed",
-    "order": [
-      "native window fixture",
-      "independent native fixturePASS and preservationaudit",
-      "WSL fixture",
-      "independent WSL actual-result audit"
-    ],
-    "failure_policy": "RECOVER_AND_AUDIT_NO_FURTHER_LIVE_PHASE",
-    "effects": "NOT_STARTED",
-    "live_permission": "existing bounded listener consent only; no nativeinstall/producteffects",
-    "product_health_backup_restoration": "NOT_VERIFIED",
-    "K3_product_EPIC_PASS": false,
+    "separate_integration": {
+      "targeted_tests": 63,
+      "full_gate": "PASS_4129_RUN_37_SKIP",
+      "full_log_sha256": "ac5446f1c4c387c127271b604f4ffd104f3642ef45b2a72cbb1365bd99cf2e14",
+      "full_receipt_sha256": "55551b6066c43712f5555c041d46ba33edd20ee7fb0683679fd6f88290ba929a",
+      "public_equivalent_commit": "8e7e8b1f3735d8f7d0de814b755837f69ed45ad9",
+      "remote_verified_clean": true
+    },
+    "capability_scope": "only observed Incusclient6.0.5/server6.0.5 installation-scoped managerprofile with exactC3/runner bindings",
+    "unsupported_direct_recovery_guards": "FAIL_CLOSED_UNCHANGED",
+    "next": "OWNED_WSL_PUBLIC_CLI_PRODUCT_QUALIFICATION_PLANNING_ONLY",
+    "TA18_public_amendment": false,
+    "new_live_GO": false,
+    "full_product_health_backup_restoration": "UNVERIFIED",
+    "product_EPIC_DONE": false,
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_PRE_OUTAGE_CHECKPOINT_REQUIRED",
+    "publication": "SEPARATE_GUARDED_DOCUMENTATION_CHECKPOINT",
     "parent_status": "INCOMPLETE"
   },
   "diagnostic_TA07_outcome": {
