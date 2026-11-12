@@ -195,7 +195,7 @@ public static class Epic440RegistrationFile {
    Require ($source.verified -eq $true -and $source.clean -eq $true -and $source.revision -ceq $s.source_commit) 'SOURCE_MISMATCH'
    $pins=[ordered]@{}
    foreach($relative in @('modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1','modules/tsw_windows_wsl/tools/qualification/wsl_resource_maintenance.ps1',
-      'tests/fixtures/wsl_acceptance_registration.ps1','tests/tools/test_wsl_acceptance_registration.py')){
+      'modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1','modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py')){
     $path=Join-Path $script:root $relative
     & $script:prep {param($p) Assert-PreparationEvidencePath $p} $path
     $pins[$relative]=(Get-FileHash -LiteralPath $path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()

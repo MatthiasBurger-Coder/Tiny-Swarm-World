@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-acceptance-20261110",
   "baseline": "ca6902579f51c2c6d9439bf9c58dec02bfb45a93",
-  "status": "EXECUTING_S440_02_03_04_05_VERIFIED_LOCAL",
+  "status": "S440_06_PREREQUISITE_REPAIR_VERIFIED_LOCAL_LIVE_PENDING",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -64,11 +64,11 @@
     "documentation/handbook/02-architecture/arc42/07_deployment_view.adoc": "1ab37114288bf3f37fdf6507639804496fde9f8daa5e93622dfa2f40106e42ac",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
-    "documentation/handbook/05-development/workflow/workflow.md": "4e1fe21e294f5677dba89a4812fd4e8c4be2e8ef988209c7cdf50769e476833a",
+    "documentation/handbook/05-development/workflow/workflow.md": "e5ae051b09a45e8fb7c88f02885c5e137a2db8666295dbd39cb2f020aeff77f1",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "bca574bc99e160f979974936a2cbd275532cfb4eea49e23d4cb065b8576e6a53",
     "documentation/handbook/05-development/workflow/requirements.json": "e9931f6b6da88900008a0772c8d26465a8d54cfa1ff4efced3af34b13bac9c4a",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "1be78dc64d3e0c5c4462a0f640d6e00fe520068f0fd1ec9cc8f0f8fbde88db83",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "3db93cd627838303426f29102ca325dd56e64b745e8c8e8757dbeba9f821dfd5",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "c019259ef1e48ee86f0836980f1846c6c41e132cbfa247c4ed9f4144020e54a3",
     "documentation/handbook/05-development/workflow/workflow.index.md": "539a395e1bce505e4116371968d34adfe3a0c0824b9c7cd571b48cdb01810277"
   },
   "issue_body_sha256": "2436a9769bc3fb02fef646ad8a867a2183d5f8822c3b6a8b7c93bfdb14abced0",

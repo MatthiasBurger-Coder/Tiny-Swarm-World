@@ -23,3 +23,10 @@ S440-02 local D8 verified; S440-04 deterministic integration may proceed. No liv
 S440-04 local D8 verified. S440-05 may bind the qualification helpers to the active workflow. No live GO.
 
 S440-05 local D8 verified. Current fixture and supervisor approvals pin the active workflow. S440-06 still requires host readiness, restoration proof and exact live consent.
+
+S440-06 prerequisite repair is authorized by the operator's 2026-11-11 request.
+The reviewed scope adds relocated source pins and a separate sealed pre-BindNew
+fixture-return path under the existing cold-kernel policy. Authorized exact-source SSH/WSL verification passed: 18 targeted tests with
+zero skips and the full quality gate (4058 tests, 37 declared skips). The source
+repair is VERIFIED_LOCAL; live qualification, independent final candidate
+review and exact scenario GO remain separate gates.

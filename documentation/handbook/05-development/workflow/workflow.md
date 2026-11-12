@@ -804,6 +804,40 @@ entries. A byte-for-byte historical input is not a current approval source.
 
 ### Slice 06 — Qualify paired exact-version Incus listener fixtures
 
+#### Reviewed prerequisite repair — 2026-11-11
+
+The operator explicitly requested repair of the three recorded S440-06 blockers.
+The independent System Architect reviewed the bounded recovery design: implement
+the existing `ALL_STOPPED_COLD_KERNEL_V1` policy; no new ADR or capability
+admission. This amendment authorizes source changes only within the additional
+locks below. Execution remains serial in an isolated stream worktree. It grants
+no live outage, fixture GO, test run, checkpoint publication or product acceptance.
+
+Correct relocated registration/switch assets and verify Git blobs/hash pins
+before importing qualification helpers. Add separate `SealFixtureReturn` and
+`ReturnFixture` phases before `BindNew`, with phase-specific approvals and a
+protected bookmark seal over fresh source/machine/boot, zero-resource and
+settled-worker observations. The fixture route must reject product case state,
+bound or uncertain bridge state and unproven resources. Preserve the existing
+product `ReturnOriginal` contract. An explicitly proven daemon-not-installed
+state permits early preparation return; uncertain daemon state does not.
+
+Retain the original-stopped bridge and archived payload during the fixture;
+verify full PortProxy/firewall equality within that window. The separately
+approved original restoration may refresh only existing owned destinations to
+the original guest's current address, preserving foreign routes, exposure,
+firewall, hosts and payload. Use cold shutdown/reset to remove shared-kernel
+listener residue; never weaken forbidden-listener checks or stop listeners in
+the running installation as a shortcut. Reconcile only explicitly proven
+pending states; unknown outcomes retain their durable intent and block effects.
+
+Targeted tests must exercise the actual embedded proof and mocked coordinator,
+including failed preparation, product-state refusal, stale seals, bridge drift
+and interrupted return. Execution requires explicit verification or PR creation authorization on the
+designated SSH/WSL host. On 2026-11-11 the operator authorized verification:
+18 targeted tests passed with zero skips; the full QUALITY.md gate passed
+(4058 tests, 37 declared skips). No S440-06 live PASS follows from this result.
+
 Purpose: After exact-source deterministic quality and independent same-hash review, obtain/verify scenario consent and JIT inventory for each independent host. Qualify Incus client/server 6.0.5 with the bounded isolated loopback proxy fixture. Historical native PASS is reusable only with an explicit source/evidence equivalence review.
 
 Prerequisites: S440-05.
@@ -822,7 +856,7 @@ Allowed files, locks, owners, dependencies and verified commands:
 {
   "slice_id": "S440-06",
   "profile": "FULL_PATH",
-  "status": "PLANNED",
+  "status": "PREREQUISITE_REPAIR_VERIFIED_LOCAL_LIVE_PENDING",
   "owner": "Senior DevOps",
   "secondary_reviewers": [
     "Senior Requirement Engineer",
@@ -833,6 +867,12 @@ Allowed files, locks, owners, dependencies and verified commands:
     "Senior DevOps"
   ],
   "affected_files": [
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md"
   ],
   "affected_modules": [
@@ -851,6 +891,12 @@ Allowed files, locks, owners, dependencies and verified commands:
   "requires_isolated_worktree": true,
   "requires_serialized_live_validation": true,
   "file_locks": [
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     ".tiny-swarm/evidence/issue-440/slice-06/**"
   ],
@@ -870,6 +916,12 @@ Allowed files, locks, owners, dependencies and verified commands:
     "any writer on the same installation/host"
   ],
   "allowed_write_scope": [
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1",
+    "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_guest_switch.py",
+    "modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py",
+    "modules/tsw_core/tests/fixtures/wsl_acceptance_guest_switch.ps1",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     ".tiny-swarm/evidence/issue-440/slice-06/**",
     ".codex/evidence/slice-06-distribution.md",
@@ -882,9 +934,11 @@ Allowed files, locks, owners, dependencies and verified commands:
   ],
   "quality_gates": {
     "targeted": [
+      "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_guest_switch modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration",
       "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture"
     ],
     "required": [
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality",
       "git diff --check"
     ]
   },
@@ -1679,8 +1733,9 @@ GitHub state is changed only by an authorized publication step after this decisi
 Select exactly `documentation/handbook/05-development/workflow/workflow.md`
 (the sole ACTIVE_FOR_ISSUE_440 row), verify `docs/workflow-issue440-acceptance-20261110`, context hashes,
 publication baseline and S3/S3D. The S440-01 inventory and S440-02 through
-S440-05 local checkpoints are recorded. Resume at S440-06 once the reviewed
-WSL restoration path, source pins and host prerequisites are available. Before each live
+S440-05 local checkpoints are recorded. S440-06 prerequisite source/test repairs
+are VERIFIED_LOCAL after authorized exact-source SSH/WSL verification; preserve
+independent final review and refresh host prerequisites. Before each live
 slice establish applicable existing consent or obtain the specific missing
 scenario approval, backup/ownership/JIT and independent GO; elapsed time is never
 approval. This plan does not grant a live GO or waive any acceptance criterion.

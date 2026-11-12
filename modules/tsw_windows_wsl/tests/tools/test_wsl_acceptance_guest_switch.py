@@ -120,7 +120,7 @@ class UpgradeLedgerTests(unittest.TestCase):
                     raise ValueError('PROMOTION_DENIED')
             namespace: dict[str, Any] = {'need': need, 're': re, 'git': git, 'private': private,
                 'strict': json.loads, 'root': Path('/never-accessed'), 'product_source': 'c' * 40,
-                'hashlib': __import__('hashlib')}
+                'hashlib': __import__('hashlib'), 'verify_qualification_helpers': lambda: None}
             exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
             with self.subTest(kind=kind), patch.dict('sys.modules', {'preserving_product_acceptance': proof_module}):
                 if kind == 'valid':
@@ -301,3 +301,108 @@ class NetfilterReadParserTests(unittest.TestCase):
             reads["/proc/net/unix"] = b"header\n0000: 0000 0000 0000 0001 01 123 /foreign/incus.socket\n"
             with self.assertRaises(probe["Residue"]):
                 probe["inspect"]()
+
+
+class FixtureReturnProofTests(unittest.TestCase):
+    def _function(self, name: str, end: str, namespace: dict[str, Any]) -> Any:
+        source = CONTROLLER.read_text()
+        start = source.index('def ' + name + '(')
+        stop = source.index(end, start)
+        exec(compile(ast.parse(source[start:stop]), str(CONTROLLER), 'exec'), namespace)
+        return namespace[name]
+
+    def test_empty_resource_proof_rejects_residue_and_binds_full_inventory(self):
+        import copy
+        import hashlib
+        def need(value):
+            if not value:
+                raise ValueError('FIXTURE_NOT_EMPTY')
+        def digest(value):
+            return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+        check = self._function('check_resources', "sock=Path('/var/lib/incus/unix.socket')", {'need': need, 'digest': digest, 're': re})
+        projects = '/1.0/projects?recursion=1'
+        instances = '/1.0/instances?recursion=1&project=default'
+        profiles = '/1.0/profiles?recursion=1&project=default'
+        pools = '/1.0/storage-pools?recursion=1'
+        volumes = '/1.0/storage-pools/default/volumes?recursion=1&project=default'
+        operations = '/1.0/operations?recursion=1&all-projects=true'
+        baseline = {projects: [{'name': 'default', 'config': {}}], instances: [],
+            profiles: [{'name': 'default', 'used_by': [], 'config': {}, 'devices': {}}],
+            pools: [{'name': 'default', 'driver': 'dir'}],
+            volumes: [{'name': 'a' * 64, 'type': 'image', 'description': ''}], operations: {'running': []}}
+        expected = check(baseline.__getitem__)
+        for uri, changed in ((projects, [{'name': 'default'}, {'name': 'foreign'}]),
+                             (instances, [{'name': 'stopped', 'status': 'Stopped'}]),
+                             (profiles, [*baseline[profiles], {'name': 'tsw-q449-residue'}]),
+                             (pools, [{'name': '../unsafe'}]),
+                             (volumes, [{'name': 'stopped', 'type': 'container'}]),
+                             (operations, {'running': ['operation']})):
+            values = baseline | {uri: changed}
+            with self.subTest(uri=uri), self.assertRaises(ValueError):
+                check(values.__getitem__)
+        for uri, changed in ((projects, [{'name': 'default', 'config': {'changed': 'yes'}}]),
+                             (pools, [{'name': 'default', 'driver': 'zfs'}]),
+                             (volumes, [{'name': 'a' * 64, 'type': 'image', 'description': 'changed'}])):
+            self.assertNotEqual(check((baseline | {uri: changed}).__getitem__), expected)
+        unordered = copy.deepcopy(baseline)
+        unordered[pools].append({'name': 'other', 'driver': 'dir'})
+        other = '/1.0/storage-pools/other/volumes?recursion=1&project=default'
+        unordered[other] = [{'name': 'b' * 64, 'type': 'image'}, {'name': 'c' * 64, 'type': 'image'}]
+        first = check(unordered.__getitem__)
+        unordered[pools].reverse()
+        unordered[other].reverse()
+        self.assertEqual(check(unordered.__getitem__), first)
+
+    def test_generic_interpreter_or_shell_cannot_be_credited_as_settled(self):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        def need(value):
+            if not value:
+                raise ValueError('WORKER_PRESENT')
+        pid = MagicMock()
+        pid.name = '4242'
+        pid.__truediv__.return_value = Path('/proc/4242/cmdline')
+        namespace: dict[str, Any] = {'need': need, 're': re, 'root': Path('/root/tsw440-acceptance/fixed'),
+            'workers': ('incus_profile_listener_fixture.py', 'wsl_product_acceptance.py'),
+            'programs': {'apt-get', 'dpkg', 'git', 'lxd', 'dockerd', 'forkproxy'},
+            'os': SimpleNamespace(getpid=lambda: 4241),
+            'Path': lambda value: SimpleNamespace(iterdir=lambda: [pid]) if value == '/proc' else Path(value)}
+        for argv in (b'/usr/bin/python3\0-c\0pass\0', b'/bin/bash\0/tmp/renamed-prep\0',
+                     b'/usr/bin/git\0clone\0', b'/usr/bin/timeout\0' + b'300\0',
+                     b'/tmp/worker\0/root/tsw440-acceptance/fixed/run\0'):
+            namespace['read'] = lambda path, raw=argv: raw
+            check = self._function('process_snapshot', 'daemons=process_snapshot()', namespace)
+            with self.subTest(argv=argv), self.assertRaises(ValueError):
+                check()
+        namespace['read'] = lambda path: b''
+        self.assertEqual(check(), [])
+
+    def test_promoted_helper_loader_verifies_bytes_before_enabling_imports(self):
+        import sys
+        def need(value):
+            if not value:
+                raise ValueError('HELPER_BYTES')
+        with tempfile.TemporaryDirectory() as directory:
+            checkout = Path(directory)
+            helpers = checkout / 'modules/tsw_core/tools/linux/qualification'
+            helpers.mkdir(parents=True)
+            helper = helpers / 'preserving_product_acceptance.py'
+            helper.write_bytes(b'raise RuntimeError("must not execute during source validation")\n')
+            namespace = {'need': need, 'checkout': checkout, 'trusted': lambda *args: None,
+                'source': 'a' * 40, 'sys': sys, 'git': lambda args: helper.read_bytes()}
+            loader = self._function('verify_qualification_helpers', 'def admitted_product_revision(', namespace)
+            with patch.object(sys, 'path', list(sys.path)):
+                loader()
+                self.assertEqual(sys.path[0], str(helpers))
+            namespace['git'] = lambda args: b'changed'
+            with patch.object(sys, 'path', list(sys.path)), self.assertRaises(ValueError):
+                loader()
+
+    def test_registered_source_asset_paths_exist_after_module_split(self):
+        source = CONTROLLER.read_text()
+        assets = source[source.index('function Get-WslSwitchAssets'):source.index('function Assert-WslSwitchScenario')]
+        for relative in re.findall(r"'(modules/[^']+)'", assets):
+            self.assertTrue((ROOT / relative).is_file(), relative)
+        registration = (ROOT / 'modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1').read_text()
+        self.assertIn("'modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1'", registration)
+        self.assertIn("'modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py'", registration)
