@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA440-20261112-05 all six native approvals complete; READY_FOR_BOUNDED_ATTEMPT; Root pre-outage designated SSH/WSL documentation gate PASS; guarded publication READY; no native execution; WSL PASS retained; parent INCOMPLETE.
+Status: EXECUTING; TA05 FAILED_RESTORED accepted; TA06 six exact approvals complete, READY_FOR_BOUNDED_ATTEMPT conditioned on actual documentation receipt/guarded publication before outage; no TA06 execution; WSL PASS retained; parent INCOMPLETE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -127,3 +127,40 @@ finalizes permitted approval/status/hash delta after actual reviewer decisions.
 
 TA05 actual review receipt installed native root-owned0600, SHA07409c6e221e1f1fdb20645e8ba5fe0ee643181c3508b958d9f4b9555c559a0a;
 wrapper/context hashes reverified unchanged. No outage. Root documentation gate PASS; guarded publication READY before outage.
+
+## Current TA06 failure-remediation record
+
+TA06 STARTED/matrix before new consultation. TA05UTC17:57:13windowstart;
+17:57:25managerstop/snapshotintent;17:58:55client90stimeout; daemon settled
+~117s at17:59:21, managerstartintent17:59:21.869/startreturned17:59:45.148.
+Actual18:00:24 exit2 FAILED_RESTORED: allfour configs/states/listeners restored
+and observed Docker node/cluster/local/control identity equal. Producthealth
+NOT_VERIFIED; nativefixture resultnull/fixedGOabsent/stubNOT_RUN.
+
+Late readonly inventory found owned cold snapshot retained/nonstateful despite
+wrapper acknowledgmentfalse. MetadataSHA5993801b162d799d6014bcc45e799346525d0ac533c07ea95489fbee3608b027;
+rawarchiveSHA81dabf43ee9470fbc22d667ffed052a6f7499e7d0130c3e2a51718c32edcb4b4.
+Snapshot is an intentional graph change, not absent/zero-change. Independent Test/Evidence accepted the bounded FAILED_RESTORED/fixtureNOT_RUN/
+retained-snapshot outcome. Root preservation recovery observed complete; no
+new permission needed. TA06 initially started as read-only diagnosis; final
+exact admission follows below; sourceC unchanged. WSLPASS retained;
+native/pairK/product/global/parentOPEN.
+
+## Final TA06 exact retry admission
+
+All six actual roles APPROVED newwrapperSHA1429b51208263e37c9e7ed91511469c7c40894ab10210115a231bad5116ef7e8,
+contextSHAceb0ce4de8a0329e5f8f3eadaeeb90075261d6714878c262a83d04ee68618eed,
+embeddedcanonicalGOSHAcbf914749dc4b7510072ab6acbe9f674efe5a69af0a9303db42cbd8426fa6708,
+resourceSHA6c3911be5138457d74e4c0408c5ee5ce49b8c631c256ee3228c227ea58a90837.
+Root0600 installation/finalinspect exit0 INSPECTED_READ_ONLY; new baseline includes
+TA05 retained snapshot,709315608576bytes free, unchangedC/tree1811. No TA06outage.
+Snapshot300/total1800/reserve360/preoutage1650/prefixture1010/fixture650/restore360/
+recover480; timeoutclassification and late snapshot presence independent of ack.
+READY_FOR_BOUNDED_ATTEMPT requires exact designatedSSHWSL docreceipt and guarded
+publication before outage. Actual receipts recorded privately once finalbytes
+are checked, no second public status rewrite. C unchanged/producthealthNOT_VERIFIED;
+WSLPASS retained, native/pairK/product/global/parentOPEN.
+
+TA06 actual six-review receipt installed native root-owned0600 SHA4aa24e263d9a868dfaa16fd14ae0f265b2a07a4c3be1971ee6678b0ea7fa18e4.
+Exact source/admitted_go/unchanged-fixture validate_go passed; no events/GO, stub
+NOT_RUN. Exact documentation receipt/guarded publication remain required before outage.

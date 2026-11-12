@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA440_20261112_05_READY_FOR_BOUNDED_ATTEMPT_DOC_GATE_PASS_PUBLICATION_READY",
+  "status": "EXECUTING_TA06_READY_FOR_BOUNDED_ATTEMPT",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "275036b4a9ab48ad75315b5c48aa21cb67d3599d708d8fa24806f8a205123c4a",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "ae734b886fe8581d70f96859f9a63884b1b97927e78d5a6d9c3b73f6587ac4b0",
+    "documentation/handbook/05-development/workflow/context-pack.md": "80f6349191fe3d4fedfbfd65b9c95465a8700f3c6ac739b9684177a1b4db422d",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "4a98b0b9956c70d985d83ed912212ca684362cabab8a12449b9fa8bc1cff2f8b",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "db2d095401c3f3c8348369f213d99b2a9106ba970f7aae95b1896bb56808648f",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "02ff081cc526cff4fd78262e6aa5727e841ef9ed25a6bd1d24e6ff4738a7eb4b"
+    "documentation/handbook/05-development/workflow/workflow.md": "faf07d749f998c555fece8b351db875dd0adeab1f62d04941b27b2f6a6cc01d9"
   },
   "slices": [
     "S440O-01",
@@ -95,15 +95,111 @@
     "modules/tsw_windows_wsl/tests/tools/test_wsl_original_runtime_window.py"
   ],
   "execution_run": {
-    "id": "TA440-20261112-05",
+    "id": "TA440-20261112-06",
     "state": "READY_FOR_BOUNDED_ATTEMPT",
+    "slice_id": "S440O-06",
+    "related_attempt_slice_id": "S440O-07",
+    "trigger": "snapshotclient90s timeout; daemon completed around117s; FINALLY restored observed original state",
+    "exact_review": "ALL_SIX_ACTUAL_APPROVED_NEW_ARTIFACTS",
+    "allowed_scope": [
+      "exact bounded native retry after actual documentation receipt and guarded publication",
+      "same manager-only maintenance and unchanged C fixture",
+      "actual independently attributed restoration/result audit"
+    ],
+    "new_live_attempt_admitted": "CONDITIONED_ON_ACTUAL_DOCUMENTATION_RECEIPT_AND_GUARDED_PUBLICATION_BEFORE_OUTAGE",
+    "source_edit_admitted": false,
+    "replacement_effect_GO_admitted": false,
+    "active_native_recovery": "TA05_COMPLETED_AND_INDEPENDENTLY_ACCEPTED",
+    "retained_WSL_result": "PASS_BOUNDED_TA04_UNCHANGED",
+    "native_fixture_result": "TA05_NOT_RUN; TA06_NOT_STARTED",
+    "paired_K_admitted": false,
+    "global_S06_S07_done": false,
+    "product_health": "NOT_VERIFIED",
+    "parent_status": "INCOMPLETE",
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_OUTAGE",
+    "user_consent": "RESOLVED_NO_NEW_PERMISSION_QUESTION",
+    "review_status": {
+      "requirements": "APPROVED",
+      "architecture": "APPROVED",
+      "automation": "APPROVED",
+      "test_evidence": "APPROVED",
+      "security": "APPROVED",
+      "devops": "APPROVED"
+    },
+    "actual_reviewers": {
+      "requirements": "reset_requirements",
+      "architecture": "wsl_reset_review",
+      "automation": "reset_automation",
+      "test_evidence": "reset_test_evidence",
+      "security": "reset_operation_review",
+      "devops": "prepare_fresh_registration"
+    },
+    "artifact_sha256": {
+      "wrapper": "1429b51208263e37c9e7ed91511469c7c40894ab10210115a231bad5116ef7e8",
+      "canonical_context": "ceb0ce4de8a0329e5f8f3eadaeeb90075261d6714878c262a83d04ee68618eed",
+      "context_embedded_canonical_GO": "cbf914749dc4b7510072ab6acbe9f674efe5a69af0a9303db42cbd8426fa6708",
+      "resource_draft": "6c3911be5138457d74e4c0408c5ee5ce49b8c631c256ee3228c227ea58a90837"
+    },
+    "new_attempt": {
+      "state": "NOT_STARTED",
+      "outage": "NOT_STARTED",
+      "snapshot": "NOT_RUN",
+      "fixture": "NOT_RUN",
+      "runtime_inspection": {
+        "exit_code": 0,
+        "status": "INSPECTED_READ_ONLY",
+        "installed_owner": "root",
+        "mode": "0600"
+      },
+      "baseline_includes": "retained TA05 owned cold snapshot",
+      "disk_available_bytes_at_capture": 709315608576,
+      "run_id": "17cae92dadca48b0b11db067a8ec9989",
+      "deadline": "2026-11-12T19:33:58Z",
+      "source_C_modified": false
+    },
+    "finite_budgets_seconds": {
+      "snapshot": 300,
+      "total": 1800,
+      "reserve": 360,
+      "minimum_before_outage": 1650,
+      "minimum_before_fixture": 1010,
+      "fixture": 650,
+      "restore": 360,
+      "recover": 480
+    },
+    "operational_refinements": [
+      "TimeoutExpired classified COMMAND_TIMEOUT",
+      "actual snapshot observation after settlement/restoration independent of client acknowledgement",
+      "unknown retention not assumed absent"
+    ],
+    "actual_receipt_recording": "PRIVATE_AFTER_FINAL_BYTES_ONCE",
+    "actual_review_receipt": {
+      "sha256": "4aa24e263d9a868dfaa16fd14ae0f265b2a07a4c3be1971ee6678b0ea7fa18e4",
+      "native_installed": true,
+      "owner": "root",
+      "mode": "0600"
+    },
+    "final_pre_effect_checks": {
+      "exact_source": "PASS",
+      "admitted_go": "PASS",
+      "unchanged_fixture_validate_go": "PASS",
+      "new_native_events": "NONE",
+      "fixed_GO": "ABSENT",
+      "fixture_stub": "NOT_RUN"
+    }
+  },
+  "current_workflow_run": "TA440-20261112-06",
+  "active_native_attempt": {
+    "id": "TA440-20261112-05",
+    "state": "FAILED_RESTORED",
     "slice_id": "S440O-06",
     "planned_attempt_slice_id": "S440O-07",
     "host_scope": "native temporary TSW default-manager maintenance and standalone fixture",
     "user_consent": "RESOLVED explicit ja to exact manager stop/test/restart question",
     "artifact_preparation": "COMPLETE_FINAL_BOUND_ARTIFACTS",
     "operational_preparation": "INSPECTED_READ_ONLY_ONLY",
-    "outage": "NOT_STARTED",
+    "outage": "MANAGER_RESTARTED_ORIGINAL_FOUR_STATES_CONFIGS_LISTENERS_RESTORED",
     "review_status": {
       "requirements": "APPROVED_EXACT_FINAL_ARTIFACTS",
       "architecture": "APPROVED_EXACT_FINAL_ARTIFACTS",
@@ -153,7 +249,7 @@
     },
     "source_C_modified": false,
     "per_host_sequence": "unchanged; native independent of retained WSL result",
-    "native_result": "NOT_RUN",
+    "native_result": "FAILED_RESTORED_EXIT_2",
     "global_S06_S07_done": false,
     "paired_K_admitted": false,
     "product_result": "NOT_RUN",
@@ -213,7 +309,43 @@
       "mode": "0600",
       "wrapper_context_hashes": "REVERIFIED_UNCHANGED",
       "local_attestation": "native-ta05-review/actual-review-attestation.json"
-    }
-  },
-  "current_workflow_run": "TA440-20261112-05"
+    },
+    "snapshot": "ACTUALLY_RETAINED_NON_STATEFUL_BY_INDEPENDENT_READONLY_INVENTORY",
+    "fixture": "NOT_RUN",
+    "final_restored": "OBSERVED_PRESERVATION_TRUE_PRODUCT_HEALTH_NOT_VERIFIED",
+    "backup_created": "OWNED_COLD_SNAPSHOT_PRESENT; DATA_RESTORE_USABILITY_NOT_TESTED",
+    "recovery": "EXISTING_FINALLY_COMPLETED_OBSERVED_PRESERVATION",
+    "observed_utc_timeline": [
+      {
+        "utc": "2026-11-12T17:57:13Z",
+        "event": "windowstarted"
+      },
+      {
+        "utc": "2026-11-12T17:57:25Z",
+        "event": "managerstopped_and_coldsnapshotintent"
+      },
+      {
+        "utc": "2026-11-12T17:58:55Z",
+        "event": "windowfailed_WINDOW_FAILURE_REDACTED"
+      }
+    ],
+    "exit_code": 2,
+    "final_utc": "2026-11-12T18:00:24Z",
+    "snapshot_wrapper_ack_created": false,
+    "snapshot_wrapper_ack_retained": false,
+    "snapshot_metadata_sha256": "5993801b162d799d6014bcc45e799346525d0ac533c07ea95489fbee3608b027",
+    "snapshot_graph_change": "INTENTIONAL_OWNED_RECOVERY_SNAPSHOT_RETAINED",
+    "snapshot_created_at": "2026-11-12T17:57:25.22079918Z",
+    "snapshot_observed_duration_seconds_approx": 117,
+    "manager_start_intent_utc": "2026-11-12T17:59:21.869Z",
+    "manager_start_returned_utc": "2026-11-12T17:59:45.148Z",
+    "original_four_states_configs_listeners_restored": true,
+    "observed_docker_identities_before_after": "EQUAL_NodeID_ClusterID_local_control",
+    "preservation": "PASS_OBSERVED_BOUNDED_IDENTITY_CONFIG_STATE_LISTENERS",
+    "fixture_result": null,
+    "fixed_GO": "ABSENT",
+    "fixture_stub": "NOT_RUN",
+    "raw_archive_sha256": "81dabf43ee9470fbc22d667ffed052a6f7499e7d0130c3e2a51718c32edcb4b4",
+    "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
+  }
 }

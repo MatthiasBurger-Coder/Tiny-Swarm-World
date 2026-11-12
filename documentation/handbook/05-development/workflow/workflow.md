@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA440-20261112-05 all six exact native approvals complete; READY_FOR_BOUNDED_ATTEMPT; pre-outage designated SSH/WSL documentation gate PASS; guarded checkpoint publication READY; no outage/snapshot/fixture; WSL PASS retained
+Status: EXECUTING; TA05 FAILED_RESTORED independently accepted; TA06 all six exact approvals complete, READY_FOR_BOUNDED_ATTEMPT subject to actual designated-host documentation receipt and guarded publication before outage; no TA06 outage/fixture; WSL PASS retained
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -318,6 +318,91 @@ checked commit/push for each accepted change. This run is READY_FOR_BOUNDED_ATTE
 artifacts, read-only inspection and six exact approvals complete; pre-outage
 Root designated SSH/WSL documentation gate PASS; guarded publication READY before outage. Outage/snapshot/fixture NOT_RUN.
 No native or EPIC PASS is inferred.
+
+## Execution run TA440-20261112-06 — snapshot-client timeout diagnosis
+
+STARTED with its requirement matrix before the new Amigos consultation. Actual
+TA05 phases on 2026-11-12 UTC:
+
+| UTC | Actual event |
+|---|---|
+| 17:57:13 | Native maintenance window started |
+| 17:57:25 | Manager stopped; cold-snapshot intent recorded |
+| 17:58:55 | Window failed `WINDOW_FAILURE_REDACTED` after snapshot client's90s budget |
+| 17:59:21.869 | Daemon operation settled; FINALLY manager-start intent |
+| 17:59:45.148 | Manager start returned |
+| 18:00:24 | Exit2, final `FAILED_RESTORED` |
+
+The snapshot daemon operation continued beyond the client's90-second timeout
+and settled after approximately117seconds. Existing FINALLY recovery waited
+for that settlement before restarting the same manager. Actual final evidence
+reports all four original configs/states/listener tuples restored and observed
+Docker NodeID/ClusterID/local/control identity equal before/after. This is a
+bounded preservation PASS, not native listener or product-health success.
+The native fixture result is null, fixed GO remained absent and its stub is
+NOT_RUN. Actual product health remains NOT_VERIFIED.
+
+The wrapper's snapshot-created/retained acknowledgments are false because the
+exception occurred before its acknowledgment. They are not evidence of snapshot
+absence. Root's independent read-only late observation found the owned cold
+snapshot retained and non-stateful; its reported creation timestamp corresponds
+to the initial17:57:25 request. The private metadata SHA-256 is
+`5993801b162d799d6014bcc45e799346525d0ac533c07ea95489fbee3608b027`.
+Account for this retained recovery snapshot as an intentional graph change;
+do not claim the entire snapshot graph is unchanged.
+
+Exact TA05 wrapper/context/review/GO/events and raw result archive remain
+retained; archive SHA-256
+`81dabf43ee9470fbc22d667ffed052a6f7499e7d0130c3e2a51718c32edcb4b4`.
+Independent Test/Evidence accepted the actual FAILED_RESTORED outcome, native
+fixture NOT_RUN and retained late snapshot.
+Root safety restoration is complete at the observed preservation level above;
+there is no pending user-consent question.
+
+TA06 now has a fresh exact finite-budget admission, distinct from TA05. All
+six actual Requirements, Architecture, Automation, Test/Evidence, Security and
+DevOps reviewers APPROVED these new artifacts:
+
+| Artifact | SHA-256 |
+|---|---|
+| TA06 finite operational wrapper | `1429b51208263e37c9e7ed91511469c7c40894ab10210115a231bad5116ef7e8` |
+| New canonical nested context | `ceb0ce4de8a0329e5f8f3eadaeeb90075261d6714878c262a83d04ee68618eed` |
+| New context-embedded canonical GO | `cbf914749dc4b7510072ab6acbe9f674efe5a69af0a9303db42cbd8426fa6708` |
+| New resource draft | `6c3911be5138457d74e4c0408c5ee5ce49b8c631c256ee3228c227ea58a90837` |
+
+The root-owned mode0600 artifacts were installed and final `--inspect` exited0
+with INSPECTED_READ_ONLY. Unchanged C/tree/1811files and all current instance/
+profile/route identities were captured; the retained TA05 snapshot is explicitly
+part of the new baseline. Available disk at capture was709315608576bytes.
+The new separate run/deadline and exact identities remain private. No TA06
+outage, cold snapshot or fixture has occurred.
+
+The reviewed operational refinement raises the snapshot budget to300seconds,
+total1800/reserve360/pre-outage1650/pre-fixture1010/fixture650/restore360/
+recover480. TimeoutExpired is classified COMMAND_TIMEOUT. Snapshot presence is
+observed after operation settlement/restoration independently of client
+acknowledgment; unknown retention is not treated as absence. Existing exact
+UUID/source/owned-child/signal/daemon-settlement/FINALLY/profile/routes/listener/
+Docker-identity protections remain. The old owned backup stays unchanged; a
+separate new cold recovery snapshot is planned and retained. Product health
+remains NOT_VERIFIED. No frozen C or product/fixture helper code changed.
+
+Decision: READY_FOR_BOUNDED_ATTEMPT, not an executed native PASS. Before outage,
+Root must obtain the exact designated SSH/WSL documentation receipt and complete
+guarded checkpoint publication. Only the admitted actual review-status/resource-
+status/referenced-hash finalization is allowed; the new executable GO is the
+canonical context-embedded one, not a stale standalone draft. The actual six-role
+review receipt was installed native root-owned0600, SHA-256
+`4aa24e263d9a868dfaa16fd14ae0f265b2a07a4c3be1971ee6678b0ea7fa18e4`. Exact source, admitted_go and
+unchanged-fixture validate_go checks passed; no new events/GO and stub NOT_RUN.
+Actual documentation receipt and publication proof are retained privately after
+final bytes, without another
+public status rewrite. Original TA05 approvals are not reused for TA06.
+
+Actual independently accepted WSL listener PASS remains retained. Native
+listener, paired K, component/product/recovery/global/parent acceptance remain
+OPEN. A new actual attempt/result and restoration must be attributed and audited
+separately; current admission alone proves none of those outcomes.
 
 ## Verified Baseline and Target Picture
 

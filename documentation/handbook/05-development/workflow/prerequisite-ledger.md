@@ -100,3 +100,28 @@ Standalone interpreter attribution is not a full-quality/product result.
 | Recovery / runtime | Finite1200/reserve240/pre-outage>=1100; only boundmanager, retainedsnapshot, settled operations, FINALLY sameUUID restart/allfour/Docker identity equality | Actual outage/cleanup/recovery and producthealth not verified; no fixture replay through recover |
 
 Native/WSL pairing, K, product/global/parent remain OPEN; actual WSLPASS retained.
+
+## TA440-20261112-06 actual failed/restored attempt
+
+| Owner | Actual evidence | Remaining gate |
+|---|---|---|
+| Root / TA05 runtime | Snapshotclient90s timeout, daemon continued then settled~117s; fixture resultnull/fixedGOabsent/stubNOT_RUN | Exact TA06 snapshot300 refinement reviewed; actual retry result still required; not an executed listener failure |
+| Root / FINALLY recovery | Managerstartintent17:59:21.869Z/startreturned17:59:45.148Z; final18:00:24Z exit2FAILED_RESTORED; allfour configs/states/listeners and observed Dockeridentity equal | Bounded preservation PASS; producthealth NOT_VERIFIED; independent Test/Evidence accepted FAILED_RESTORED/fixtureNOT_RUN/retainedsnapshot |
+| Root / late snapshot inventory | Owned nonstateful cold snapshot actually retained; metadataSHA5993801b162d799d6014bcc45e799346525d0ac533c07ea95489fbee3608b027; wrapper ackfalse is not absence | Retain snapshot as intentional graph change; no zero-snapshot-graph claim |
+| TA06 exact reviewers | All six actual roles APPROVED wrapperSHA1429b51208263e37c9e7ed91511469c7c40894ab10210115a231bad5116ef7e8/contextSHAceb0ce4de8a0329e5f8f3eadaeeb90075261d6714878c262a83d04ee68618eed/embeddedGOSHAcbf914749dc4b7510072ab6acbe9f674efe5a69af0a9303db42cbd8426fa6708/resourceSHA6c3911be5138457d74e4c0408c5ee5ce49b8c631c256ee3228c227ea58a90837 | READY_FOR_BOUNDED_ATTEMPT requires exact designatedSSHWSL documentation receipt and guarded publication before outage; no outcome inferred |
+| Evidence / release | RawarchiveSHA81dabf43ee9470fbc22d667ffed052a6f7499e7d0130c3e2a51718c32edcb4b4; exactTA05 artifacts and WSLPASS retained | Native listener/pairK/component/product/global/parentOPEN; exact current-snapshot receipt and guarded publication required before outage |
+
+Observed safety restoration complete at the bounded identity/state/config/listener
+level; no additional user-consent question. TA06 has its own exact artifact
+approvals; actual documentation receipt/publication precede effects. Do not reuse
+TA05 approvals as a TA06 outcome.
+
+TA06 installed root0600/finalinspect exit0 INSPECTED_READ_ONLY; no new outage.
+Snapshot300,total1800,reserve360,pre-outage1650,pre-fixture1010,fixture650,restore360,
+recover480 reviewed. Retained TA05snapshot included in baseline; new snapshot
+independently observed after settlement even if ackfalse. C/source unchanged.
+Actual documentation receipt/publication proof retained privately after final
+bytes; no duplicate public status edits or inherited prior receipt.
+
+TA06 actual installed-native0600 review receipt SHA4aa24e263d9a868dfaa16fd14ae0f265b2a07a4c3be1971ee6678b0ea7fa18e4; exactsource/admitted_go/
+unchangedfixture validate_go passed; no native events/GO and stubNOT_RUN.
