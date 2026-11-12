@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA12 approved route wording applied after Root preflight/TA13 checkpoint; K-prime unadmitted/TA11 FAIL retained; successor fullEMPTYgate RUNNING; no live GO or product completion.
+Status: EXECUTING; TA14 fresh C-double-prime separate six-role native/WSL admissions READY; native→postcheck→WSL serialized, no effects; Root receipt/checkpoint before outage.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -264,3 +264,10 @@ fake private reporter/identity.14metadata/acceptance unchanged. Source-test6line
 change independently Architecture/Test approved; nearestEMPTY+SYNTHETIC_ADMITTED
 each70PASS0skip/fullEMPTYRUNNING. No freeze/Kadmission/liveGO/completion inferred.
 Root exactfivefile receipt/guarded checkpoint required.
+
+TA14 Cdoubleprime3bfc54f0 frozen/private; publictestfixaf8a3bc9 verified. Source
+and integrationfull4124/37/0errorPASS, nearest70 per requiredstate/integration.
+Both runtime1811match0; separate native/WSLsix exactapprovals, nativeinspectPASS.
+Allfour natives/allthree priorbackups preserved; WSLresourcesempty/defaultroot
+only/portsabsent/Windowscaptured. Nativefirst→postcheck→WSL, immediate JIT/TTL;
+no K/productPASS. Static exact Root receipt/guardedcheckpoint beforeoutage.

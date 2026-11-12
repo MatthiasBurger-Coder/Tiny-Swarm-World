@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA12_ROUTE_S3_DOC_APPLIED_NO_CAPABILITY_ADMISSION",
+  "status": "EXECUTING_TA14_EXACT_HOST_ADMISSIONS_READY_NO_EFFECTS",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "60e1fae0625ed4a1b4c06c952997f4d192973648f872f48c2d24a89fd774578d",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "630880094dc9c8b7f3ee80b75885cd2148dbcf897f13fb44b7a6f49e7da48a83",
+    "documentation/handbook/05-development/workflow/context-pack.md": "6bc2f961a1526c80a1f6edb52eae66510bf6d525115deb0a3e4a18e73d0bbc9c",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "bdaf25a8962a81caa8241a65de78f6781e69a87b4c4292f3c6754e153102d8d7",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "33fbd78feabc69dc2ce7bcb90efbaca988067d77c98255deb39370b3a7f26ceb"
+    "documentation/handbook/05-development/workflow/workflow.md": "5ba69b6c4adbbef0ad8e8b5bc28d584813c5aaa21d846598816d0210912c45ab"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-12",
+  "current_workflow_run": "TA440-20261112-14",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,33 +355,66 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-12",
-    "state": "APPROVED_S3_DOC_ROUTE_WORDING_APPLIED",
-    "process": "existing workflow execute S3_DOC; not workflowcreate",
-    "proposal_sha256": "6eb1189165090822fab32d4150774b47cb77a5b96eb79f9c7ff68b08dd85028d",
-    "actual_reviews": [
-      "Requirement APPROVE_S3_DOC",
-      "Architecture APPROVE_S3_DOC",
-      "Automation APPROVE_S3_DOC",
-      "TestEvidence APPROVE_S3_DOC"
+    "id": "TA440-20261112-14",
+    "state": "READY_EXACT_NATIVE_AND_WSL_ADMISSIONS",
+    "slice_id": "S440O-07",
+    "root_preflight": "EXECUTION_PLAN",
+    "source": "3bfc54f032cff1f4b2f5cdf8c33fc2ed518b66f4",
+    "review_brief_sha256": "3bf301559ab4526af1817854fb47ab9b5378c84fdad953eed2b691a735aba774",
+    "native": {
+      "six_actual_reviews": {
+        "requirements": "APPROVED",
+        "architecture": "APPROVED",
+        "automation": "APPROVED",
+        "test_evidence": "APPROVED",
+        "security": "APPROVED",
+        "devops": "APPROVED"
+      },
+      "context_sha256": "7a77ff610aeb09be0bf29ac40e62ebff8a86cd452d98c760115fe40f15fb7740",
+      "driver_sha256": "616c1d8e173500b002bbe8f0ca459d5b19cafa2e0bde804a692d3028418c3b03",
+      "embedded_GO_sha256": "b8658d565721976b7e007f9e2537776d10a476c02ef462b9dc2618036565ae45",
+      "resource_sha256": "5f3b1f3528f9ff09970f25a310515ab648ce6a61a4ade99017d53b20b3860191",
+      "run_id": "732b5dc2058a47f693cd172033f5b13a",
+      "deadline": "2026-11-12T22:49:10Z",
+      "readonly_inspect": "PASS",
+      "prior_snapshot_refs": "ALL_THREE_RETAINED",
+      "originals": "ALL_FOUR_BOUND",
+      "budgets": "snapshot300/window1800/reserve360",
+      "source_proof": "8261ef1d5fc44db44a82f57bf22235cec125a1b410ae3a346a6d4acbe63de3d2",
+      "actual_review_hash_reference": "native197b3703\u2026"
+    },
+    "WSL": {
+      "six_actual_reviews": {
+        "requirements": "APPROVED",
+        "architecture": "APPROVED",
+        "automation": "APPROVED",
+        "test_evidence": "APPROVED",
+        "security": "APPROVED",
+        "devops": "APPROVED"
+      },
+      "GO_sha256": "bc1d9f2c59b9258f4ef989ee888ecd4cb848cd184f6e8028a7c7ae00847dd09c",
+      "resource_sha256": "83e85f8afa510f01cc397a5e67ceab2f62a3681be07937eed4cdeef7a0bf2713",
+      "run_id": "a29121aeb9eb4617a51fe892625e5747",
+      "deadline": "2026-11-12T22:50:04Z",
+      "current_resources": "0instances/0consumers/defaultrootdiskonly/10001+61080absent",
+      "Windows_routes": "ACTUALLY_CAPTURED_PRESERVE_EXACT",
+      "source_proof": "883696230999b0df5bfc3bc0d1abbfca47aaf867d966c5b96eced52044507bed",
+      "actual_review_hash_reference": "WSL93064b7a\u2026"
+    },
+    "runtime_sources": "root/ext4/1811exact; standalonePython3.14.4 only, quality3.12.15 separate",
+    "order": [
+      "native ownedmanager pause/snapshot/fixture/FINALLYrestore",
+      "independent native window postcheck",
+      "WSL ownedfixture/cleanup",
+      "independent both-result audit"
     ],
-    "root_specific_preflight": "EXECUTION_PLAN",
-    "prior_scope_checkpoint": "fbdc010c948b37633387a9081834e353e857ec4c",
-    "only_behavioral_doc_delta": [
-      "existing scenario-plan continuity section",
-      "existing S09purpose opening route sentences"
-    ],
-    "S09_remaining_acceptance_suffix": "BYTE_UNCHANGED",
-    "all14machine_metadata": "BYTE_UNCHANGED",
-    "private_harness": "OPTIONAL_ALL_CONTRACTS_RETAINED",
-    "ordinary_public_route": "actual admitted source/runtime/credentials/ownership/backup/phaseapproval/evidence/review; no fabricated private contracts",
-    "private_reporter_claims": "NOT_INFERRED_FROM_NORMAL_PUBLIC_COMMANDS",
-    "live_GO": false,
-    "source_change": false,
-    "frozen_K_change": false,
-    "TA11_FAIL": "RETAINED_KPRIME_UNADMITTED",
-    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_FIVE_FILE_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "SEPARATE_GUARDED_DOCUMENTATION_CHECKPOINT",
+    "effects": "NOT_STARTED",
+    "allowed_finalization": "declared source/path/run/draft/review bindings/statuses/dependent hashes only; contexts/source fixed; finalizer85c19549\u2026",
+    "live_limits": "existing bounded listener consent only; no nativeinstall/producteffects",
+    "product_health_backup_restoration": "NOT_VERIFIED",
+    "K_product_EPIC_PASS": false,
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_PRE_OUTAGE_CHECKPOINT_REQUIRED",
     "parent_status": "INCOMPLETE"
   },
   "diagnostic_TA07_outcome": {
@@ -486,5 +519,16 @@
     "full_EMPTY_gate": "RUNNING",
     "source_frozen": false,
     "capability_admitted": false
+  },
+  "source_closure_TA13": {
+    "private_frozen_source": "3bfc54f032cff1f4b2f5cdf8c33fc2ed518b66f4",
+    "tree": "2971603e0eecc9b93c6543038585ff053107c5ea",
+    "public_equivalent": "af8a3bc920fe60828f7ff08ed0da41e5ac3d9bbd",
+    "source_full_gate": "PASS_4124_RUN_37_SKIP_ZERO_ERRORS",
+    "separate_integration_full_gate": "PASS_4124_RUN_37_SKIP_ZERO_ERRORS",
+    "nearest_EMPTY": 70,
+    "nearest_SYNTHETIC_ADMITTED": 70,
+    "nearest_integration": 70,
+    "old_Cprime_failed_Kprime_history": "PRESERVED_NOT_RELABELED"
   }
 }

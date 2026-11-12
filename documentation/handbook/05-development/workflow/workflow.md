@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA12 four-role-approved route S3_DOC amendment applied after TA13 checkpoint/preflight; actual K-prime unadmitted/TA11 FAIL preserved; test-only successor full gate RUNNING, no live/product completion
+Status: EXECUTING; TA14 new C-double-prime host-specific six-role admissions READY, serialized native→postcheck→WSL; no effects or K/product PASS; exact Root receipt/guarded pre-outage checkpoint required
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -603,6 +603,36 @@ requirements and14machine metadata remain unchanged. No live GO or source change
 TA11 failed gate/K-prime unadmitted remains; source-test successor's two nearest
 EMPTY/SYNTHETIC_ADMITTED snapshots each70PASS0skip, fullEMPTYgate RUNNING, not
 completion. Exact Root five-file receipt and separate guarded checkpoint apply.
+
+## Execution run TA440-20261112-14 — exact renewed paired admission
+
+STARTED/matrix before consultation; Root S3/S3D returned EXECUTION_PLAN and all
+six actual roles separately APPROVE_EXACT_NATIVE_ADMISSION and
+APPROVE_EXACT_WSL_ADMISSION. Private immutable C-double-prime
+`3bfc54f032cff1f4b2f5cdf8c33fc2ed518b66f4`/tree2971603e and public equivalent testfixaf8a3bc9
+are verified. Source/separate integration full gates each4124run/37skip/0error
+PASS; nearest EMPTY/SYNTHETIC_ADMITTED and integration70 eachPASS. These are
+source closure, not renewed host results. C-prime/failedK-prime/history retained.
+
+| Exact binding | SHA-256 |
+|---|---|
+| Review brief | `3bf301559ab4526af1817854fb47ab9b5378c84fdad953eed2b691a735aba774` |
+| Native context / driver | `7a77ff610aeb09be0bf29ac40e62ebff8a86cd452d98c760115fe40f15fb7740` / `616c1d8e173500b002bbe8f0ca459d5b19cafa2e0bde804a692d3028418c3b03` |
+| Native embedded GO / resource | `b8658d565721976b7e007f9e2537776d10a476c02ef462b9dc2618036565ae45` / `5f3b1f3528f9ff09970f25a310515ab648ce6a61a4ade99017d53b20b3860191` |
+| WSL GO / resource | `bc1d9f2c59b9258f4ef989ee888ecd4cb848cd184f6e8028a7c7ae00847dd09c` / `83e85f8afa510f01cc397a5e67ceab2f62a3681be07937eed4cdeef7a0bf2713` |
+
+Both root-owned ext4 clones match1811files; standalone3.14.4 remains separate
+from quality3.12.15. Native readonlyinspect passed; allfour originals/allthree
+prior snapshots are bound, snapshot300/window1800/reserve360 and FINALLY restore
+unchanged. WSL currentinstances/consumers0/defaultrootdiskonly/10001+61080absent
+and actual Windows/routes baseline captured. No effects or new native installation.
+
+Execute serially native→independent window postcheck→WSL→independent both-result
+audit, with immediate source/context/review/hash/deadline/budget/ownership JIT.
+Only declared source/path/run/draft/review bindings/status finalization is allowed;
+contexts/source fixed, embedded frozen workflow remains provenance, not edited
+integration bytes. Exact Root SSHreceipt and guarded pre-outage checkpoint are
+required. No K/product/backup-restoration/EPIC PASS or product-health claim.
 
 ## Verified Baseline and Target Picture
 
