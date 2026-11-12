@@ -1,6 +1,6 @@
 # LCM-W09 qualification matrix — issue #449
 
-Status: **INCOMPLETE**, updated 2026-10-28. Historical bounded native Linux and WSL2 installation,
+Status: **INCOMPLETE**. Historical baseline updated 2026-10-28; bounded WSL listener update recorded 2026-11-12 below. Historical native Linux and WSL2 installation,
 component-update, Portainer recovery and product recovery scenarios have executed
 successfully. The WSL four-stage Swagger and two-service interrupted-batch paths
 and selective `incus+portainer` fresh installation are verified. Remaining
@@ -31,12 +31,65 @@ issue remains incomplete.
 Sources: [#449](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449),
 parent #440 and [W01 scenarios LCM-S01–S12](../../01-product/contracts/lifecycle.md).
 Management baseline: `6d2f25ee843a01066fcdcfe4855666849513ff06` plus the
-recorded candidate file hashes. This publication records no new live runs.
+recorded candidate file hashes. That historical publication recorded no new live
+runs; the S440O-07 section below records the later actual WSL TA04 fixture.
 The generic component transition runner has changed since its historical live
 run; see the transition proposal for both source hashes and the applicability
 limits. #449 remains incomplete.
 
+## Current WSL listener qualification — S440O-07 / TA04 (2026-11-12)
+
+**Bounded WSL listener subcell: PASS**, independently accepted. Root executed the
+existing C fixture serially on the qualified root-owned source-identical WSL
+runtime clone after the actual complete TSW reset and root-disk preparation.
+The runtime matched all 1811 source files and the C tree with zero mismatches;
+C `77a3356075925edee037bfe009a1f3dfb94cf5d8` remained unchanged. Actual Incus
+client/server were 6.0.5; Python 3.14.4 ran this standalone fixture only. This
+result is not Python 3.12 product/full-suite qualification.
+
+The actual fixture exited 0 with status PASS and 155 command records, all exit
+0. The independent test/evidence reviewer accepted nonce-bound HTTP, attributed
+Incus PID/listener timing and effective devices, receipt-bound exact owned
+cleanup and all eight before/after equality checks. The preservation baseline
+includes the prepared root disk in the default profile, not the earlier empty
+device map. Default profile/config/consumers, route10001, Windows rules/routes
+and foreign/project state were preserved against that admitted baseline.
+
+Root's independent post-run readback found zero instances, the default profile
+with zero consumers, zero volumes in the provider pool and DNS-only TCP
+listeners. No application listener or owned fixture object remained. The raw
+initial ownership receipt is retained in the archive; a final PASS is not used
+as a substitute for that ownership chain.
+
+| Artifact | SHA-256 |
+|---|---|
+| Actual WSL result | `e976a194df2691117aa31323d82c166f6c4d3303f8c5db1e65f40cbd56e2dd22` |
+| Actual final GO | `0c21df1670190d394650040e2ee678f702c1947da0d67ac17c5be271bac5d10b` |
+| Raw evidence archive | `20ad74cf26de2a1c68783d05829edb9da2e7327fe4aa84c788cc8a2d8bc48617` |
+
+Exact host/run/resource identifiers and raw evidence remain private. This
+checkpoint documents the executed result; its isolated S07 evidence worktree
+was created afterward and is not backdated as the live execution environment.
+
+| Qualification cell | Current state |
+|---|---|
+| Fresh exact-C WSL standalone listener | PASS, independently accepted within the scope above |
+| Fresh native same-runner listener | OPEN; native pause/restore admission pending, no native mutation |
+| Paired capability K and later component/product cases | OPEN; WSL-only success does not admit them |
+
+Global S06/S07 and parent P03/P04/P09/P12 remain OPEN/PARTIAL. Existing public
+CLI paths can operate the actual original WSL environment after legitimate K
+admission; a private harness's distro restriction is not a product-CLI
+restriction. No source change or second orchestrator is required at this stage;
+actual operator cases still need their own complete preservation/recovery proof.
+The required designated SSH/WSL documentation gate is PASS for this new
+snapshot. Full quality is NOT_RUN_DOC_ONLY: no source/test delta. No product,
+recovery, Sonar or EPIC PASS follows from this bounded listener result.
+
 ## Current source freeze and host admission — S440O-06 (2026-11-12)
+
+This section retains the earlier S06 reset/preparation checkpoint; the later
+executed WSL listener result is recorded above.
 
 Common integration I05 `5a800f8b2d4cedab2e7dcea9edf2ec04011064a8` remains
 candidate-only. The isolated unpublished source C

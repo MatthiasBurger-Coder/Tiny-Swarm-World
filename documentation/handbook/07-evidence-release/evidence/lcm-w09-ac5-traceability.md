@@ -32,7 +32,39 @@ requirements; the parent checklist and W10 owner acceptance remain open. The
 external issues were not edited, and no parent acceptance item was marked
 complete by this document.
 
+## S440O-07 bounded WSL listener result (2026-11-12)
+
+The current exact-C WSL standalone listener subcell is **PASS**, independently
+accepted after the actual TA04 fixture: exit0, 155 commands all exit0,
+nonce-bound HTTP, PID/effective-device/timing attribution, exact owned cleanup
+and eight preservation equalities. The admitted default-profile baseline
+includes its prepared root disk. Independent post-run readback found zero
+instances/volumes, default-profile consumers0 and DNS-only TCP listeners.
+See the [actual qualification result and artifact hashes](lcm-w09-qualification.md#current-wsl-listener-qualification--s440o-07--ta04-2026-11-12).
+
+Root ran the actual unchanged C fixture serially in the qualified runtime clone;
+this later isolated S07 worktree records evidence only. All1811source files/tree
+matched C; standalone Python3.14.4 and actual Incus client/server6.0.5 are the
+recorded versions. Raw ownership/command/result/GO/archive and the independent
+audit remain private; no host identifiers are published here.
+
+This advances only the WSL listener prerequisite within P03/P04/P09/P12. Those
+parent rows, global S06/S07 and the EPIC remain OPEN/PARTIAL. The native host
+still has running old Incus nodes and a stopped historical node; pause/restore
+admission is pending and no native mutation is recorded. PairK requires both
+accepted same-runner hosts. Actual component/product/public-CLI cases follow
+legitimate K and their full operator preservation/recovery evidence; the private
+harness's identity rule is not imposed on the public CLI. No new source or
+orchestrator is required merely to record this listener result.
+
+Current designated-host documentation gate: PASS; checkpoint publication pending. Full
+quality NOT_RUN_DOC_ONLY. No aggregate checkbox, product/recovery, external-gate
+or parent PASS is claimed.
+
 ## S440O-06 admission progress (2026-11-12)
+
+The following is the earlier complete-reset preparation checkpoint; current
+bounded WSL listener evidence is recorded above.
 
 TA440-20261112-02 has a resolved complete-reset target and an actual
 `TSW_INSTALLATION_RESET_COMPLETE` preparation result at
