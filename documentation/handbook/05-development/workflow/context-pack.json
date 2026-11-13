@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_C4_SOURCE_PREPARED_TARGETED_PASS_TA35_PRIVATE_CALLER_REPAIR_PENDING_LIVE_NOT_RUN",
+  "status": "EXECUTING_TA37_EXACT_SIX_ROLE_PER_HOST_ADMISSION_READY_FINALIZED_BYTES_ACCEPTED_CHECKPOINT_JIT_ROOT_GO_PENDING_LIVE_NOT_RUN",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "41088149140e4d4f0b92601f9a4e91710d4ad072afce2aac70e3b858524eaaab",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "29e04925bd6538c39ec2edb16575c4bae88418ae7c7762026f0639c087c7f0b2",
+    "documentation/handbook/05-development/workflow/context-pack.md": "fcef82e5b23955a417308aef67eef177099b7d3b8eac456af4a8ff33516e3ac9",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "c41bf75dcd6d8ef2a3d14895124c6cb43f4887786a6fe4069057df5357375c7c",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "18d229f7ea27fd377c5230b1db89b87cc898105ae50a0fafb9a5d120928f2a07"
+    "documentation/handbook/05-development/workflow/workflow.md": "1c542a92d932fab37490e9d6163bfbb7c0c06220f5253092329fee16c5f56eae"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-35",
+  "current_workflow_run": "TA440-20261113-37",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,10 +355,10 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-35",
+    "id": "TA440-20261113-37",
     "slice_id": "S440O-07",
     "related_source_slice": "S440O-02",
-    "state": "S07_SOURCE_PREPARED_TARGETED_PASS_PRIVATE_CALLER_REPAIR_PENDING_NO_LIVE_GO",
+    "state": "EXACT_SIX_ROLE_PER_HOST_ADMISSION_READY_NOT_EFFECT_GO",
     "workflow_record_precedes_consultation": true,
     "plan_reviews": "REQUIREMENT_SECURITY_TEST_READY_BOUNDED_SUCCESSOR_PLAN",
     "TA33_public_source": {
@@ -405,20 +405,17 @@
     },
     "native_authority": "EXISTING_SAME_MANAGER_PAUSE_BOUNDED_LISTENER_RESTORE_CONSENT_COVERS_CORRECTED_SOURCE_NO_REPEAT_PERMISSION_NO_NEW_PRODUCT_INSTALL_RESET",
     "pending_before_effects": [
-      "private_caller_mocked_tests_designated_SSH_WSL",
-      "exact_final_caller_code_review",
-      "operational_contexts_current_deadlines_UUID_ownership",
-      "six_actual_role_admissions",
-      "checked_documentation_checkpoint",
-      "Root_fresh_GO"
+      "checked_exact_four_document_gate_and_guarded_publication",
+      "fresh_JIT_context_source_UUID_ownership_expiry_remaining_time",
+      "explicit_Root_GO"
     ],
     "serial_order": "NATIVE_BOUNDED_ATTEMPT_AND_INDEPENDENT_RESTORE_ACCEPTANCE_THEN_WSL_FIXTURE_AND_OWNED_CLEANUP",
     "new_native_backup": "PLANNED_MUST_RETAIN_NEW_SIXTH_ALONGSIDE_PRIOR_FIVE",
     "K4": "PLANNED_CAPABILITY_ONLY_SINGLE_PARENT_CHILD_OF_C4_AFTER_NEW_ACTUAL_PAIR_REAL_VALIDATORS_TARGETED_AND_ONCE_FULL_PRIVATE_GATE",
     "public_capability_integration": "SEPARATE_APPLICABLE_CHANGED_CONFIG_GATE",
     "historical_cartesian_replay": "NOT_REQUIRED",
-    "runtime_source_staging_and_live": "SOURCE_PREPARED_TARGETED_PASS_LIVE_NOT_RUN_PROHIBITED",
-    "draft_finalization": "SOURCE_PREPARATION_CHECKPOINT_READY_FOR_ROOT_DESIGNATED_DOC_GATE_NOT_OPERATIONAL_ADMISSION",
+    "runtime_source_staging_and_live": "SOURCE_PREPARED_TARGETED_AND_CALLER_TESTED_EXACT_ROLES_APPROVED_LIVE_NOT_RUN",
+    "draft_finalization": "ONLY_INITIAL_STOP_REMOVAL_AND_EXACT_PLACEHOLDERS_FINALIZED_BYTES_ACCEPTED",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
     "canonical_metadata": "ALL_14_UNCHANGED",
     "network_apply_image_nodes_stacks_recovery": "NOT_RUN",
@@ -466,7 +463,7 @@
       "Root_authority": "PRIVATE_CALLER_ONLY_REPAIR_ISOLATED_S07_HELPER_SCOPE",
       "source_C4_and_runner": "UNCHANGED",
       "new_C5_or_full_product_gate_repeat": false,
-      "implementation": "ONE_WORKER_PRIVATE_SUPERVISOR_AND_MOCKS_AUTHORING",
+      "implementation": "PRIVATE_V3_EXACT_CALLER_CODE_53_MOCKS_PASS_AND_SYNTHETIC_OS_ADAPTER_ACCEPTED",
       "planned_budget_seconds": {
         "total": 1100,
         "forward": 700,
@@ -476,10 +473,79 @@
       },
       "automatic_TERM_KILL": false,
       "uncertain_state": "TIMEOUT_INTERRUPTION_UNKNOWN_LEFTOVERS_STICKY_RECOVERY_REQUIRED",
-      "testing_code_context_expiry_admission": "PENDING",
+      "testing_code_context_expiry_admission": "EXACT_CODE_CONTEXT_ROLE_REVIEW_APPROVED_FINALIZED_BYTES_ACCEPTED_CHECKPOINT_JIT_ROOT_GO_PENDING",
       "actual_fixture_effects": "NOT_RUN_PROHIBITED"
     },
-    "single_slice_checkpoint": "S440O-07_ONLY_NO_SECOND_SOURCE_IMPLEMENTATION_COMMIT"
+    "single_slice_checkpoint": "S440O-07_ONLY_NO_SECOND_SOURCE_IMPLEMENTATION_COMMIT",
+    "TA37_admission": {
+      "workflow_started_before_consultation": true,
+      "status": "READY_ROLE_ADMISSION_NOT_EFFECT_GO",
+      "source": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
+      "caller_sha256": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+      "caller_tests": "53_PASS_ZERO_SKIPS_INDEPENDENTLY_ACCEPTED",
+      "synthetic_probe": {
+        "report_sha256": "9c24fd156632bb1b8193f4f25e6cb25db2a8079e5380ea7ffbe40c7b616b739a",
+        "independent_status": "ACCEPTED",
+        "classification": "SYNTHETIC_OS_ADAPTER_EVIDENCE_ONLY",
+        "qualification": false,
+        "infrastructure_effect_go": false
+      },
+      "TA36_readonly_capture": {
+        "source_before_after_manifest": "27727a4ab2a277805ef0b1c5e8ed4a9c70b311684be2290d26fd692b19ff7f26",
+        "source_entries": 1811,
+        "native_closure_entries": 72,
+        "wsl_closure_entries": 28,
+        "all_hash_verified": true
+      },
+      "actual_roles": {
+        "architecture": "APPROVED",
+        "automation": "APPROVED",
+        "devops": "APPROVED",
+        "requirements": "APPROVED",
+        "security": "APPROVED",
+        "test_evidence": "APPROVED"
+      },
+      "role_receipt_hashes": {
+        "architecture.json": "32dff2d91000a0debaf60b3f76f1265b047feacb638fc9013b0a0f0b43708a5f",
+        "automation.json": "1e09ebe5fc88290aeb180d87c4c3c25099813a5194c334392bd2f59ee74b6b14",
+        "devops.json": "7be24ba3904ead7a8f588547b014414015339a742346ac6eeb5b749c2e482880",
+        "requirements.json": "132767408000992e0f5f00eb35bec12579227e3245fba68d0a8edcbfca5f2a66",
+        "security.json": "7ad3166caec34ef0914e34a58767e10f118042061b64c37f1c41e5924bc03349",
+        "test_evidence.json": "1ba3bba2aa5179eac55ddda5e07d17e8f8ce8e64efb206f9fcf625c0303fa026"
+      },
+      "native": {
+        "context_sha256": "28bb74863c7b1f961a5be0f8d2298dc61d4138d75973e4aa4824af674a64cb9a",
+        "deadline_utc": "2026-11-13T13:07:18Z",
+        "draft_sha256": "1d3d41db97009df65ebb0f734295d77a48f154f114c3a7124d0fde50b4d88807",
+        "resource_sha256": "662db488529c9853c9eee0fe9d4d517b4cff385046b1d631bb7ebb113d84043e",
+        "closure_sha256": "259300e917fe579f181fd90c7a0c45406381b701ea7c256911ea214dda31d9da"
+      },
+      "wsl": {
+        "deadline_utc": "2026-11-13T13:08:07Z",
+        "go_draft_sha256": "88f4032f164e3dd2b6f5b63106ff61cc4140ebf0d87324b0f4fd6877d8970523",
+        "resource_draft_sha256": "c1f85f3411fd5b7cea56fcea69ab30c7a452b0960a762395e9c223d61f819f29",
+        "closure_sha256": "cbabbe8834261545e21c96035ea02fc72f48a48023f88e878e3c58e7455708ef"
+      },
+      "native_review_sha256": "8083de58855a0e7ae03a14e3aad6bb1d9317bc8c4da5411dcbee114d6d505edb",
+      "wsl_review_sha256": "16195d1e592f4efbfb24d9f303589f1cd99d9f0892c3f55ba72904232d95c475",
+      "final_runtime_files": {
+        "caller_supervision.py": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+        "native-manager-window-driver-c4-ta34.py": "bbf8c6c24b054c8cd12e8fce6b2e4ef0cac9617dbf2738f0fa8a394fafeca196",
+        "native-review.json": "8083de58855a0e7ae03a14e3aad6bb1d9317bc8c4da5411dcbee114d6d505edb",
+        "native_execute.sh": "7e11b77eef25b3e59afce7faf568cf8b5505db5ee88a1a56bc5c6d9f4830b0f6",
+        "native_postcheck.sh": "19491210f11d01f15862d227437ddc5db68aef8cf9b957eb53f777d599963b35",
+        "wsl-review-decisions.json": "16195d1e592f4efbfb24d9f303589f1cd99d9f0892c3f55ba72904232d95c475",
+        "wsl_execute.py": "ee505f2e82fa72ffdf2785f55e94e58fdc353bf5116e2b63638eb294543f8bd8",
+        "wsl_postcheck.py.in": "4071789bb6ccfaac48e18179bd38f074248fb31f6114d0d1204af6b253b2498d"
+      },
+      "recorded_expiries": "CAPTURED_VALUES_NOT_CURRENT_VALIDITY_ROOT_JIT_REQUIRED",
+      "finalization": "ONLY_FIRST_STOP_AND_EXACT_PLACEHOLDERS",
+      "independent_final_byte_audit": "FINALIZED_BYTES_ACCEPTED_ALL_8_ARTIFACT_HASHES_SIZES_AND_6_ROLE_RECEIPT_HASHES",
+      "WSL_postcheck": "STOP_AND_ACTUAL_RESULT_SHA_PLACEHOLDER_RETAINED_UNTIL_ACTUAL_RESULT",
+      "native_and_wsl_role_verdicts": "EACH_REAL_ROLE_APPROVED_SEPARATELY_PER_HOST",
+      "checkpoint_JIT_Root_GO": "PENDING",
+      "fixtures_restoration_cleanup_pair_K4_EPIC": "NOT_RUN"
+    }
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",

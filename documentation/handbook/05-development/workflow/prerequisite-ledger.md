@@ -307,7 +307,7 @@ candidate policy remain distinct; source1811 unchanged/full4129 not repeated.
 No broad metadata stripping or architecture-policy change. Private qualified K3
 and public candidate policy remain distinct; no product/EPIC completion inferred.
 
-## Current S07 source preparation and operational prerequisites — TA34/35
+## Historical S07 source preparation and operational prerequisites — TA34/35
 
 | Owner | Actual evidence / accepted boundary | Remaining gate |
 |---|---|---|
@@ -326,3 +326,18 @@ and public candidate policy remain distinct; no product/EPIC completion inferred
 
 All14 canonical metadata blocks and accepted safety/quality authority remain
 unchanged. This bounded S07 source-preparation checkpoint grants no live execution GO.
+
+## Current S07 exact admission prerequisites — TA37
+
+| Owner | Actual evidence | Remaining execution gate |
+|---|---|---|
+| Caller / TA35 | V3code8ffa96dd… actual53mocksPASS; independent syntheticOSprobe9c24fd15… accepted | Synthetic adapter evidence only; no live qualification/GO; C4/runner unchanged |
+| Capture / TA36 |1811source manifest27727a4a… identicalbeforeafter;72native/28WSL closureentries hashverified | Fresh JIT source/UUID/ownership/remainingtime required |
+| Six actual roles / TA37 | Each separately APPROVED native AND WSL exactsource/context/draft/resource; persisted realverdicts | Role approval is not Root effectGO; retain exact host binding |
+| Native binding | Context28bb7486…/draft1d3d41db…/resource662db488…/closure259300e9…; review8083de58…; storedexpiry2026-11-13T13:07:18Z | Existing managerpause/listener/restore only; preserve4originals/5oldbackups+planned6th, independentrestoration beforeWSL |
+| WSL binding | GOdraft88f4032f…/resourcec1f85f34…/closurecbabbe88…; review16195d1e…; storedexpiry2026-11-13T13:08:07Z | Preserve2legitimateprofiles/default/provider/Windows/routes; ownedfixturecleanup and independentaudit afterward |
+| Exact finalization | OnlyinitialSTOP/exactplaceholders; unchanged nativewindowbbf8…/caller8ffa…; nativeexecute7e11…/WSLexecuteee505… pinned | Independent FINALIZED_BYTES_ACCEPTED/all8artifacts+6role-receipthashes; WSLpostcheck4071789b… retainsSTOP/resultSHAplaceholder untilactualresult |
+| Root / checkpoint | Six-role admission READY, actualeffects NOT_RUN | Designated exactfourdocgate+guardedpublication, JIT expiry/ownership/source and RootGO pending; no fixture/restore/cleanup/pair/K4/product/EPIC result |
+
+All14 metadata blocks and21 governing-file authority remain unchanged; no new
+source, full product gate, live execution, final result or EPIC claim.

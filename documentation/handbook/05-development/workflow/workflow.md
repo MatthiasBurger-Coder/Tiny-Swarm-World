@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; C4 SOURCE_PREPARED/TARGETED_PASS; TA35 private caller supervision repair pending; live qualification NOT_RUN; no product/EPIC DONE
+Status: EXECUTING; TA37 exact six-role per-host admission READY; finalized bytes accepted; checkpoint/JIT Root GO pending; live qualification NOT_RUN; no product/EPIC DONE
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -953,6 +953,46 @@ operational contexts/current deadlines, six-role admission/checkpoint/RootGO and
 actual fixture effects are PENDING/NOT_RUN. This documentation records completed
 source preparation and outstanding caller prerequisites only; no live expiry,
 final context or qualification result is invented. Parent #440 remains open.
+
+## Execution run TA440-20261113-37 — exact per-host admission checkpoint
+
+TA35 V3 private caller code8ffa96dd… now has actual53mock tests PASS/zero skips
+and independent acceptance of the synthetic OS adapter probe9c24fd15…. The probe
+proved owned PIDFD SIGINT/finally cleanup/empty census and bounded sealed output;
+it is SYNTHETIC_OS_ADAPTER_EVIDENCE_ONLY, not live qualification or infrastructure
+GO. Earlier caller failures remain retained. C4/runner/source-stage receipts are
+unchanged; no C5 or repeated full product gate is inferred.
+
+TA36 actual read-only native and WSL captures match1811source bytes/modes,
+manifest27727a4a… before/after. All72native/28WSL closure entries were hash verified.
+TA37 execution started before six-role consultation. Requirements, Architecture,
+Automation, Test-Evidence, Security and DevOps each APPROVED the exact native AND
+WSL source/context/draft/resource bindings; these are separate per-host verdicts.
+Native context28bb7486…/draft1d3d41db…/resource662db488…/closure259300e9… stores
+expiry2026-11-13T13:07:18Z. WSL GOdraft88f4032f…/resourcec1f85f34…/closurecbabbe88…
+stores expiry2026-11-13T13:08:07Z. These recorded expiries are not a current-validity
+or effect claim; Root must revalidate actual remaining time and host identity.
+
+Actual role receipts deterministically produce native review8083de58… and WSL
+review16195d1e…. Finalization is limited to initial STOP removal and exact reviewed
+placeholder substitution; independent audit FINALIZED_BYTES_ACCEPTED verifies all
+eight artifact hashes/sizes and six role-receipt hashes. Pinned
+native windowbbf8c6c2… and V3caller8ffa96dd… logic is unchanged. Final native
+execute7e11b77e…/postcheck19491210… and WSL executeee505f2e… are recorded in the
+private finalization inventory. WSL postcheck4071789b… retains initial STOP and
+result-SHA placeholder until an actual result exists; no fake result finalization.
+
+Six-role admission is READY only for the bounded existing native manager pause/
+owned listener/restore scope, then WSL owned fixture/cleanup after independently
+accepted native preservation. Preserve four native originals/five prior backups
+plus planned sixth; preserve both legitimate WSL Docker profiles/default/provider/
+Windows/routes. Final independent byte audit PASS; checked four-document
+publication, fresh JIT expiry/ownership/source checks and explicit Root GO remain
+required.
+Actual native/WSL fixtures, restoration/cleanup results, pair qualification, K4,
+network/image/product recovery and EPIC completion are NOT_RUN. All14 canonical
+metadata blocks and21 governing-file authority remain unchanged. This S07
+checkpoint records exact admissions and prerequisites; it does not execute them.
 
 ## Verified Baseline and Target Picture
 

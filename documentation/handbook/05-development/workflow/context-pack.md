@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; C4 SOURCE_PREPARED/TARGETED_PASS; TA35 private caller repair pending; live qualification NOT_RUN; no product/EPIC DONE.
+Status: EXECUTING; TA37 exact six-role per-host admission READY; finalized bytes accepted; checkpoint/JIT Root GO pending; live qualification NOT_RUN; no product/EPIC DONE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -362,7 +362,7 @@ changed product source then requires nearest tests+fullQUALITY and new accepted
 source/admission. Old C3/K3 immutable receipts do not verify new source. S09 open,
 public/private policy distinction retained, no product/EPIC PASS or bypass.
 
-## Current S07 source preparation and caller prerequisites — TA34/35
+## Historical S07 source preparation and caller prerequisites — TA34/35
 
 Public0263f402… contains the exact two-file bridge-only gc_timer repair. Actual
 old-source regression3/1FAIL/2PASS, corrected focused3PASS/neighbors68PASS/full
@@ -410,3 +410,28 @@ follows actualpair and requiredvalidators/gates; public changedcapability separa
 No network/image/nodes/stacks/recovery/EPIC success.14metadataunchanged. ExactSSHWSL
 docreceipt precedes guarded S07 source-preparation checkpoint; no liveGO/context/
 expiry/qualification claim or secondsourceimplementationcommit.
+
+## Current exact per-host admission — TA37
+
+PrivateV3caller8ffa96dd… actual53mocksPASS and independently accepted synthetic
+OSprobe9c24fd15… prove caller/adapter behavior only; no infrastructure GO or live
+qualification. C4/runner/source receipts remain unchanged; old failures retained.
+TA36read-only captures match1811manifest27727a4a… beforeafter; all72native/28WSL
+closure entries hashverified. Actualsixroles each APPROVED native AND WSL exact
+context/draft/resource/source bindings after TA37 workflow-start record.
+
+Native context28bb7486…/draft1d3d41db…/resource662db488…/closure259300e9…;
+WSL GOdraft88f4032f…/resourcec1f85f34…/closurecbabbe88…. Recorded expiries native
+2026-11-13T13:07:18Z/WSL13:08:07Z require fresh JIT validation; not currentvalidity.
+Actualrole receipts yield native review8083de58…/WSL16195d1e…. Finalization only
+initialSTOP removal/exactplaceholders; independent FINALIZED_BYTES_ACCEPTED for
+all8artifacts+6role-receipthashes. Native
+windowbbf8c6c2…/caller8ffa unchangedlogic; execute7e11b77e…/ee505f2e… pinned.
+WSLpostcheck4071789b… remainsSTOP/resultSHAplaceholder until actualresult.
+
+Six-role admission READY/finalbyteauditPASS; exactdoccheckpoint/JITsource+ownership+
+expiry/RootGO pending. Serialnative existingmanagerpause/listener/restore with
+independentpreservation acceptance before WSLfixture/cleanup; preserve4originals/
+5priorbackups+planned6th andWSL2profiles/default/provider/Windows/routes. Actual
+fixtures/restoration/cleanup/pair/K4/productrecovery/EPIC NOT_RUN;14metadata and
+21governingauthority unchanged. This checkpoint grants no execution by itself.
