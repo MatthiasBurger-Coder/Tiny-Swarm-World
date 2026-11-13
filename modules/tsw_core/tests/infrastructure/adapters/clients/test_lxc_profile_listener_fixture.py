@@ -389,9 +389,9 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
                     b'[{"name":"shared","project":"default","config":{},"devices":{"listener":{"type":"proxy","listen":"tcp:0.0.0.0:10001","connect":"tcp:127.0.0.1:8080"}},"used_by":["/1.0/instances/swarm-manager?project=issue447"]}]',
                 ('incus', 'query', '/1.0/profiles/shared?project=default'):
                     b'{"name":"shared","project":"default","config":{},"devices":{"listener":{"type":"proxy","listen":"tcp:0.0.0.0:10001","connect":"tcp:127.0.0.1:8080"}},"used_by":["/1.0/instances/swarm-manager?project=issue447"]}',
-                ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-                ('incus', 'list', '--project', 'issue447', '--format', 'json'): b'[]',
-                ('incus', 'list', '--project', 'legacy', '--format', 'json'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=issue447&recursion=1'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=legacy&recursion=1'): b'[]',
             }
             return responses[tuple(argv)]
 
@@ -404,7 +404,7 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
         self.assertEqual(routes[0]['owner'], 'shared')
         self.assertEqual(routes[0]['effective_profiles'], ['shared'])
         self.assertEqual(calls.count(('incus', 'profile', 'list', '--project', 'default', '--format', 'json')), 1)
-        self.assertIn(('incus', 'list', '--project', 'issue447', '--format', 'json'), calls)
+        self.assertIn(('incus', 'query', '/1.0/instances?project=issue447&recursion=1'), calls)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'issue447', '--format', 'json'), calls)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'legacy', '--format', 'json'), calls)
 
@@ -550,7 +550,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                 return b'{"name":"default","description":"","config":{}}'
             if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
                 return b'[]'
-            if argv == ['incus', 'list', '--project', 'default', '--format', 'json']:
+            if argv == ['incus', 'query', '/1.0/instances?project=default&recursion=1']:
                 return b'[{"name":"expected"}]'
             if argv[:2] == ['incus', 'query']:
                 return json.dumps({'name': 'other', 'project': 'default',
@@ -570,7 +570,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                         return b'{"name":"default","description":"","config":{}}'
                     if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
                         return json.dumps([{'name': 'expected', 'project': 'other', 'config': {}, 'devices': {}, 'used_by': []}]).encode() if resource == 'profile' else b'[]'
-                    if argv == ['incus', 'list', '--project', 'default', '--format', 'json']:
+                    if argv == ['incus', 'query', '/1.0/instances?project=default&recursion=1']:
                         return json.dumps([{'name': 'expected', 'project': 'other', 'status': 'Running', 'type': 'container', 'config': {}, 'devices': {}, 'profiles': []}]).encode() if resource == 'instance' else b'[]'
                     if argv[:2] == ['incus', 'query']:
                         identity = {'name': 'expected', 'project': 'other',
@@ -624,8 +624,8 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                         json.dumps([{'name': 'qa-profile', 'project': 'qa', 'config': {}, 'devices': {'web': route_device}, 'used_by': []}]).encode(),
                     ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')):
                         json.dumps({'name': 'qa-profile', 'project': 'qa', 'config': {}, 'devices': {'web': route_device}, 'used_by': []}).encode(),
-                    ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-                    ('incus', 'list', '--project', 'qa', '--format', 'json'):
+                    ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
+                    ('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
                         json.dumps([{'name': 'qa-instance', 'project': 'qa', 'status': 'Running', 'type': 'container', 'config': {}, 'devices': {'web': route_device}, 'expanded_config': {}, 'expanded_devices': {'web': route_device}, 'profiles': ['qa-profile']}]).encode(),
                     ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa')):
                         json.dumps({'name': 'qa-instance', 'project': 'qa', 'config': {}, 'devices': {'web': route_device},
@@ -669,7 +669,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     if argv[1] == 'project':
                         self.assertEqual(argv[2], 'list')
                     if argv[1] == 'query':
-                        self.assertIn(tuple(argv), {('incus', 'query', '/1.0/projects/default'), ('incus', 'query', '/1.0/projects/qa'), ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')), ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa'))})
+                        self.assertIn(tuple(argv), {('incus', 'query', '/1.0/projects/default'), ('incus', 'query', '/1.0/projects/qa'), ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')), ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa')), ('incus', 'query', '/1.0/instances?project=default&recursion=1'), ('incus', 'query', '/1.0/instances?project=qa&recursion=1')})
                     if argv[1] == 'profile':
                         self.assertEqual(argv[2], 'list')
                     if argv[1] == 'config':
@@ -705,7 +705,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
                 ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
                 ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{"features.images":"true","features.networks":true,"features.profiles":"false","features.storage.volumes":false}}',
                 ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[]',
-                ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
             }
             def inventory(argv):
                 calls.append(tuple(argv))
@@ -1041,7 +1041,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             ('incus', 'query', fixture._profile_api_path('web', 'qa')):
                 json.dumps({'name': 'web', 'project': 'qa', 'description': '', 'config': {'user.note': 'omit'},
                             'devices': {'proxy0': device}, 'used_by': []}).encode(),
-            ('incus', 'list', '--project', 'qa', '--format', 'json'):
+            ('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
                 json.dumps([{'name': 'vm', 'status': 'Running', 'status_code': 103,
                              'type': 'virtual-machine', 'profiles': ['web'], 'ephemeral': False,
                              'description': '', 'project': 'qa', 'backups': None,
@@ -1070,7 +1070,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertEqual(project['profiles'], [{'name': 'web', 'used_by': [], 'devices': {'proxy0': device}}])
         self.assertEqual(project['instances'], [{'name': 'vm', 'status': 'Running', 'type': 'virtual-machine',
             'profiles': ['web'], 'local_devices': {'local0': device}, 'expanded_devices': {'expanded0': device}}])
-        self.assertIn(('incus', 'list', '--project', 'qa', '--format', 'json'), seen)
+        self.assertIn(('incus', 'query', '/1.0/instances?project=qa&recursion=1'), seen)
         self.assertIn(('incus', 'query', fixture._instance_api_path('vm', 'qa')), seen)
         self.assertEqual(set(inventory), {'projects', 'command_records'})
 
@@ -1092,12 +1092,12 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             ('incus', 'query', '/1.0/profiles/shared?project=default'):
                 json.dumps({'name': 'shared', 'project': 'default', 'config': {}, 'devices': {},
                             'used_by': shared_used_by}).encode(),
-            ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-            ('incus', 'list', '--project', 'issue447', '--format', 'json'):
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
+            ('incus', 'query', '/1.0/instances?project=issue447&recursion=1'):
                 b'[{"name":"swarm-manager","status":"Running","type":"container","profiles":["default"],"project":"issue447"}]',
             ('incus', 'query', fixture._instance_api_path('swarm-manager', 'issue447')):
                 json.dumps(instance).encode(),
-            ('incus', 'list', '--project', 'legacy', '--format', 'json'): b'[]',
+            ('incus', 'query', '/1.0/instances?project=legacy&recursion=1'): b'[]',
         }
         seen = []
 
@@ -1122,7 +1122,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertEqual(seen.count(('incus', 'profile', 'list', '--project', 'default', '--format', 'json')), 1)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'issue447', '--format', 'json'), seen)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'legacy', '--format', 'json'), seen)
-        self.assertIn(('incus', 'list', '--project', 'issue447', '--format', 'json'), seen)
+        self.assertIn(('incus', 'query', '/1.0/instances?project=issue447&recursion=1'), seen)
 
     def test_inventory_refuses_to_list_projects_without_completeness_authority(self):
         with (patch.object(fixture, '_assert_host_identity_inventory'), patch.object(fixture, '_assert_local_incus_remote_inventory'),
@@ -1147,53 +1147,53 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
               b'{"name":"p","project":"other","config":{},"devices":{},"used_by":[]}'},
              'INCUS_PROFILE_INVENTORY_UNREADABLE'),
             ('instance-project-mismatch',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"project":"other"}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-architecture',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"architecture":12}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-created-at',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"created_at":12}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-stateful',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"stateful":"false"}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-ephemeral',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"ephemeral":"false"}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-status-code',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"status_code":true}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-backups',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"backups":{}}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-snapshots',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"snapshots":["snap0"]}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-state',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"state":[]}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('oversized-snapshots',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               json.dumps([{'name': 'i', 'status': 'Running', 'type': 'container', 'profiles': [],
                            'snapshots': [{} for _ in range(fixture._INVENTORY_MAX_ENTITIES + 1)]}]).encode()},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('oversized-state',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               json.dumps([{'name': 'i', 'status': 'Running', 'type': 'container', 'profiles': [],
                            'state': {f'field-{i}': None for i in range(fixture._INVENTORY_MAX_ENTITIES + 1)}}]).encode()},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('unknown-instance-summary-field',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"vendor_extra":true}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
         ]
@@ -1204,7 +1204,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
                     ('incus', 'query', '/1.0/projects/qa'):
                         json.dumps({'name': 'qa', 'description': '', 'config': feature_config}).encode(),
                     ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'): b'[]',
-                    ('incus', 'list', '--project', 'qa', '--format', 'json'): b'[]',
+                    ('incus', 'query', '/1.0/instances?project=qa&recursion=1'): b'[]',
                 }
                 base.update(overrides)
                 def read(argv):
@@ -1749,7 +1749,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                     raise AssertionError(argv)
 
                 def incus(*args, profile_data=None):
-                    if args[:1] == ('list',) or args[:2] == ('profile', 'list'):
+                    if args == ('query', '/1.0/instances?project=default&recursion=1') or args[:2] == ('profile', 'list'):
                         return b'[]'
                     writes.append(args)
                     return b''
@@ -1893,7 +1893,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 state['profile_exists'] = False
             if args[:2] == ('profile', 'delete') and args[2] == base_profile:
                 state['base_exists'] = False
-            if args[:1] == ('list',):
+            if args == ('query', '/1.0/instances?project=default&recursion=1'):
                 names = ([{'name': instance}] if state['foreign_instance'] else [])
                 return json.dumps(names).encode()
             if args[:2] == ('profile', 'list'):
@@ -2466,7 +2466,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
             ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
             ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
-            ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): json.dumps([route]).encode(),
         }
         go = {'target': {'host': '192.168.178.33', 'server_version': '6.0.5',
@@ -2487,12 +2487,12 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'query', '/1.0/images/' + fingerprint + '?project=default'),
             ('free', '-b'), ('df', '-B1', '--output=avail', str(fixture.ROOT)),
             ('ss', '-H', '-ltn'), ('ss', '-H', '-ltnp'),
-            ('incus', 'list', '--project', 'default', '--format', 'json'),
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
             ('incus', 'project', 'list', '--format', 'json'),
             ('incus', 'query', '/1.0/projects/default'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
-            ('incus', 'list', '--project', 'default', '--format', 'json'),
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'),
         ]
         self.assertEqual(set(command_order), set(responses))
         for failure_index in range(1, len(command_order) + 1):
@@ -2587,7 +2587,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
                 ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
                 ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
-                ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
                 ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): json.dumps([route]).encode(),
                 }
             return mapping[tuple(argv)]
@@ -2734,7 +2734,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 return b'{"name":"qa","description":"","config":{}}'
             if argv[:3] == ['incus', 'profile', 'list']:
                 return b'[]'
-            if argv[:2] == ['incus', 'list']:
+            if argv in (['incus', 'query', '/1.0/instances?project=default&recursion=1'], ['incus', 'query', '/1.0/instances?project=qa&recursion=1']):
                 return b'[]'
             self.fail(f'unexpected capture command: {argv}')
 
@@ -3381,7 +3381,7 @@ class _FullGraphFixtureTransport:
         since = self.events[self.effects[-1][1] + 1:] if self.effects else self.events
         required = [('project', 'list', '--format', 'json')]
         required += [('query', fixture._project_api_path(project)) for project in self.projects]
-        required += [('list', '--project', project, '--format', 'json') for project in self.projects]
+        required += [('query', '/1.0/instances?project=' + project + '&recursion=1') for project in self.projects]
         required += [('profile', 'list', '--project', 'default', '--format', 'json')]
         for read in required:
             self.testcase.assertIn(read, since)
@@ -3433,6 +3433,14 @@ class _FullGraphFixtureTransport:
             return self._json([{'fingerprint': 'b' * 64}])
         if args[:1] == ['query']:
             path = args[1]
+            for project in self.projects:
+                if path == '/1.0/instances?project=' + project + '&recursion=1':
+                    rows = list(self.foreign_rows[project])
+                    if rows:
+                        self.foreign_lists += 1
+                    if project == 'default' and self.current is not None:
+                        rows.append(self._instance())
+                    return self._json(rows)
             if path.startswith('/1.0/projects/'):
                 project = path.rsplit('/', 1)[-1]
                 return self._json(self._project_row(project))
@@ -5071,6 +5079,275 @@ class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
                 qualifier.assert_not_called()
                 self.assertFalse((root / fixture.PRIVATE_EVIDENCE_REL).exists())
                 self.assertNotIn('SYNTHETIC_PRIVATE_STDOUT', errors.getvalue())
+
+
+class _MetadataEnumerationTransport(_FullGraphFixtureTransport):
+    """Portable four-original/seven-backup DTOs; no captured environment data."""
+
+    def __init__(self, testcase):
+        super().__init__(testcase)
+        self.metadata_reads, self.legacy_reads = [], []
+        self.mutate_metadata = None
+        self.fail_metadata = False
+        self.active_slots_peak = 0
+        self.foreign_rows = {project: [] for project in self.projects}
+        for index, project in enumerate(['default'] * 3 + ['foreign']):
+            row = json.loads(json.dumps(self.foreign))
+            row.update(name='original-' + str(index), project=project,
+                       status='Stopped' if index == 3 else 'Running',
+                       status_code=102 if index == 3 else 103)
+            for field in ('state', 'backups', 'snapshots'):
+                row.pop(field)
+            row['config']['volatile.uuid'] = '00000000-0000-4000-8000-00000000000' + str(index)
+            row['expanded_config'] = dict(row['config'])
+            if project == 'default':
+                row['profiles'], row['expanded_devices'] = ['legacy-base'], {}
+            self.foreign_rows[project].append(row)
+        self.profiles['legacy-base']['used_by'] = [fixture._instance_api_path(row['name'], 'default')
+                                                  for row in self.foreign_rows['default']]
+        self.profiles['legacy-route']['used_by'] = [fixture._instance_api_path('original-3', 'foreign')]
+        self.originals_before = json.dumps(self.foreign_rows, sort_keys=True)
+        self.backups = [{'name': 'backup-' + str(index), 'architecture': 'x86_64',
+                         'config': {f'user.setting.{key}': 'synthetic-value' for key in range(122)},
+                         'expanded_config': {f'user.setting.{key}': 'synthetic-value' for key in range(122)},
+                         'devices': {}, 'expanded_devices': {}, 'profiles': ['legacy-base'],
+                         'created_at': '2026-01-01T00:00:00Z', 'expires_at': '0001-01-01T00:00:00Z',
+                         'stateful': False} for index in range(7)]
+
+    @staticmethod
+    def collection_path(project):
+        from urllib.parse import quote
+        return '/1.0/instances?project=' + quote(project, safe='') + '&recursion=1'
+
+    def rows(self, project, *, full=False):
+        rows = json.loads(json.dumps(self.foreign_rows[project]))
+        if project == 'default' and self.current is not None:
+            rows.append(self._instance())
+        if full:
+            for row in rows:
+                row.update(backups=[], snapshots=[], state={'status': row['status'], 'processes': 1})
+            if project == 'default':
+                rows[0]['snapshots'] = json.loads(json.dumps(self.backups))
+        return rows
+
+    def _observe(self, args):
+        super()._observe(args)
+        if not fixture._INVENTORY_CLEANUP_MODE:
+            self.active_slots_peak = max(self.active_slots_peak, fixture._INVENTORY_ENTITIES_CAPTURED)
+
+    def read(self, args):
+        for project in self.projects:
+            if args == ['query', self.collection_path(project)]:
+                self.metadata_reads.append(project)
+                rows = self.rows(project)
+                if self.mutate_metadata is not None:
+                    rows = self.mutate_metadata(project, rows)
+                return self._json(rows)
+            if args == ['list', '--project', project, '--format', 'json']:
+                self.legacy_reads.append(project)
+                return self._json(self.rows(project, full=True))
+            for row in self.foreign_rows[project]:
+                if args == ['query', fixture._instance_api_path(row['name'], project)]:
+                    return self._json(row)
+        return super().read(args)
+
+    def popen(self, argv, **kwargs):
+        if self.fail_metadata and argv[1:] == ['query', self.collection_path('default')]:
+            self._observe(argv[1:])
+            self.metadata_reads.append('default')
+            return _BoundedMemoryProcess(b'synthetic collection unavailable', 1)
+        return super().popen(argv, **kwargs)
+
+    def _before_effect(self, args):
+        since = self.events[self.effects[-1][1] + 1:] if self.effects else self.events
+        required = [('project', 'list', '--format', 'json')]
+        required += [('query', fixture._project_api_path(project)) for project in self.projects]
+        required += [('query', self.collection_path(project)) for project in self.projects]
+        required += [('profile', 'list', '--project', 'default', '--format', 'json')]
+        for read in required:
+            self.testcase.assertIn(read, since)
+        self.effects.append((tuple(args), len(self.events) - 1))
+        if self.fail_effect == tuple(args):
+            raise OSError('simulated transport loss before effect')
+
+
+class MetadataEnumerationTests(_FixtureBehaviorTestCase):
+    def _run_flow(self, transport):
+        failure, result = None, None
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            try:
+                baseline = fixture.jit(transport.go, '192.168.178.33')
+                result = _run_approved_fixture(transport.go, baseline)
+            except fixture.FixtureError as error:
+                failure = error.args[0]
+        return result, failure
+
+    def test_only_canonical_project_scoped_recursion_one_query_is_allowed(self):
+        for project in ('default', 'qa%20zone', 'qa%2Bzone', 'caf%C3%A9'):
+            with self.subTest(project=project):
+                self.assertTrue(fixture._is_incus_query_argv(
+                    ['incus', 'query', '/1.0/instances?project=' + project + '&recursion=1']))
+        invalid = ('/1.0/instances', '/1.0/instances/',
+                   '/1.0/instances?project=default', '/1.0/instances?project=&recursion=1',
+                   '/1.0/instances?recursion=1&project=default',
+                   '/1.0/instances?project=default&recursion=0', '/1.0/instances?project=default&recursion=2',
+                   '/1.0/instances?project=default&recursion=01', '/1.0/instances?project=default&recursion=%31',
+                   '/1.0/instances?project=default&recursion=1&recursion=1',
+                   '/1.0/instances?project=default&project=other&recursion=1',
+                   '/1.0/instances?project=default&recursion=1&all-projects=true',
+                   '/1.0/instances?project=default&recursion=1&',
+                   '/1.0/instances?project=%64efault&recursion=1', '/1.0/instances?project=qa+zone&recursion=1',
+                   '/1.0/instances?project=qa%2fzone&recursion=1', '/1.0/instances?project=qa%2Fzone&recursion=1',
+                   '/1.0/instances?project=qa%5Czone&recursion=1', '/1.0/instances?project=%FF&recursion=1',
+                   '/1.0/instances?project=%00&recursion=1', '/1.0/instances?project=..&recursion=1',
+                   '/1.0/containers?project=default&recursion=1', '/1.0/instances?project=default&recursion=1#fragment')
+        for path in invalid:
+            with self.subTest(path=path):
+                self.assertFalse(fixture._is_incus_query_argv(['incus', 'query', path]))
+        path = '/1.0/instances?project=default&recursion=1'
+        for argv in (['incus', 'query', path, '--request', 'DELETE'], ['incus', 'query', '--request=GET', path],
+                     ['incus', 'query', path, '--data', '{}'], ['incus', 'query', path, '--raw']):
+            self.assertFalse(fixture._is_incus_query_argv(argv))
+
+    def test_portable_full_four_original_seven_snapshot_prefix_exceeds_forward_budget_atomically(self):
+        transport = _MetadataEnumerationTransport(self)
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        self.assertEqual((fixture._INVENTORY_MAX_ENTITIES, fixture._INVENTORY_CLEANUP_ENTITY_RESERVE), (10000, 5000))
+        argv = [['incus', 'remote', 'list', '--format', 'json'],
+                ['incus', 'image', 'list', '--project', 'default', '--format', 'json'],
+                ['incus', 'query', '/1.0/images/' + 'b' * 64 + '?project=default'],
+                ['incus', 'query', fixture._profile_api_path('default', 'default')],
+                ['incus', 'project', 'list', '--format', 'json']]
+        argv += [['incus', 'query', fixture._project_api_path(project)] for project in transport.projects]
+        argv += [['incus', 'profile', 'list', '--project', 'default', '--format', 'json']]
+        argv += [['incus', 'list', '--project', project, '--format', 'json'] for project in transport.projects]
+        denied = False
+        with patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen):
+            for command in argv:
+                before, slots = fixture._INVENTORY_ENTITIES_CAPTURED, set(fixture._INVENTORY_ENTITY_SLOTS)
+                try:
+                    fixture._inventory_command(command)
+                except fixture.TargetDrift as error:
+                    self.assertEqual(error.args[0], 'INCUS_INVENTORY_UNREADABLE')
+                    self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, before)
+                    self.assertEqual(fixture._INVENTORY_ENTITY_SLOTS, slots)
+                    denied = True
+                    break
+        self.assertTrue(denied, 'realistic Full DTO overhead must reproduce the unchanged 5000-slot denial')
+        self.assertEqual(sum(len(rows) for rows in transport.foreign_rows.values()), 4)
+        self.assertEqual(len(transport.backups), 7)
+        self.assertEqual(transport.metadata_reads, [])
+
+    def test_metadata_full_mocked_fixture_flow_fits_unchanged_limits_without_full_fallback(self):
+        transport = _MetadataEnumerationTransport(self)
+        result, failure = self._run_flow(transport)
+        self.assertIsNone(failure, 'canonical metadata enumeration must avoid the Full DTO aggregate denial')
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(transport.legacy_reads, [], 'qualification must not fall back to Full CLI list')
+        self.assertEqual(set(transport.metadata_reads), set(transport.projects))
+        self.assertLessEqual(transport.active_slots_peak, 5000)
+        self.assertLessEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 10000)
+        self.assertEqual(fixture._INVENTORY_JSON_MAX_DEPTH, 32)
+        self.assertLessEqual(len(fixture._COMMAND_AUDIT), fixture._INVENTORY_MAX_COMMANDS)
+        self.assertLessEqual(fixture._INVENTORY_BYTES_CAPTURED, fixture._INVENTORY_TOTAL_COMMAND_MAX_BYTES)
+        self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.originals_before)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+
+    def test_complete_metadata_dto_profile_membership_and_route_drift_block_before_effects(self):
+        def mutate(kind, project, rows):
+            if project != 'default':
+                return rows
+            if kind == 'duplicate':
+                rows.append(dict(rows[0]))
+                return rows
+            if kind == 'missing-config':
+                rows[0].pop('config')
+            if kind == 'missing-expanded':
+                rows[0].pop('expanded_config')
+            if kind == 'unknown':
+                rows[0]['unmodeled_field'] = True
+            if kind == 'wrong-project':
+                rows[0]['project'] = 'foreign'
+            if kind == 'profile':
+                rows[0]['profiles'] = ['unobserved-profile']
+            if kind == 'status':
+                rows[0]['status'] = 1
+            if kind == 'route':
+                rows[0]['devices'] = {'new-route': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
+                    'connect': 'tcp:127.0.0.1:9999', 'bind': 'host'}}
+            return rows
+        for kind in ('duplicate', 'missing-config', 'missing-expanded', 'unknown', 'wrong-project', 'profile', 'status', 'route'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                transport = _MetadataEnumerationTransport(self)
+                transport.mutate_metadata = lambda project, rows: mutate(kind, project, rows)
+                result, failure = self._run_flow(transport)
+                self.assertIsNone(result)
+                self.assertIsNotNone(failure)
+                self.assertIn('default', transport.metadata_reads)
+                self.assertEqual(transport.effects, [])
+
+    def test_whole_metadata_response_is_budgeted_before_field_extraction_or_validation(self):
+        for kind in ('entities', 'depth'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                transport = _MetadataEnumerationTransport(self)
+                def mutate(project, rows):
+                    if project == 'default':
+                        extension = list(range(6000))
+                        if kind == 'depth':
+                            extension = 'leaf'
+                            for _ in range(34):
+                                extension = {'child': extension}
+                        rows[0]['unmodeled_extension'] = extension
+                    return rows
+                transport.mutate_metadata = mutate
+                with patch.object(fixture, '_route_instance', wraps=fixture._route_instance) as validator:
+                    _, failure = self._run_flow(transport)
+                self.assertEqual(failure, 'INCUS_INVENTORY_UNREADABLE')
+                self.assertIn('default', transport.metadata_reads)
+                validator.assert_not_called()
+                self.assertEqual(transport.effects, [])
+                self.assertGreater(fixture._INVENTORY_ENTITIES_CAPTURED, 0)
+                self.assertLessEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 5000)
+
+    def test_metadata_scope_is_exact_and_repeated_observation_never_resets_or_recharges_slots(self):
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        row = {'name': 'node', 'project': 'default', 'status': 'Running', 'profiles': ['p'],
+               'config': {}, 'expanded_config': {}, 'devices': {}, 'expanded_devices': {}}
+        first = ['incus', 'query', _MetadataEnumerationTransport.collection_path('default')]
+        second = ['incus', 'query', _MetadataEnumerationTransport.collection_path('foreign')]
+        self.assertTrue(fixture._is_incus_query_argv(first))
+        fixture._account_inventory_json(first, [row], 'INCUS_INVENTORY_UNREADABLE')
+        count, slots = fixture._INVENTORY_ENTITIES_CAPTURED, set(fixture._INVENTORY_ENTITY_SLOTS)
+        fixture._account_inventory_json(first, [row], 'INCUS_INVENTORY_UNREADABLE')
+        self.assertEqual((fixture._INVENTORY_ENTITIES_CAPTURED, fixture._INVENTORY_ENTITY_SLOTS), (count, slots))
+        fixture._account_inventory_json(second, [dict(row, project='foreign')], 'INCUS_INVENTORY_UNREADABLE')
+        self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 2 * count)
+        self.assertEqual({scope for scope, _ in fixture._INVENTORY_ENTITY_SLOTS}, {tuple(first), tuple(second)})
+
+    def test_metadata_transport_failure_never_retries_with_full_instance_list(self):
+        transport = _MetadataEnumerationTransport(self)
+        transport.fail_metadata = True
+        result, failure = self._run_flow(transport)
+        self.assertIsNone(result)
+        self.assertEqual(failure, 'INCUS_INVENTORY_COMMAND_FAILED')
+        self.assertEqual(transport.legacy_reads, [])
+        self.assertEqual(transport.effects, [])
+
+    def test_portable_metadata_preserves_all_required_instance_fields_and_membership(self):
+        transport = _MetadataEnumerationTransport(self)
+        omitted = {'state', 'backups', 'snapshots'}
+        for project in transport.projects:
+            full, metadata = transport.rows(project, full=True), transport.rows(project)
+            self.assertEqual({row['name'] for row in full}, {row['name'] for row in metadata})
+            for old, current in zip(full, metadata):
+                self.assertEqual({key: value for key, value in old.items() if key not in omitted}, current)
+                self.assertEqual(fixture._route_instance(current, project, transport.profiles), current)
+        self.assertEqual(sum(len(row['snapshots']) for row in transport.rows('default', full=True)), 7)
 
 if __name__ == '__main__':
     unittest.main()

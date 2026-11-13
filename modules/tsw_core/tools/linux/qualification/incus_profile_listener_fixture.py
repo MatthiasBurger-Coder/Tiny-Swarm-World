@@ -1399,6 +1399,11 @@ def _is_incus_query_argv(argv: list[str]) -> bool:
     if '#' in path:
         return False
     endpoint, separator, query = path.partition('?')
+    if endpoint == '/1.0/instances':
+        if not separator or not query.startswith('project=') or not query.endswith('&recursion=1'):
+            return False
+        encoded_project = query[len('project='):-len('&recursion=1')]
+        return _canonical_incus_name(encoded_project) is not None
     parts = endpoint.split('/')
     if len(parts) != 4 or parts[1] != '1.0':
         return False
@@ -1420,6 +1425,12 @@ def _is_incus_query_argv(argv: list[str]) -> bool:
 
 def _project_api_path(project: str) -> str:
     return '/1.0/projects/' + quote(project, safe='')
+
+
+def _instances_api_path(project: str) -> str:
+    if not isinstance(project, str) or _canonical_incus_name(quote(project, safe='')) is None:
+        raise FixtureError('INVENTORY_COMMAND_NOT_ALLOWLISTED')
+    return '/1.0/instances?project=' + quote(project, safe='') + '&recursion=1'
 
 
 def _profile_api_path(profile: str, project: str) -> str:
@@ -1713,7 +1724,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
                 raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
             profiles.append({'name': profile_name, 'used_by': sorted(pused),
                              'devices': _inventory_devices(pdata2.get('devices'), 'INCUS_PROFILE_INVENTORY_UNREADABLE')})
-        instances_raw = strict_json(_inventory_command(['incus', 'list', '--project', project, '--format', 'json']))
+        instances_raw = strict_json(_inventory_command(['incus', 'query', _instances_api_path(project)]))
         if not isinstance(instances_raw, list) or len(instances_raw) > _INVENTORY_MAX_ENTITIES:
             raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
         _account_inventory_entities(len(instances_raw), 'INCUS_INSTANCE_INVENTORY_UNREADABLE')
@@ -1951,7 +1962,7 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                 if device.get('type') == 'proxy' and _is_approved_10001_proxy(device['listen']):
                     routes.append(_safe_route_row(project, 'profile', name, device_name,
                                                   device, [name]))
-        instances = strict_json(command(['incus', 'list', '--project', project, '--format', 'json']))
+        instances = strict_json(command(['incus', 'query', _instances_api_path(project)]))
         if (not isinstance(instances, list)
                 or any(not isinstance(row, dict) or not isinstance(row.get('name'), str) or not row['name']
                        for row in instances)
@@ -2362,7 +2373,7 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
     listener_rows = _listener_rows(command(['ss', '-H', '-ltnp']), 10001)
     if any(_listener_rows(ss, port) for port in (80, 443, 16080, 16081)):
         raise TargetDrift('FORBIDDEN_LISTENER_PRESENT')
-    if go['target']['instance'] in str(strict_json(command(['incus', 'list', '--project', 'default', '--format', 'json']))):
+    if go['target']['instance'] in str(strict_json(command(['incus', 'query', _instances_api_path('default')]))):
         raise TargetDrift('INSTANCE_NAME_COLLISION')
     profile_rows = strict_json(command(['incus', 'profile', 'list', '--project', 'default', '--format', 'json']))
     if any(row.get('name') in {go['target']['profile'], go['target']['base_profile']}
@@ -2633,7 +2644,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
             if any(row['name'] == args[2] for row in names):
                 raise TargetDrift('PROFILE_NAME_COLLISION')
         elif args[:1] == ('init',):
-            names = strict_json(_incus('list', '--project', 'default', '--format', 'json'))
+            names = strict_json(_incus('query', _instances_api_path('default')))
             if (not isinstance(names, list)
                     or any(not isinstance(row, dict) or not isinstance(row.get('name'), str) for row in names)):
                 raise TargetDrift('INSTANCE_NAME_INVENTORY_UNREADABLE')
@@ -2886,7 +2897,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
         if created_base:
             owned_base_profile([])
             cleanup_write('profile', 'delete', base_profile, '--project', 'default')
-        remaining_instances = strict_json(_incus('list', '--project', 'default', '--format', 'json'))
+        remaining_instances = strict_json(_incus('query', _instances_api_path('default')))
         remaining_profiles = strict_json(_incus('profile', 'list', '--project', 'default', '--format', 'json'))
         if (created_instance and
                 (not isinstance(remaining_instances, list)

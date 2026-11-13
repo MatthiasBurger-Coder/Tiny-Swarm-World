@@ -31,3 +31,25 @@ this path remains preserved in the predecessor Git commit.
 - This post-gate reporting update is DOC_ONLY; executable bytes remain exactly tested.
 - Native C4 stays NONPASS; original nodes and six snapshots are independently preserved. Original native primary cause remains unknown; WSL live qualification and Epic acceptance remain open.
 - Rollback/source predecessor:e5cf773bd3a4a3feaf2d5d5cbed15fe14f815535. No private candidate refs, raw diagnostics or live approval published by this checkpoint.
+
+
+## TA45 bounded instance metadata enumeration — verified source correction
+
+- Existing S440O-02 scope; active isolated control worktree reused with one sequential source owner; no new branches.
+- Actual designated ordinary-pc WSL proof: current Full read prefix needs5149 structural slots against5000, while canonical metadata queries finish at1471; all required fields, membership and route checks match across3projects/4originals. Historical C5 threshold remains unproven.
+- Actual designated RED:8 methods,17 assertion failures,0 errors/skips; legacy-budget and DTO-equivalence controls pass; original197 test ASTs unchanged at RED freeze.
+- Root production GO follows independent Tester RED acceptance and reviewed canonical collection scope.
+- Verification was pending at implementation entry; executed results follow below. No live retry, capability admission or EPIC completion is claimed.
+
+
+### TA45 verified result and checkpoint readiness
+
+- Canonical project-scoped instance collection GET with exact recursion1 replaces five Full-DTO enumeration reads; complete returned JSON still passes existing accounting and validators. No fallback, budget increase, reset, approval expansion or cleanup change.
+- Current observed-data proof: Full prefix needs5149 slots against5000; metadata prefix1471, identical required metadata/membership/routes. This does not reconstruct the missing historical C5 response.
+- Actual prescribed SSH/WSL evidence: RED8/17 assertion failures/0 errors; GREEN8 and nearest205 PASS/0skips. Exactly13 existing protocol fixtures follow the new GET scope without removing assertions; all8 new regression ASTs preserved.
+- Initial full attempt stopped at15 formatting diagnostics; linebreak-only repair preserves the entire GREEN test-module AST. Corrected full QUALITY completes all7 stages, exit0 in383.082s:4156tests/37skips,7import contracts/0broken,44architecture tests,1056-file typecheck.
+- Independent Architecture/Security accept exact production; independent Tester accepts GREEN and final D8. Tested1815-file manifest:d8b01d9472d545540b9639c91268035793bf2127274c850303012eb6b010e130.
+- Production SHA256:b7876225a7d516633e801abae4d3582272aca5ad86245e482572d2fca0cec4bf; final test SHA256:259311531762ca5dcdb62c8e7e0de4c78915b068eb8aecbc20f47700c27a53b7.
+- Only this final report metadata changes after the gate; it is DOC_ONLY and receives a separate exact designated SSH/WSL check before checkpoint. Executable/test bytes remain exactly verified.
+- C5 remains immutable NONPASS; its four original native nodes and all seven snapshots are independently preserved. New-source live qualification, component installation/update/data recovery and final EPIC acceptance remain open.
+- Rollback predecessor:84607c769ec4e525d5458fd078b6fb6f81b3e08b. One S440O-02 checkpoint follows readiness verification; no private refs/raw evidence, PR, merge or live GO is published.
