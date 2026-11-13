@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; S09 TA29 cleanup PASS; TA30 official apply awaits checkpoint/fresh GO; endpoint/login/services UNVERIFIED; no product/EPIC DONE.
+Status: EXECUTING; S09 current network-plan identity drift proven; TA33 LOCAL scope approved/implementation pending; no product/EPIC DONE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -331,7 +331,7 @@ may enable only, not start; no originally-active claim. Actual cleanup NOT_RUN,
 no infrastructure/productPASS/newconsentquestion. Private final-code-admission.json
 binds proofs; K3/publicpolicy distinction retained, full4129 not repeated; DOC_ONLY.
 
-## Current S09 admission — TA30 official preparation
+## Historical S09 admission — TA30 official preparation
 
 TA29 actual cleanup independently PASS71563e6b…: script quarantined/unit disabled,
 canonical3files/allrules/provider/source1811 unchanged, no oldscript start. Earlier
@@ -345,3 +345,19 @@ source;600total/reserve120/tool480, no rootwholeprep/privilege/policy bypass.
 Apply NOT_RUN; TA31 imageimport EXCLUDED/prospective, no unitstart/nodes/stacks.
 Partial preparation only: endpoint/login/services/health UNVERIFIED, no S09 DONE.
 K3/publicpolicy distinction retained; sourceunchanged/full4129 not repeated; DOC_ONLY.
+
+## Current S09 repair scope — TA33
+
+TA30 created two official profiles/READY; NETWORK_REPLAN stopped before network
+apply, original failed snapshot missing/causeunknown. TA32 normal snapshots
+WSLbridge true/blockers[]/same2actions have fingerprint+invariant drift. TA33 exact
+BASE comparison proves sole changing bridge linkinfo.info_data.gc_timer94.78→81.6;
+source unchanged/no function replacement/no network/image/node effects.
+Root explicit bounded authoring amendment adds only preservation.py and existing
+network-preparation test to S02four scope arrays plus targeted unittest;14DAG/
+owners/deps/statuses/fullgate unchanged. Implementation NOT_RUN: planned narrow
+stable_links countdown normalization plus meaningful stability/real-drift tests.
+Exact SSH/WSL doc receipt/guarded checkpoint precede fresh S3/S3D/isolated worker;
+changed product source then requires nearest tests+fullQUALITY and new accepted
+source/admission. Old C3/K3 immutable receipts do not verify new source. S09 open,
+public/private policy distinction retained, no product/EPIC PASS or bypass.

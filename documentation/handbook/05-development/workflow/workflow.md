@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; S09 TA29 cleanup PASS; TA30 bounded official apply awaits checkpoint/fresh GO; endpoint/login/services UNVERIFIED; no product/EPIC DONE
+Status: EXECUTING; S09 network-plan identity drift proven; TA33 bounded LOCAL repair scope approved, implementation pending; no product/EPIC DONE
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -828,6 +828,41 @@ endpoint/login/services/health remain UNVERIFIED, S09/product/EPIC not DONE.
 Private qualified K3/public candidate policy remain distinct; no public promotion,
 new architecture decision, canonical slice metadata or acceptance change.
 
+## Execution run TA440-20261113-33 — explicit bounded LOCAL repair amendment
+
+Actual TA30 authentication/cache/cleanup exits0/source-after true; official Incus
+preparation created two profiles/READY. NETWORK_REPLAN then refused before any
+network apply; the wrapper did not retain that failed snapshot, so the original
+TA30 cause remains unknown. Subsequent TA32 read-only captures have WSLbridge
+true, blockers[], identical two actions, but changing fingerprints/invariants;
+independent Test accepts the capture with current snapshot drift.
+
+TA33 exact normal digest-input captures prove the sole BASE change is bridge
+`linkinfo.info_data.gc_timer` countdown94.78→81.6. Source unchanged, no function
+replacement or network/image/node effects. A fresh factory alone does not repair
+this actual identity drift; no stale-cache explanation is accepted.
+
+Root explicitly approves this bounded authoring amendment outside S3D preflight,
+using existing continued-remediation authority; no backward workflow creation or
+automatic scope expansion. S02 adds ONLY existing preservation.py and nearest
+network-preparation test to affected_files/file_locks/shared_files/allowed_write_scope,
+plus its targeted unittest command. All14 nodes/owners/dependencies/PLANNED statuses,
+serial/no-live flags and required full quality remain unchanged. The exact paths
+and gate are in S02 metadata; all other13 metadata blocks remain unchanged.
+
+Planned repair: narrowly normalize the demonstrated transient bridge countdown
+in stable_links while preserving topology/policy/unknown identity guards. Exact
+regressions must prove countdown stability and continued real-policy drift refusal;
+no fixed digest, function replacement, broad metadata erasure or bypass. No code
+has been written or tested under this amendment. After exact designated SSH/WSL
+doc receipt REQUIRED_BEFORE_CHECKPOINT and guarded publication, Root must perform
+fresh S3/S3D, isolated-worktree/two-file ownership admission, then targeted tests
+and required full QUALITY gate on actual changed source. New source needs its
+own accepted checkpoint/equivalence/live admission; frozen C3/K3 and old receipts
+stay immutable, and do not verify this planned successor. Current network apply,
+image and nodes remain unexecuted; S09/product/EPIC not DONE. Private qualified
+K3/public candidate policy distinction retained; no architecture-policy decision.
+
 ## Verified Baseline and Target Picture
 
 Original repair remains preserved in the original workspace. Its independent
@@ -1212,7 +1247,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
-    "modules/tsw_core/tests/test_package_entrypoint.py"
+    "modules/tsw_core/tests/test_package_entrypoint.py",
+    "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py",
+    "modules/tsw_core/tests/test_network_preparation.py"
   ],
   "affected_modules": [
     "existing qualification/lifecycle and evidence"
@@ -1247,7 +1284,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
-    "modules/tsw_core/tests/test_package_entrypoint.py"
+    "modules/tsw_core/tests/test_package_entrypoint.py",
+    "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py",
+    "modules/tsw_core/tests/test_network_preparation.py"
   ],
   "contract_locks": [
     "frozen C/K source and exact approval"
@@ -1272,7 +1311,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
-    "modules/tsw_core/tests/test_package_entrypoint.py"
+    "modules/tsw_core/tests/test_package_entrypoint.py",
+    "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py",
+    "modules/tsw_core/tests/test_network_preparation.py"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -1300,7 +1341,9 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
     "documentation/handbook/05-development/workflow/context-pack.json",
     "modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py",
     "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py",
-    "modules/tsw_core/tests/test_package_entrypoint.py"
+    "modules/tsw_core/tests/test_package_entrypoint.py",
+    "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py",
+    "modules/tsw_core/tests/test_network_preparation.py"
   ],
   "requirement_ids": [
     "P03",
@@ -1316,7 +1359,8 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-02/` with the six issue-com
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_registration modules.tsw_windows_wsl.tests.tools.test_wsl_acceptance_bridge_binding",
       "PYTHONPATH=. python3 -m unittest modules.tsw_windows_wsl.tests.tools.test_wsl_original_runtime_window",
       "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_listener_fixture",
-      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_package_entrypoint modules.tsw_core.tests.test_profile_legacy_compatibility"
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_package_entrypoint modules.tsw_core.tests.test_profile_legacy_compatibility",
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_network_preparation"
     ],
     "required": [
       "python3 modules/tsw_core/tools/linux/quality_gate.py quality"

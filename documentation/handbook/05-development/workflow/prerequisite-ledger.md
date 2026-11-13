@@ -281,7 +281,7 @@ identified valid existing private access data; no repeated question is needed.
 Private qualified K3/public candidate policy stay distinct. No full4129 rerun for
 unchanged source; DOC_ONLY report. No cleanup/product/backup-restoration/EPIC PASS.
 
-## Current S09 prerequisite — TA30 official apply admission
+## Historical S09 prerequisite — TA30 official apply admission
 
 | Owner | Actual evidence | Required boundary |
 |---|---|---|
@@ -293,3 +293,16 @@ unchanged source; DOC_ONLY report. No cleanup/product/backup-restoration/EPIC PA
 
 No product/S09/EPIC DONE or public-policy promotion. Private qualified K3/public
 candidate policy remain distinct; source1811 unchanged/full4129 not repeated.
+
+## Current S09 blocker and bounded source scope — TA33
+
+| Owner | Actual evidence / authority | Required next gate |
+|---|---|---|
+| Root / TA30 | Two official profiles created/READY; NETWORK_REPLAN before network apply; failed snapshot absent | Original cause unknown; no inferred stale cache |
+| Test / TA32–33 | Current normal fingerprints/invariants drift despite same2actions/blockers[]; sole BASE field bridge gc_timer countdown proven | Preserve exact diagnosis; no retry apply/fixed digest/bypass |
+| Root / authoring | Explicit S02two-path/four-array+nearestgate amendment;14DAG/owners/deps/statuses/fullgate retained | Exact SSH/WSL doc receipt REQUIRED_BEFORE_CHECKPOINT and guarded publication |
+| DevOps/Python / LOCAL repair | Planned narrow stable_links normalization + existing regression test; code/tests NOT_RUN | Fresh S3/S3D/isolated worker, nearest meaningful tests then required full QUALITY on changed source |
+| Source / qualification | Frozen C3/K3 receipts retained, not successor verification | New accepted source/equivalence/live admission before effects; network/image/nodes NOT_RUN, no S09 DONE |
+
+No broad metadata stripping or architecture-policy change. Private qualified K3
+and public candidate policy remain distinct; no product/EPIC completion inferred.

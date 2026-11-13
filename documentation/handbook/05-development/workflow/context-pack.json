@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_S09_TA30_OFFICIAL_APPLY_ADMITTED_AFTER_CHECKPOINT_FRESH_GO",
+  "status": "EXECUTING_S09_CURRENT_NETWORK_PLAN_DRIFT_TA33_LOCAL_REPAIR_SCOPE_APPROVED_IMPLEMENTATION_PENDING",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "179e46eef70135d86dc170646e6664e33decf1db073099c2b909e9ed86161c66",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "a797a5ee7bc3ac6c44cf9d5ef897951868020e1dc8e7fd208543e0bc19552ad7",
+    "documentation/handbook/05-development/workflow/context-pack.md": "388e588d8af3a75b86820b897077e27844fe2d8fbbb1c2676a8731f85004b208",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "22e8fbbe1ce7643c91dccd2bb9c68e7dd360b7cf309120b9186db43b989a5231",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "673c023630516f40030ceafed388665f4c65b7ccb67bbd75f8a54ec1321d7c95"
+    "documentation/handbook/05-development/workflow/workflow.md": "aa1cd8d44b860cd26e441afb68810d90ace3c58ad0e020c6f6dc485170002454"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-30",
+  "current_workflow_run": "TA440-20261113-33",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,60 +355,45 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-30",
-    "slice_id": "S440O-09",
-    "state": "OFFICIAL_APPLY_ADMISSION_AWAITING_PUBLIC_CHECKPOINT_ROOT_FRESH_GO",
-    "TA29_cleanup": {
-      "result": "PASS_INDEPENDENTLY_ACCEPTED",
-      "receipt_sha256": "71563e6b8d1f2f978932daf0c29703b4fc9895e677cfc95390df9bcde8be137e",
-      "observations": [
-        "old_script_quarantined",
-        "unit_disabled",
-        "canonical_three_files_all_rules_provider_source_unchanged",
-        "no_old_script_start"
-      ]
+    "id": "TA440-20261113-33",
+    "slice_id": "S440O-02",
+    "related_slice": "S440O-09",
+    "state": "EXPLICIT_BOUNDED_LOCAL_SOURCE_SCOPE_AMENDMENT_IMPLEMENTATION_PENDING",
+    "TA30_actual": "TWO_OFFICIAL_PROFILES_CREATED_READY_NETWORK_REPLAN_BEFORE_NETWORK_APPLY_FAILED_SNAPSHOT_MISSING_ORIGINAL_CAUSE_UNKNOWN",
+    "TA32_actual": "CURRENT_FINGERPRINT_INVARIANT_DRIFT_SAME_TWO_ACTIONS_BLOCKERS_EMPTY_WSL_BRIDGE_TRUE",
+    "TA33_proven_difference": "SOLE_NORMAL_DIGEST_BASE_FIELD_BRIDGE_LINKINFO_INFO_DATA_GC_TIMER_94_78_TO_81_6",
+    "source_changed": false,
+    "function_replaced": false,
+    "authoring_authority": "ROOT_EXPLICIT_BOUNDED_AMENDMENT_OUTSIDE_S3D_NO_BACKWARD_WORKFLOW_CREATE",
+    "metadata_delta": {
+      "slice": "S440O-02",
+      "append_paths": [
+        "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py",
+        "modules/tsw_core/tests/test_network_preparation.py"
+      ],
+      "arrays": [
+        "affected_files",
+        "file_locks",
+        "shared_files",
+        "allowed_write_scope"
+      ],
+      "append_targeted_gate": "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_network_preparation",
+      "other_metadata": "UNCHANGED_14_DAG_OWNERS_DEPENDENCIES_PLANNED_STATUSES_SERIAL_NO_LIVE_REQUIRED_FULL_GATE"
     },
-    "exact_artifacts": {
-      "normal_API_wrapper_sha256": "4d3606f20ce0339f691cbbcde71f8ae5d3044866ab0f9b4f3636b16ea128b8c7",
-      "authentication_copy_V5_sha256": "ec979d20efe6ec0a61f01d298390f47c7fd51fc3a5173243bb8201200b64e85c",
-      "caller_sha256": "815fe2e77a8912ffa61841039a841a7d4b20c81e99d8f23192956419d5e33039"
-    },
-    "actual_code_reviews": "REQUIREMENT_SECURITY_TEST_READY_WRAPPER_AUTH_AND_SECURITY_TEST_READY_CALLER",
-    "verification": {
-      "mock_tests": "45_PASS",
-      "mock_receipt_sha256": "0bcbf51f6470af377508a7b0c56816899a79f8627138382c4a1c46b218a5d7d4",
-      "actual_readonly_V5_inspect": "PASS",
-      "inspect_receipt_sha256": "f65d33f19b9dc2aecf2c72e26a21fd3e158b86b727c1804f6064cc1fa2a6e389"
-    },
-    "official_dryrun": "EXACT_NEW_5786ceec_FILE_AND_UNIT_ENABLE_ONLY",
-    "execution": "UID1000_HASH_BOUND_OPERATOR_SINGLE_AUTH_NORMAL_WSL_SOURCE_CONTEXT_SAME_INSTANCE_OFFICIAL_PLAN_EXACT_SCOPE_APPLY_APPROVED_TRUE",
-    "allowed_scope": [
-      "two_profiles",
-      "exact_file",
-      "unit_enable_only"
+    "planned_implementation": "NARROW_STABLE_LINKS_TRANSIENT_BRIDGE_COUNTDOWN_NORMALIZATION_WITH_STABILITY_AND_REAL_POLICY_DRIFT_REGRESSIONS",
+    "code_tests": "NOT_RUN",
+    "required_after_documentation_checkpoint": [
+      "fresh_S3_S3D",
+      "isolated_worktree_exact_two_file_ownership",
+      "nearest_tests_on_exact_source_designated_SSH_WSL",
+      "required_full_QUALITY",
+      "accepted_source_checkpoint_equivalence_and_fresh_live_admission"
     ],
-    "budgets_seconds": {
-      "total": 600,
-      "reserve": 120,
-      "tool": 480
-    },
-    "excluded": [
-      "whole_preparation_as_root",
-      "privilege_bypass",
-      "policy_bypass",
-      "unit_start",
-      "image_import_TA31_separate_future",
-      "nodes",
-      "stacks"
-    ],
-    "actual_official_apply": "NOT_RUN",
-    "endpoint_login_services_health": "UNVERIFIED",
-    "source_files_unchanged": 1811,
-    "full_quality_rerun": "NOT_RUN_UNCHANGED_SOURCE_RETAIN_EXISTING_4129_PASS",
-    "documentation_quality": "NOT_RUN_DOC_ONLY",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_CHECKPOINT_THEN_ROOT_FRESH_GO_BEFORE_EFFECTS",
-    "private_K3_public_candidate_policy_distinction": "RETAINED_NO_PUBLIC_PROMOTION",
+    "publication": "GUARDED_DOCUMENTATION_CHECKPOINT_BEFORE_SOURCE_EXECUTION_PREFLIGHT",
+    "frozen_C3_K3": "IMMUTABLE_HISTORICAL_RECEIPTS_NOT_SUCCESSOR_VERIFICATION",
+    "network_apply_image_nodes": "NOT_RUN",
+    "private_K3_public_candidate_policy_distinction": "RETAINED",
     "S09_DONE": false,
     "product_EPIC_DONE": false
   },
@@ -749,6 +734,64 @@
     "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_EFFECTS",
     "documentation_quality": "NOT_RUN_DOC_ONLY",
     "full_quality_rerun": "NOT_RUN_UNCHANGED_SOURCE_RETAIN_EXISTING_4129_PASS",
+    "S09_DONE": false,
+    "product_EPIC_DONE": false
+  },
+  "TA30_official_apply_admission_history": {
+    "id": "TA440-20261113-30",
+    "slice_id": "S440O-09",
+    "state": "OFFICIAL_APPLY_ADMISSION_AWAITING_PUBLIC_CHECKPOINT_ROOT_FRESH_GO",
+    "TA29_cleanup": {
+      "result": "PASS_INDEPENDENTLY_ACCEPTED",
+      "receipt_sha256": "71563e6b8d1f2f978932daf0c29703b4fc9895e677cfc95390df9bcde8be137e",
+      "observations": [
+        "old_script_quarantined",
+        "unit_disabled",
+        "canonical_three_files_all_rules_provider_source_unchanged",
+        "no_old_script_start"
+      ]
+    },
+    "exact_artifacts": {
+      "normal_API_wrapper_sha256": "4d3606f20ce0339f691cbbcde71f8ae5d3044866ab0f9b4f3636b16ea128b8c7",
+      "authentication_copy_V5_sha256": "ec979d20efe6ec0a61f01d298390f47c7fd51fc3a5173243bb8201200b64e85c",
+      "caller_sha256": "815fe2e77a8912ffa61841039a841a7d4b20c81e99d8f23192956419d5e33039"
+    },
+    "actual_code_reviews": "REQUIREMENT_SECURITY_TEST_READY_WRAPPER_AUTH_AND_SECURITY_TEST_READY_CALLER",
+    "verification": {
+      "mock_tests": "45_PASS",
+      "mock_receipt_sha256": "0bcbf51f6470af377508a7b0c56816899a79f8627138382c4a1c46b218a5d7d4",
+      "actual_readonly_V5_inspect": "PASS",
+      "inspect_receipt_sha256": "f65d33f19b9dc2aecf2c72e26a21fd3e158b86b727c1804f6064cc1fa2a6e389"
+    },
+    "official_dryrun": "EXACT_NEW_5786ceec_FILE_AND_UNIT_ENABLE_ONLY",
+    "execution": "UID1000_HASH_BOUND_OPERATOR_SINGLE_AUTH_NORMAL_WSL_SOURCE_CONTEXT_SAME_INSTANCE_OFFICIAL_PLAN_EXACT_SCOPE_APPLY_APPROVED_TRUE",
+    "allowed_scope": [
+      "two_profiles",
+      "exact_file",
+      "unit_enable_only"
+    ],
+    "budgets_seconds": {
+      "total": 600,
+      "reserve": 120,
+      "tool": 480
+    },
+    "excluded": [
+      "whole_preparation_as_root",
+      "privilege_bypass",
+      "policy_bypass",
+      "unit_start",
+      "image_import_TA31_separate_future",
+      "nodes",
+      "stacks"
+    ],
+    "actual_official_apply": "NOT_RUN",
+    "endpoint_login_services_health": "UNVERIFIED",
+    "source_files_unchanged": 1811,
+    "full_quality_rerun": "NOT_RUN_UNCHANGED_SOURCE_RETAIN_EXISTING_4129_PASS",
+    "documentation_quality": "NOT_RUN_DOC_ONLY",
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_CHECKPOINT_THEN_ROOT_FRESH_GO_BEFORE_EFFECTS",
+    "private_K3_public_candidate_policy_distinction": "RETAINED_NO_PUBLIC_PROMOTION",
     "S09_DONE": false,
     "product_EPIC_DONE": false
   }
