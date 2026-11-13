@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA46 C6 exact per-host admission/finalization APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C6 fixtures NOT_RUN; EPIC incomplete.
+Status: EXECUTING; TA46 actual C6 paired listener qualification/preservation ACCEPTED; capability/product/recovery acceptance pending; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -461,7 +461,7 @@ WSLfixture after independentnativepreservation, retaining0originalinstances/defa
 RootGO pending; C5fixtures/restore/cleanup/pair/capabilitychild/productrecovery/EPIC
 NOT_RUN.14metadata and21governingauthority unchanged; oneS07checkpoint only.
 
-## Current C6 exact admission — TA46
+## Historical C6 exact admission — TA46
 
 C5 actualNONPASS/INCUS_INVENTORY_UNREADABLE, ownedcleanup and independently
 preserved4originals/7snapshots remain retained, not qualification/datarestore.
@@ -485,3 +485,23 @@ independentpreservation beforeWSL; preserve4originals/7priorbackups+plannedowned
 WSL0originals/default/2profiles/provider/Windows/routes. C6fixture/restore/cleanup/
 pair/capabilitysuccessor/productrecovery/EPIC NOT_RUN.14metadata/21governingmapshape
 unchanged, oneS07checkpoint; no newsource or fullprivategate claim.
+
+## Current S07 actual paired result — TA46; S08 remains separate
+
+Published1ce86620… preceded actual sameC6dee0…/runnerb787…/test2593…/frozenworkflow
+8608… native+WSL listener PASS. Both1811manifest2359… beforeafter unchanged;
+independentpairb0c7154c… accepts qualification and both preservation results.
+Native147.477s/resultba62…/acceptance556be349… restores4UUID/config/state/routes/
+listeners/DockerIDs;7oldsnapshot hashes unchanged, owned8th metadata902ca… retained.
+ActualWSL9aa4…/post6c5e…/independentba8ea36b… follows nativeacceptance, ownedresources/
+listeners absent, default+2profiles/Windowsrules/kernel preserved. Closedc922…/
+manifest4271…109members/108files/issues[] with21V3+24capture sidecars verified.
+No application-datarestore/producthealth/EPIC inference; C5NONPASS retained.
+
+TA47 workflowbeforeconsult/sixrolesREADY plans strictseparateS08: branchlessprivate
+K6=1a597f3c9c75eaabe68d100946fd98b7b7d09c11/tree7f7c7417…/soleparentC6,
+ONLYCOREcapJSON matrix1d596bf1… changes; other1810bytes/modes+2emptymirrors/private
+policy065… unchanged; no newbranches/worktrees/3localheads. ActualK6source/env/
+realvalidators/targeted/fullprivategates PENDING, NOT_ADMITTED. This S07resultdoc
+checkpoint adds no S08implementation or actualproduct/EPICDONE.14metadata and21map
+shape preserved; capability/product/update/selection/recovery/finalacceptance open.

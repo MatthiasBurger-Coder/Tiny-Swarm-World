@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA46 C6 exact per-host admission/finalization APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C6 fixtures NOT_RUN; EPIC incomplete
+Status: EXECUTING; TA46 actual C6 native+WSL listener qualification and independent preservation ACCEPTED; capability/product/recovery acceptance pending; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -1044,7 +1044,7 @@ cleanup results, paired qualification, capability-only successor, installation,
 product recovery and EPIC completion are NOT_RUN. All14 metadata blocks and existing
 21governing-file authority remain unchanged; this is one S07 admission checkpoint.
 
-## Execution run TA440-20261113-46 — fresh C6 exact admission
+## Historical execution run TA440-20261113-46 — C6 exact admission
 
 C5's actual attempt is NONPASS/INCUS_INVENTORY_UNREADABLE; owned cleanup and
 independent preservation of four originals/all seven snapshots are retained.
@@ -1089,6 +1089,50 @@ provider/Windows/routes. C6 fixtures, restore/cleanup results, paired qualificat
 capability successor, product recovery and EPIC DONE remain NOT_RUN/unverified.
 All14 metadata blocks and the existing21governing-file map shape are unchanged;
 this is one S07 exact admission checkpoint, not another source implementation.
+
+## S07 actual result — TA46 paired C6 qualification and preservation accepted
+
+The admission checkpoint1ce86620… was published before the bounded executions.
+Actual native and WSL listener qualifications both PASS on identical C6
+`dee0f025cd5c201d6de3ce62e212e7f0afd9ee2f`, runnerb7876225…/test25931153…/
+frozen workflow8608ca69…. Both before/after1811byte/mode manifests match23597782….
+Independent paired acceptance b0c7154c… accepts the real same-source pair and both
+preservation results; old C4/C5 NONPASS and recovery records remain immutable.
+
+Native actual PASS completed in147.477seconds, resultba62cd22…; independent
+acceptance556be349… verifies all four original UUIDs/config/states/routes/listeners/
+Docker identities restored. All seven prior snapshot metadata hashes are unchanged;
+the owned eighth snapshot is intentionally retained with metadata902ca093….
+Owned fixture cleanup is independently verified; snapshot retention does not prove
+application-data restoration or product health.
+
+Only after independent native preservation acceptance did WSL execute. Actual
+WSL result9aa4ed06… PASS and postcheck6c5e7eb5… are independently acceptedba8ea36b…:
+no owned instances/profiles/volumes/listeners remain; default plus two legitimate
+Docker profiles are unchanged, Windows rules/kernel preserved. The closed opaque
+archivec9223057…/manifest4271a7c2… has109members/108verified files/issues[], with
+21V3execution and24capture sidecars audited. Process and daemon settlement are
+verified without automatic hard kill or outer wait timeout.
+
+This is actual paired listener qualification and independent infrastructure
+preservation acceptance, not product installation/update, cold application-data
+recovery or EPIC acceptance. Source/preparation/mocked gates are not substituted
+for the real result; no threshold or prior failure is reclassified.
+
+TA47 workflow started BEFORE new six-role consultation. All six roles READY for
+the separate strict S08 capability stage: branchless private K6
+`1a597f3c9c75eaabe68d100946fd98b7b7d09c11`, tree
+`7f7c7417c9ce61f6034339cf759239712c979ea9`, sole parent C6, changes ONLY the CORE
+capability JSON (matrix1d596bf1…). Other1810bytes/modes, both empty mirror assets
+and private policy06510557… are unchanged. No new branches/worktrees were created;
+three local heads remain. K6 actual source/environment/real-object validators,
+targeted and full private gates are PENDING; K6 is NOT_ADMITTED. This future S08
+context is not a second slice implementation in this S07 result checkpoint.
+
+All14 metadata blocks and the existing21governing-file map shape remain unchanged.
+Remaining exact capability admission, applicable integration checks, actual product/
+selection/update/recovery cases and independent final EPIC acceptance stay open.
+No actual product or EPIC DONE claim follows from the accepted listener pair.
 
 ## Verified Baseline and Target Picture
 
