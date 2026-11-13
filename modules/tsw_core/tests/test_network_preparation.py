@@ -30,6 +30,7 @@ from tiny_swarm_world.infrastructure.adapters.network_preparation.configuration 
 from tiny_swarm_world.infrastructure.adapters.network_preparation.source_identity import preparation_asset_hashes
 from tiny_swarm_world.infrastructure.adapters.network_preparation.persistence_guard import render_guard
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inventory import ufw_status
+from tiny_swarm_world.infrastructure.adapters.incus_preparation.preservation import stable_links
 from tiny_swarm_world.application.ports.host.port_windows_command_runner import WindowsCommandResult
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -191,6 +192,76 @@ class MockHost:
         stack.enter_context(patch(INCUS + ".daemon_state", return_value={"ActiveState": "active"}))
         return stack
 
+
+class BridgeTimerPreparationTests(unittest.IsolatedAsyncioTestCase):
+    def service(self, host):
+        return NetworkPreparationService(LocalNetworkPreparation(
+            ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
+            proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock()))
+
+    def bridge_host(self, directory):
+        host = MockHost(Path(directory))
+        host.links[1].update(ifindex=3, mtu=1500, address="00:16:3e:00:00:01", operstate="UP")
+        host.links[1]["linkinfo"]["info_data"] = {
+            "gc_timer": 94.78, "stp_state": 0, "forward_delay": 1500, "hello_timer": 1.5}
+        return host
+
+    async def test_bridge_gc_countdown_keeps_normal_plan_identity_stable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = self.bridge_host(directory)
+            service = self.service(host)
+            with host.patches():
+                first = await service.plan()
+                self.assertFalse(first.blockers, first.blockers)
+                host.links[1]["linkinfo"]["info_data"]["gc_timer"] = 81.6
+                second = await service.plan()
+                self.assertFalse(second.blockers, second.blockers)
+                self.assertEqual(first.actions, second.actions)
+                self.assertEqual(first.invariant, second.invariant)
+                self.assertEqual(first.fingerprint, second.fingerprint)
+                self.assertEqual(host.calls, [])
+                original = copy.deepcopy(host.links)
+                observed = stable_links(host.links)
+                self.assertNotIn("gc_timer", observed[1]["linkinfo"]["info_data"])
+                observed[1]["linkinfo"]["info_data"]["stp_state"] = 1
+                self.assertEqual(host.links, original)
+
+    async def test_semantic_bridge_and_other_timer_changes_still_refuse_apply(self):
+        mutations = (
+            ("STP policy", lambda link: link["linkinfo"]["info_data"].update(stp_state=1)),
+            ("other timer", lambda link: link["linkinfo"]["info_data"].update(hello_timer=0.5)),
+            ("MTU", lambda link: link.update(mtu=1400)),
+            ("master", lambda link: link.update(master="foreign0")),
+        )
+        for name, mutate in mutations:
+            with self.subTest(change=name), tempfile.TemporaryDirectory() as directory:
+                host = self.bridge_host(directory)
+                service = self.service(host)
+                with host.patches():
+                    first = await service.plan()
+                    self.assertFalse(first.blockers, first.blockers)
+                    mutate(host.links[1])
+                    changed = await service.plan()
+                    self.assertNotEqual(first.invariant, changed.invariant)
+                    self.assertNotEqual(first.fingerprint, changed.fingerprint)
+                    self.assertEqual((await service.apply(first, approved=True)).status, "BLOCKED")
+                    self.assertEqual(host.calls, [])
+
+    async def test_non_bridge_gc_timer_remains_part_of_plan_identity(self):
+        for kind in ("veth", "unknown"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                host = self.bridge_host(directory)
+                host.links[0]["linkinfo"] = {"info_kind": kind, "info_data": {"gc_timer": 94.78}}
+                service = self.service(host)
+                with host.patches():
+                    first = await service.plan()
+                    self.assertFalse(first.blockers, first.blockers)
+                    host.links[0]["linkinfo"]["info_data"]["gc_timer"] = 81.6
+                    changed = await service.plan()
+                    self.assertNotEqual(first.invariant, changed.invariant)
+                    self.assertNotEqual(first.fingerprint, changed.fingerprint)
+                    self.assertEqual((await service.apply(first, approved=True)).status, "BLOCKED")
+                    self.assertEqual(host.calls, [])
 
 class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
     async def test_stopped_daemon_does_not_query_or_activate_in_inventory(self):
