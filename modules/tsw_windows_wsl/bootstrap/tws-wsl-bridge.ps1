@@ -4360,6 +4360,17 @@ function Get-PreparationHostsText {
 
 function Get-BridgePreparationInventory {
     param($Config, $Mappings, $HostNames, [string]$RegistryPath)
+    $mutex = Enter-BridgeMutex -Name 'Global\TinySwarmWorldWslBridgeReconcile' -Timeout ([TimeSpan]::FromSeconds(30))
+    try {
+        $snapshot = Get-BridgePreparationInventorySnapshot -Config $Config -Mappings $Mappings -HostNames $HostNames -RegistryPath $RegistryPath
+    } finally {
+        Exit-BridgeMutex -Mutex $mutex
+    }
+    return $snapshot
+}
+
+function Get-BridgePreparationInventorySnapshot {
+    param($Config, $Mappings, $HostNames, [string]$RegistryPath)
     Assert-PreparationDistro -Value $Distro
     Assert-ValidIPv4Address -Value $ObservedAddress -Name 'Already observed WSL address'
     $parsed = [Net.IPAddress]::Parse($ObservedAddress)

@@ -113,7 +113,35 @@ function Test-FirewallRulesReady{param($Config,$Mappings) return $true}
 function Test-HostsFileReady{param($Config,$HostNames) return $true}
 # Any forbidden read-only path becomes an immediate failure.
 function Get-WslIp{throw 'inventory started WSL'}
-function Enter-BridgeMutex{throw 'inventory created mutex'}
+# Inventory may coordinate only through the existing reconcile owner, never real mutexes.
+$script:inventoryLockMode='normal';$script:inventoryLockHeld=$false
+$script:inventoryLockEnters=0;$script:inventoryLockExits=0
+$script:inventoryBusyWriter=$false;$script:inventoryUnlockedStateReads=0
+$script:inventoryLockToken=[pscustomobject]@{fixture='reconcile-lock-token'}
+function Enter-BridgeMutex {
+    param([string]$Name,[TimeSpan]$Timeout)
+    Assert ($Name -ceq 'Global\TinySwarmWorldWslBridgeReconcile') 'inventory uses only existing reconcile mutex'
+    Assert ($Timeout -eq [TimeSpan]::FromSeconds(30)) 'inventory coordination has exact bounded 30-second wait'
+    $script:inventoryLockEnters++
+    if($script:inventoryLockMode -eq 'timeout'){throw 'fixture_inventory_lock_timeout'}
+    Assert (!$script:inventoryLockHeld) 'inventory does not recursively acquire reconcile mutex'
+    # Deterministic wait completion: the existing writer has finished its ready publication.
+    if($script:inventoryBusyWriter){$script:state.agentStatus='ready';$script:state.driftReasons=@();$script:inventoryBusyWriter=$false}
+    $script:inventoryLockHeld=$true
+    return $script:inventoryLockToken
+}
+function Exit-BridgeMutex {
+    param($Mutex)
+    $script:inventoryLockExits++
+    Assert ([object]::ReferenceEquals($Mutex,$script:inventoryLockToken) -and $script:inventoryLockHeld) 'inventory releases only its acquired reconcile token'
+    $script:inventoryLockHeld=$false
+    if($script:inventoryLockMode -eq 'release_failure'){throw 'fixture_inventory_release_failed'}
+}
+function Reset-InventoryCoordinationFixture {
+    $script:inventoryLockMode='normal';$script:inventoryLockHeld=$false
+    $script:inventoryLockEnters=0;$script:inventoryLockExits=0
+    $script:inventoryBusyWriter=$false;$script:inventoryUnlockedStateReads=0
+}
 function Write-StateFile{throw 'inventory wrote state'}
 function Request-BridgeServiceCredential{throw 'inventory requested credentials'}
 function Test-TcpPort{throw 'inventory conflated deployed endpoint'}
@@ -164,6 +192,57 @@ $script:hosts='127.0.0.2 jenkins.tsw.local';$r=Probe;Assert ($r.blockers -contai
 $script:owned=$true
 $script:state=[pscustomobject]@{generatedAt=[DateTimeOffset]::Now.ToString('o');agentMode='windows-service';agentStatus='ready';wslIp=$ObservedAddress;bundleId='bundle';configPath=$InstalledConfigPath;registryPath=$InstalledPortRegistryPath;listenAddress='0.0.0.0';firewallRulePrefix='Tiny Swarm World';mappings=@([pscustomobject]@{listenPort=80;connectPort=80})}
 $r=Probe;Assert ($r.bridge_ready -and !$r.action) 'owned ready agent no-op'
+# R56-01: a read must sample the heartbeat only after the existing writer settles.
+# No generatedAt ordering assumption: marker and final ready state can share a timestamp.
+$script:inventoryStateReader=${function:Get-ProtectedBridgeState}
+function Get-ProtectedBridgeState {
+    if(!$script:inventoryLockHeld){$script:inventoryUnlockedStateReads++}
+    return & $script:inventoryStateReader
+}
+Reset-InventoryCoordinationFixture
+$script:state | Add-Member -NotePropertyName driftReasons -NotePropertyValue @('reconcile_in_progress') -Force
+$script:state.agentStatus='degraded';$script:inventoryBusyWriter=$true
+$r=Probe
+Assert ($r.bridge_ready -and $r.agent_ready -and !$r.action -and $script:inventoryLockEnters -eq 1 -and $script:inventoryLockExits -eq 1 -and $script:inventoryUnlockedStateReads -eq 0 -and !$script:inventoryLockHeld) 'R56 inventory waits for busy writer and samples completed heartbeat under reconcile lock'
+# Original product fails the preceding behavioural assertion; future snapshot seam is used only below.
+$script:inventorySnapshotOriginal=${function:Get-BridgePreparationInventorySnapshot}
+$script:inventorySnapshotCalls=0
+try {
+    function Get-BridgePreparationInventorySnapshot {
+        param($Config,$Mappings,$HostNames,[string]$RegistryPath)
+        $script:inventorySnapshotCalls++
+        Assert $script:inventoryLockHeld 'snapshot body runs only while reconcile lock is held'
+        return & $script:inventorySnapshotOriginal -Config $Config -Mappings $Mappings -HostNames $HostNames -RegistryPath $RegistryPath
+    }
+    Reset-InventoryCoordinationFixture;$script:inventoryLockMode='timeout';$script:inventorySnapshotCalls=0
+    $threw=$false
+    try{Probe | Out-Null}catch{$threw=$_.Exception.Message -eq 'fixture_inventory_lock_timeout'}
+    Assert ($threw -and $script:inventorySnapshotCalls -eq 0 -and $script:inventoryLockExits -eq 0 -and !$script:inventoryLockHeld) 'R56 timeout takes no snapshot and releases no unacquired token'
+    Reset-InventoryCoordinationFixture;$script:inventorySnapshotCalls=0
+    function Get-BridgePreparationInventorySnapshot {
+        param($Config,$Mappings,$HostNames,[string]$RegistryPath)
+        $script:inventorySnapshotCalls++
+        Assert $script:inventoryLockHeld 'failing snapshot still runs under acquired lock'
+        throw 'fixture_inventory_snapshot_failed'
+    }
+    $threw=$false
+    try{Probe | Out-Null}catch{$threw=$_.Exception.Message -eq 'fixture_inventory_snapshot_failed'}
+    Assert ($threw -and $script:inventorySnapshotCalls -eq 1 -and $script:inventoryLockExits -eq 1 -and !$script:inventoryLockHeld) 'R56 snapshot exception propagates and releases exactly once'
+    ${function:Get-BridgePreparationInventorySnapshot}=$script:inventorySnapshotOriginal
+    Reset-InventoryCoordinationFixture;$script:inventoryLockMode='release_failure'
+    $threw=$false
+    try{Probe | Out-Null}catch{$threw=$_.Exception.Message -eq 'fixture_inventory_release_failed'}
+    Assert ($threw -and $script:inventoryLockExits -eq 1 -and !$script:inventoryLockHeld) 'R56 release failure remains nonpass'
+    Reset-InventoryCoordinationFixture
+    $script:state.agentStatus='degraded';$script:state.driftReasons=@('actual_drift')
+    $r=Probe
+    Assert (!$r.bridge_ready -and !$r.agent_ready -and $r.action -eq 'refresh') 'R56 settled genuine degraded heartbeat remains not ready'
+} finally {
+    ${function:Get-BridgePreparationInventorySnapshot}=$script:inventorySnapshotOriginal
+    ${function:Get-ProtectedBridgeState}=$script:inventoryStateReader
+    Reset-InventoryCoordinationFixture
+    $script:state.agentStatus='ready';$script:state.driftReasons=@()
+}
 # Exercise the genuine identity helper with deterministic CIM observations.
 $script:identityFailure='';$script:processReads=0;$script:serviceReads=0
 $script:creation=[DateTime]::UtcNow.AddMinutes(-5)

@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA56 continuation coherence repair addendum READY; S09 PAUSED; product/deployment execution not released; original accepted evidence retained; EPIC incomplete
+Status: EXECUTING; R56 source verification ACCEPTED, corrected policy/all7 QUALITY PASS; source checkpoint and installed-bundle/live admission pending; S09 PAUSED; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -3376,3 +3376,56 @@ source publication only: no live effect, PR/merge/issue close or EPIC DONE.
   "status": "AUTHORING_READY_PRODUCT_EXECUTION_NOT_RELEASED"
 }
 ```
+
+## Historical R56 verification progress — first policy failure and correction
+
+The exact named native regression was observed RED once: one test/one failure/
+zero skips, asserting that inventory waits for a busy writer and samples the
+completed heartbeat under the reconcile lock. It was not an import/parser error.
+Independent RED acceptance95fffe47… retains source/environment and raw evidence.
+The repaired production source6f0c2a7a…/unchanged regressiond8c6732e… is the minimal
+30second existing-mutex/finally wrapper; the original snapshot body is byte-
+identical, buffered output returns only after release, and failure/readiness/
+ownership guards remain unchanged. Timing precision from corrected TA55 remains:
+READY generation preceded evaluation, but earlier atomic publication is unproven.
+
+Actual designated native Windows PowerShell GREEN: one test PASS in4.060seconds,
+then bridge asset suite16PASS in14.972seconds. Independent evidence8bdca6bd…
+accepts these bounded results;29closed raw files/manifeste6428ab6… are verified.
+Exact1817source manifestb47cac23…,31dependencies, source environment and donor
+source/5355-entry environment stayed unchanged. No installed bridge, provider,
+service, qualification or product operation was performed by these tests.
+
+The required full QUALITY attempt is NONPASS/exit1 at its FIRST verification-policy
+stage, prerequisite-ledger.md:419; the planning row mixed availability requirements
+with verification intent. No downstream full test suite ran. The actual NONPASS
+and diagnostic are retained. This owned documentation correction separates the
+runtime availability requirement from verification-status rows; it does not
+change policy thresholds or product code. Root must freeze a new exact doc/source
+artifact and rerun the failed required gate on the designated host. The completed
+standalone native/asset checks are not repeated without a new reason; no full
+QUALITY result is claimed before that actual rerun and independent acceptance.
+
+Original14 metadata and R56's exact product locks remain untouched. Current
+source/installed-bundle lineage decision, source checkpoint and later normal
+bundle deployment/live Root GO remain separate; installed version is not updated
+by checkout edits. Frozen C6/K6 and prior accepted proofs remain immutable. S09
+and product/live application-data recovery stay PAUSED/NOT_RUN, EPIC incomplete.
+
+## R56 final source verification — accepted, source checkpoint pending
+
+Actual corrected-doc candidate2bb496e4de7396a98beec107441419a5668ddf1a/treee5ff9fce…
+passes verification-policy and all seven required QUALITY stages:4156tests in
+352.501seconds/37declared skips; architecture44 in4.027seconds. Independent final
+source acceptance40cfcfb0… verifies22closed raw files/manifest986391fb…, exact
+1817mode manifest6b14dba0… and unchanged source/environment/donor guards. Prior
+named native1/assets16 results map through unchanged two PS files; no standalone
+repeat. Production6f0c2a7a… and regressiond8c6732e… remain exact tested bytes.
+
+The initial policy NONPASS is retained as historical; it is not relabeled. R56
+code verification is complete, source checkpoint/publication pending. This final
+status update changes only four mapped documentation files; designated DOC_ONLY
+verification is required, not another full-source run without a new reason.
+All15metadata blocks and the two product locks stay unchanged. Installed bundle/
+version, source-lineage/deployment admission and subsequent live Root GO remain
+pending; S09/product/application-data restoration/EPIC acceptance are not complete.

@@ -416,10 +416,30 @@ All14 metadata blocks remain byte-identical; existing21governing map shape retai
 | Root / authoring | ExistingmatchedCONTROL/cleancb795b6…;4actualReq/Arch/Test/PythonAutomation gatesREADY | Guarded addendumcommit/push beforeproductwrites, freshS3/S3D/singleworker; no newheads/regeneration |
 | S440O-08 + TA55 | PriorS08accepted; correctedTA55cachedintermediateheartbeat attribution hashed inrepairmetadata | DependencyS440O-08 only; TA55artifact notslice; generationordering doesnotproveatomicpublicationbeforeevaluation orfirstPARTIALcause |
 | SeniorDevOps | EXACT tws-wsl-bridge.ps1 +bridge-preparation.Tests.ps1, PythonAutomationreviewer | Sameexistingreconcilemutex/30sfinitewait/finally/writercompletion; retainallRoot/failure/owner/heartbeat/route/readiness guards |
-| Tester / review | MeaningfulRED→GREEN; verifiedexistingnativeWinPSbridgewrapper+assets+QUALITY | ExactdesignatedSSH/WSL source; requiredPSskip/unavailable BLOCKED; nearest→applicablefullQUALITY→independentreview/sourcecheckpoint |
+| Tester / review | Existing native Windows PowerShell bridge wrapper, asset suite and required QUALITY command | Exact designated SSH/WSL source; regression and required gates precede independent review/source checkpoint |
 | Architecture/DevOps/Root | NewPS affects source/controllerlease/protectedinstalledbundle identity | Explicitlineage/deploymentdecision, C6/K6/pairproofs immutable/strictC→K-onlycap retained; actualevidenceneeds notblanketreplay |
 | S09/product | PAUSED at partialpreparation, currentrepaircode/tests NOT_RUN | Resumeonlyafteracceptedrepair+acceptedlineage/bundleplan+separateRootliveGO/normalguardeddeployment; no implicitservice/routes/firewall/journal mutation |
+
+A required native PowerShell check that is skipped or unavailable is BLOCKED.
 
 Canonicalmetadata appended once inworkflow.md;14original blocks unchanged plus1
 repair. ExistingPart5catalogue link and21governingmapshape retained; no newtopic/
 workflow/authority or implementation/live/EPIC success from this planning addendum.
+
+## Historical R56 verification — initial policy failure/correction
+
+| Evidence | Actual result | Pending boundary |
+|---|---|---|
+| Named native regression | Independent expectedRED95fffe47…:1test/1failure at writer-coherence assertion | OriginalRED retained; no import/parse substitute |
+| Exact repaired source | Production6f0c2a7a…/testd8c6732e…; originalsnapshotbody/guards unchanged, sameexistingmutex30s/finally | No installedbundle/live operation |
+| Nearest actual checks | Native1PASS4.060s/assets16PASS14.972s accepted8bdca6bd…;29closedrawfiles/e6428ab6…;1817b47cac23…/31deps/donorunchanged | These bounded gates do not complete requiredfullQUALITY |
+| Required QUALITY | NONPASS/exit1 at firstverification-policy stage/ledger419 planningwording | No downstreamfullsuite ran; originalfailure retained; this doc-only correction requires newexactartifact/designatedrequiredgate rerun and independentacceptance |
+| Product/release | Original14metadata/R56twoPSlocks unchanged; no source-lineage/deployment authority advanced | S09PAUSED; sourcecheckpoint/installedbundle/laterliveRootGO pending; installedversion/product/datarestore/EPICnotcomplete |
+
+## Current R56 accepted source verification
+
+| Evidence | Actual accepted result | Remaining boundary |
+|---|---|---|
+| Corrected exact source |2bb496e4…/treee5ff9fce…/1817mode6b14dba0…; policy+all7QUALITY PASS4156tests/352.501s/37declared skips; architecture44/4.027s | Independent40cfcfb0…/22closedraw/986391fb…; source/env/donorunchanged |
+| Native/assets mapping | Prior1native+16assets map through unchangedPS6f0c2a7a…/testd8c6732e… | No standalone repeats; historicalpolicyNONPASS remains retained |
+| R56/release | Codeverification complete,15metadata/twoPSlocks unchanged | Sourcecheckpoint/publication and designated4DOC_ONLYmapping gate pending; installedversion/lineage/deployment/liveRootGO/S09/product/datarestore/EPIC notcomplete |

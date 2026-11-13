@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA56 continuation coherence REPAIRADDENDUM READY; S09 PAUSED; product/deployment execution not released; EPIC incomplete.
+Status: EXECUTING; R56 source verification ACCEPTED/corrected policy+all7QUALITY PASS; source checkpoint and installed-bundle/live admission pending; S09 PAUSED; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -574,3 +574,33 @@ normalguardeddeployment/RootliveGO/S09resume; frozenC6/K6/pairproofs immutable/n
 retarget/strictC→K-onlycap bypass, no assumptioncheckoutchangesinstalledcode or
 automaticblanketrepeats. STOPunresolvedlineage/ownership/scope. No newtopicfile/
 catalogueauthority, live effect, PRmerge or EPICDONE from planningpublication.
+
+## Historical R56 consolidation — first policy failure/correction
+
+IndependentRED95fffe47…: actualnamed nativePowerShell regression1FAIL/zeroskips,
+not import/parse failure. Exactminimal production6f0c2a7a…/testd8c6732e… preserves
+original snapshot body/guards; sameexistingmutex30s/finally and bufferuntilrelease.
+ActualGREENnative1PASS4.060s +assets16PASS14.972s accepted8bdca6bd…;29rawfiles closed
+manifeste6428ab6…,1817sourceb47cac23…/31deps/donorsource+5355env unchanged.
+
+RequiredfullQUALITY NONPASS/exit1 firstverification-policy stage/ledger419; no
+fulltests executed. Defective planningrow corrected here by separating runtime
+availability from verificationstatus, no threshold/policy/product change. Original
+NONPASS retained; newexactdoc/sourceartifact then designatedrequiredgate rerun and
+independentacceptance PENDING. Do not label fullquality complete. Native/assets
+standalone not repeated without newreason. TA55generation/publication caveat kept.
+
+Original14metadata+R56twoPSlocks unchanged. Sourcecheckpoint/lineage/installedbundle
+and laterdeployment/liveRootGO pending; C6/K6proofs unchanged, installedversion not
+updated. S09/product/liveapplicationdatarestorePAUSED/NOT_RUN; EPICincomplete.
+
+## Current R56 final source verification
+
+Actual2bb496e4…/treee5ff9fce… correctedpolicy+all7QUALITY PASS:4156tests/352.501s/
+37declared skips, architecture44/4.027s. Independent40cfcfb0… verifies22closedraw/
+manifest986391fb…/1817mode6b14dba0… and source/env/donorunchanged. Native1/assets16
+mapped by exactsamePS6f0c2a7a…/testd8c6732e…; no standalone repeats. Historical
+policyNONPASS retained. R56codeverification complete/sourcecheckpointpending.
+Final4docstatus mapping requires designatedDOC_ONLYgate, no unjustified fullrepeat.
+All15metadata/twoPSlocks unchanged; installedversion/lineage/deployment/liveRootGO
+pending, S09/product/datarestore/EPIC incomplete; no new C7 authority.
