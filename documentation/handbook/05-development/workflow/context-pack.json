@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_S09_OWNED_PERSISTENCE_CLEANUP_ADMITTED_AFTER_CHECKPOINT_FRESH_GUARDS",
+  "status": "EXECUTING_S09_TA30_OFFICIAL_APPLY_ADMITTED_AFTER_CHECKPOINT_FRESH_GO",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "4affb21e06e682b5f51de06bf0c5aae6534df6525b76d507f5c2c1526f00ac6d",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "43167fd5ee0137b034bf9a73abaf37d1f164ea9a9883df3b3a6cdf521849ac25",
+    "documentation/handbook/05-development/workflow/context-pack.md": "179e46eef70135d86dc170646e6664e33decf1db073099c2b909e9ed86161c66",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "a797a5ee7bc3ac6c44cf9d5ef897951868020e1dc8e7fd208543e0bc19552ad7",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "b00c6f4a83d51c7248d2975003a8ab783a04bbfb8fa15457d64ca55159ba8e5c"
+    "documentation/handbook/05-development/workflow/workflow.md": "673c023630516f40030ceafed388665f4c65b7ccb67bbd75f8a54ec1321d7c95"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-29",
+  "current_workflow_run": "TA440-20261113-30",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,71 +355,60 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-29",
+    "id": "TA440-20261113-30",
     "slice_id": "S440O-09",
-    "state": "EXACT_OWNED_CLEANUP_ADMITTED_AFTER_PUBLIC_CHECKPOINT_AND_FRESH_ROOT_GUARDS",
-    "credential_blocker": "RESOLVED_OPERATOR_CORRECTION_VALID_EXISTING_PRIVATE_ACCESS_MAPPING",
-    "TA27": "AUTH0_CACHE1_CLEANUP0_COMBINED_K_V_DISABLES_SUDO_RS_0_2_13_CACHE",
-    "TA28": {
-      "helper_hash_prefix": "9485ef80",
-      "mock_tests": "30_PASS",
-      "mock_receipt_prefix": "8a7f7ac6",
-      "actual_auth_cache_cleanup": [
-        0,
-        0,
-        0
-      ],
-      "source_after": true,
-      "official_preparation": "BLOCKED_STALE_CANONICAL_W06_OLD_OWNER_SCRIPT"
+    "state": "OFFICIAL_APPLY_ADMISSION_AWAITING_PUBLIC_CHECKPOINT_ROOT_FRESH_GO",
+    "TA29_cleanup": {
+      "result": "PASS_INDEPENDENTLY_ACCEPTED",
+      "receipt_sha256": "71563e6b8d1f2f978932daf0c29703b4fc9895e677cfc95390df9bcde8be137e",
+      "observations": [
+        "old_script_quarantined",
+        "unit_disabled",
+        "canonical_three_files_all_rules_provider_source_unchanged",
+        "no_old_script_start"
+      ]
     },
-    "exact_admission": {
-      "phase": "EXACT_CODE_AND_ACTUAL_READONLY_VERIFICATION_ACCEPTED",
-      "utc": "2026-11-13T06:59:04.302535+00:00",
-      "code_sha256": "ced074d7d1370e6c8311881dd9180d9b53b07da2ae644e94fca6c0eb305e2dc2",
-      "plan_sha256": "42dfd72a3894b2b5126bd75efc897ef3f76e49c5172c540e7701b241c8ab40c6",
-      "roles": [
-        "RequirementsREADY",
-        "SecurityREADYconditionalinspectandprivdropregression",
-        "TestREADYactualinspectandprivdropregressionPASS"
-      ],
-      "actual_inspect_receipt_sha256": "315cb4baddb47830bb2f6ff0951fd14cec88bd0538b4ffd9d77f418e014340ad",
-      "actual_privdrop_receipt_sha256": "53f1fe3c004dbce570f35b4f4ba9372e9a8316f50ed91155f45b07141e8b17aa",
-      "execute_permission": "WAIT_PUBLIC_CHECKPOINT_THEN_ROOT_ONLY_WITH_FRESH_RUNTIME_GUARDS",
-      "user_authority": "ExistingexplicitcompleteTSWtestinstallationreset; ownershipwholebytecanonicalproofclosed; no repeatedpermission",
-      "actual_effects_executed": false,
-      "other_apply_admission": false
+    "exact_artifacts": {
+      "normal_API_wrapper_sha256": "4d3606f20ce0339f691cbbcde71f8ae5d3044866ab0f9b4f3636b16ea128b8c7",
+      "authentication_copy_V5_sha256": "ec979d20efe6ec0a61f01d298390f47c7fd51fc3a5173243bb8201200b64e85c",
+      "caller_sha256": "815fe2e77a8912ffa61841039a841a7d4b20c81e99d8f23192956419d5e33039"
     },
-    "ownership": {
-      "old_script_bytes": 33740,
-      "old_script_sha_prefix": "52886f25",
-      "canonical_old_owner": "qualbr447",
-      "new_owner": "incusbr0",
-      "new_expected_sha_prefix": "5786ceec"
+    "actual_code_reviews": "REQUIREMENT_SECURITY_TEST_READY_WRAPPER_AUTH_AND_SECURITY_TEST_READY_CALLER",
+    "verification": {
+      "mock_tests": "45_PASS",
+      "mock_receipt_sha256": "0bcbf51f6470af377508a7b0c56816899a79f8627138382c4a1c46b218a5d7d4",
+      "actual_readonly_V5_inspect": "PASS",
+      "inspect_receipt_sha256": "f65d33f19b9dc2aecf2c72e26a21fd3e158b86b727c1804f6064cc1fa2a6e389"
     },
-    "source_target_provider_rules_routes": "UNCHANGED_1811_SOURCE_FILES",
-    "allowed_after_checkpoint": [
-      "durable_backup",
-      "owned_unit_stop_disable_without_PID_or_ExecStop",
-      "CAS_NOREPLACE_exact_old_script_quarantine"
+    "official_dryrun": "EXACT_NEW_5786ceec_FILE_AND_UNIT_ENABLE_ONLY",
+    "execution": "UID1000_HASH_BOUND_OPERATOR_SINGLE_AUTH_NORMAL_WSL_SOURCE_CONTEXT_SAME_INSTANCE_OFFICIAL_PLAN_EXACT_SCOPE_APPLY_APPROVED_TRUE",
+    "allowed_scope": [
+      "two_profiles",
+      "exact_file",
+      "unit_enable_only"
     ],
-    "preserve": [
-      "unit_file",
-      "three_canonical_files",
-      "configuration",
-      "all_rules",
-      "provider_default",
-      "foreign_resources"
+    "budgets_seconds": {
+      "total": 600,
+      "reserve": 120,
+      "tool": 480
+    },
+    "excluded": [
+      "whole_preparation_as_root",
+      "privilege_bypass",
+      "policy_bypass",
+      "unit_start",
+      "image_import_TA31_separate_future",
+      "nodes",
+      "stacks"
     ],
-    "unit_state_rule": "DISABLED_WHILE_SCRIPT_ABSENT_NO_ORIGINAL_ACTIVE_STATE_CLAIM",
-    "later_official_prep": "ENABLE_ONLY_NOT_START_NOT_ADMITTED_HERE",
-    "actual_cleanup": "NOT_RUN",
-    "other_installer_apply_admitted": false,
-    "new_credential_or_permission_question": false,
-    "private_K3_public_candidate_policy_distinction": "RETAINED_NO_PUBLIC_POLICY_PROMOTION",
-    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_EFFECTS",
-    "documentation_quality": "NOT_RUN_DOC_ONLY",
+    "actual_official_apply": "NOT_RUN",
+    "endpoint_login_services_health": "UNVERIFIED",
+    "source_files_unchanged": 1811,
     "full_quality_rerun": "NOT_RUN_UNCHANGED_SOURCE_RETAIN_EXISTING_4129_PASS",
+    "documentation_quality": "NOT_RUN_DOC_ONLY",
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_CHECKPOINT_THEN_ROOT_FRESH_GO_BEFORE_EFFECTS",
+    "private_K3_public_candidate_policy_distinction": "RETAINED_NO_PUBLIC_PROMOTION",
     "S09_DONE": false,
     "product_EPIC_DONE": false
   },
@@ -693,5 +682,74 @@
     "product_EPIC_DONE": false,
     "full_product_health_backup_restoration": "UNVERIFIED",
     "subsequent_correction": "CREDENTIAL_INFORMATION_INFERENCE_SUPERSEDED_BY_VALID_EXISTING_MAPPING_TA27_TA29"
+  },
+  "TA29_cleanup_admission_history": {
+    "id": "TA440-20261113-29",
+    "slice_id": "S440O-09",
+    "state": "EXACT_OWNED_CLEANUP_ADMITTED_AFTER_PUBLIC_CHECKPOINT_AND_FRESH_ROOT_GUARDS",
+    "credential_blocker": "RESOLVED_OPERATOR_CORRECTION_VALID_EXISTING_PRIVATE_ACCESS_MAPPING",
+    "TA27": "AUTH0_CACHE1_CLEANUP0_COMBINED_K_V_DISABLES_SUDO_RS_0_2_13_CACHE",
+    "TA28": {
+      "helper_hash_prefix": "9485ef80",
+      "mock_tests": "30_PASS",
+      "mock_receipt_prefix": "8a7f7ac6",
+      "actual_auth_cache_cleanup": [
+        0,
+        0,
+        0
+      ],
+      "source_after": true,
+      "official_preparation": "BLOCKED_STALE_CANONICAL_W06_OLD_OWNER_SCRIPT"
+    },
+    "exact_admission": {
+      "phase": "EXACT_CODE_AND_ACTUAL_READONLY_VERIFICATION_ACCEPTED",
+      "utc": "2026-11-13T06:59:04.302535+00:00",
+      "code_sha256": "ced074d7d1370e6c8311881dd9180d9b53b07da2ae644e94fca6c0eb305e2dc2",
+      "plan_sha256": "42dfd72a3894b2b5126bd75efc897ef3f76e49c5172c540e7701b241c8ab40c6",
+      "roles": [
+        "RequirementsREADY",
+        "SecurityREADYconditionalinspectandprivdropregression",
+        "TestREADYactualinspectandprivdropregressionPASS"
+      ],
+      "actual_inspect_receipt_sha256": "315cb4baddb47830bb2f6ff0951fd14cec88bd0538b4ffd9d77f418e014340ad",
+      "actual_privdrop_receipt_sha256": "53f1fe3c004dbce570f35b4f4ba9372e9a8316f50ed91155f45b07141e8b17aa",
+      "execute_permission": "WAIT_PUBLIC_CHECKPOINT_THEN_ROOT_ONLY_WITH_FRESH_RUNTIME_GUARDS",
+      "user_authority": "ExistingexplicitcompleteTSWtestinstallationreset; ownershipwholebytecanonicalproofclosed; no repeatedpermission",
+      "actual_effects_executed": false,
+      "other_apply_admission": false
+    },
+    "ownership": {
+      "old_script_bytes": 33740,
+      "old_script_sha_prefix": "52886f25",
+      "canonical_old_owner": "qualbr447",
+      "new_owner": "incusbr0",
+      "new_expected_sha_prefix": "5786ceec"
+    },
+    "source_target_provider_rules_routes": "UNCHANGED_1811_SOURCE_FILES",
+    "allowed_after_checkpoint": [
+      "durable_backup",
+      "owned_unit_stop_disable_without_PID_or_ExecStop",
+      "CAS_NOREPLACE_exact_old_script_quarantine"
+    ],
+    "preserve": [
+      "unit_file",
+      "three_canonical_files",
+      "configuration",
+      "all_rules",
+      "provider_default",
+      "foreign_resources"
+    ],
+    "unit_state_rule": "DISABLED_WHILE_SCRIPT_ABSENT_NO_ORIGINAL_ACTIVE_STATE_CLAIM",
+    "later_official_prep": "ENABLE_ONLY_NOT_START_NOT_ADMITTED_HERE",
+    "actual_cleanup": "NOT_RUN",
+    "other_installer_apply_admitted": false,
+    "new_credential_or_permission_question": false,
+    "private_K3_public_candidate_policy_distinction": "RETAINED_NO_PUBLIC_POLICY_PROMOTION",
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_CHECKPOINT_REQUIRED_BEFORE_EFFECTS",
+    "documentation_quality": "NOT_RUN_DOC_ONLY",
+    "full_quality_rerun": "NOT_RUN_UNCHANGED_SOURCE_RETAIN_EXISTING_4129_PASS",
+    "S09_DONE": false,
+    "product_EPIC_DONE": false
   }
 }

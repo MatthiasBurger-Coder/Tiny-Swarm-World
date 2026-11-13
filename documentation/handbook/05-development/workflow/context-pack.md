@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; S09 owned-persistence cleanup awaits checkpoint/fresh guards; credential blocker RESOLVED; no product/EPIC DONE.
+Status: EXECUTING; S09 TA29 cleanup PASS; TA30 official apply awaits checkpoint/fresh GO; endpoint/login/services UNVERIFIED; no product/EPIC DONE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -312,7 +312,7 @@ hashes in private slice-12/public-private-policy-scope.json; no public promotion
 S09 not DONE; phase GO/preservation/independent review still required. Exact
 SSH/WSL doc receipt REQUIRED_BEFORE_CHECKPOINT, guarded publication; DOC_ONLY.
 
-## Current S09 admission — TA27–TA29
+## Historical S09 admission — TA27–TA29
 
 Credential mapping RESOLVED: operator was correct, existing private access data
 valid. TA27 auth0/cache1/cleanup0: combined-k-v disables sudo-rs0.2.13 cache.
@@ -330,3 +330,18 @@ disabled if script absent, no oldscript/unitstart/installerapply. Later official
 may enable only, not start; no originally-active claim. Actual cleanup NOT_RUN,
 no infrastructure/productPASS/newconsentquestion. Private final-code-admission.json
 binds proofs; K3/publicpolicy distinction retained, full4129 not repeated; DOC_ONLY.
+
+## Current S09 admission — TA30 official preparation
+
+TA29 actual cleanup independently PASS71563e6b…: script quarantined/unit disabled,
+canonical3files/allrules/provider/source1811 unchanged, no oldscript start. Earlier
+NOT_RUN is historical. Official network dry run plans new5786ceec… file+enable only.
+TA30 wrapper4d3606f2…/authV5ec979d20… Requirement/Security/Test READY;45 mocksPASS
+receipt0bcbf51f…/actual readonly inspectPASSf65d33f1…, caller815fe2e7… Sec/Test READY.
+After exact SSH/WSL doc receipt REQUIRED_BEFORE_CHECKPOINT/guarded publication,
+Root fresh GO may admit same-instance official plan→exactscope→approved=True apply
+ONLY2profiles+exactfile+enable. UID1000/hash-bound operator/singleauth/normalWSL
+source;600total/reserve120/tool480, no rootwholeprep/privilege/policy bypass.
+Apply NOT_RUN; TA31 imageimport EXCLUDED/prospective, no unitstart/nodes/stacks.
+Partial preparation only: endpoint/login/services/health UNVERIFIED, no S09 DONE.
+K3/publicpolicy distinction retained; sourceunchanged/full4129 not repeated; DOC_ONLY.

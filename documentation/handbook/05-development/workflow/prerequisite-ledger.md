@@ -265,7 +265,7 @@ K3/source1811/environment unchanged; full4129 gate not repeated. Exact designate
 SSH/WSL receipt REQUIRED_BEFORE_CHECKPOINT and guarded publication apply to this
 DOC_ONLY update; no product, backup-restoration or EPIC completion inferred.
 
-## Current S09 prerequisite — TA29 exact cleanup admission
+## Historical S09 prerequisite — TA29 exact cleanup admission
 
 The earlier missing-credential diagnosis is superseded: operator correctly
 identified valid existing private access data; no repeated question is needed.
@@ -280,3 +280,16 @@ identified valid existing private access data; no repeated question is needed.
 
 Private qualified K3/public candidate policy stay distinct. No full4129 rerun for
 unchanged source; DOC_ONLY report. No cleanup/product/backup-restoration/EPIC PASS.
+
+## Current S09 prerequisite — TA30 official apply admission
+
+| Owner | Actual evidence | Required boundary |
+|---|---|---|
+| Root / TA29 | Actual cleanup independent PASS71563e6b…; script quarantined/unit disabled; canonical3files/rules/provider/source unchanged | Earlier NOT_RUN historical; no oldscript start |
+| Requirement/Security/Test / TA30 | Wrapper4d3606f2…/authV5ec979d20… READY,45 mocksPASS0bcbf51f…/readonly inspectPASSf65d33f1… | Exact caller815fe2e7… Sec/Test READY; actual official apply NOT_RUN |
+| Root / publication | Fresh official dry run exact5786ceec… file+enable only | Exact SSH/WSL receipt REQUIRED_BEFORE_CHECKPOINT, guarded publication then fresh GO/guards |
+| Operator / scope | UID1000/hashbound/singleauth/normalWSL;600total/reserve120/tool480 | Same-instance officialplan→exactscope→approved=True apply ONLY2profiles+file+enable; no wholeprep root/policy bypass |
+| Remaining / S09 | Partial preparation admission only | Imageimport EXCLUDED/separate futureTA31; no unitstart/nodes/stacks; endpoint/login/services/health UNVERIFIED |
+
+No product/S09/EPIC DONE or public-policy promotion. Private qualified K3/public
+candidate policy remain distinct; source1811 unchanged/full4129 not repeated.

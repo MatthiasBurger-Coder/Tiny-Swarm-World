@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; S09 exact owned-persistence cleanup admitted after checkpoint/fresh guards; credential blocker RESOLVED; no product/EPIC DONE
+Status: EXECUTING; S09 TA29 cleanup PASS; TA30 bounded official apply awaits checkpoint/fresh GO; endpoint/login/services UNVERIFIED; no product/EPIC DONE
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -798,6 +798,35 @@ Private K3 qualified policy and public candidate policy remain distinct; no
 public-policy promotion, backup-restoration proof or product/EPIC PASS. Source
 unchanged: no full4129 rerun. This DOC_ONLY update changes no canonical metadata,
 acceptance criterion, ADR or architecture policy.
+
+## Execution run TA440-20261113-30 — bounded official preparation admission
+
+TA29 cleanup actually PASS, independently accepted receipt
+`71563e6b8d1f2f978932daf0c29703b4fc9895e677cfc95390df9bcde8be137e`:
+old script quarantined, unit disabled, three canonical files/all rules/provider/
+1811 source files unchanged; old script was not started. TA29 NOT_RUN above
+is the historical pre-cleanup checkpoint. Fresh official network dry run now
+plans the exact new script5786ceec… and unit enable only.
+
+Requirement/Security/Test actual READY accept TA30 normal-API wrapper
+`4d3606f20ce0339f691cbbcde71f8ae5d3044866ab0f9b4f3636b16ea128b8c7`
+and auth-copyV5`ec979d20efe6ec0a61f01d298390f47c7fd51fc3a5173243bb8201200b64e85c`.
+Actual45 mock tests PASS (receipt0bcbf51f…) and read-only V5 inspect PASS
+(receiptf65d33f1…) verify scoped artifacts;1811 source files remain unchanged.
+Exact caller815fe2e7… also has Security/Test READY. Full hashes/decisions/receipts
+remain in private TA30/S09 evidence; no unchanged full4129 rerun is required.
+
+After exact designated SSH/WSL documentation receipt REQUIRED_BEFORE_CHECKPOINT
+and guarded publication, Root fresh GO/guards may release ONLY same-instance
+official plan→exact-scope validation→apply with approved=True: two profiles,
+one exact file and unit enable only. Run through UID1000/hash-bound operator,
+normal WSL/source context and single authentication;600 seconds total reserve120,
+tool480. No whole-preparation root execution, privilege or policy bypass.
+Actual official apply NOT_RUN. Image import is EXCLUDED (separate prospective
+TA31), as are unit start, nodes and stacks. This is partial preparation acceptance:
+endpoint/login/services/health remain UNVERIFIED, S09/product/EPIC not DONE.
+Private qualified K3/public candidate policy remain distinct; no public promotion,
+new architecture decision, canonical slice metadata or acceptance change.
 
 ## Verified Baseline and Target Picture
 
