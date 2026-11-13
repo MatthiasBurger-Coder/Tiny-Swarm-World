@@ -5,8 +5,8 @@
     {
       "client_version": "6.0.5",
       "server_version": "6.0.5",
-      "fixture_source_revision": "a56661915fd640d5574897e86847826b5b574c45",
-      "fixture_sha256": "a90c3d0d42a055a3a7734ed82868cffbb155a5b6219d84079612336d8b6b2f1f"
+      "fixture_source_revision": "dee0f025cd5c201d6de3ce62e212e7f0afd9ee2f",
+      "fixture_sha256": "b7876225a7d516633e801abae4d3582272aca5ad86245e482572d2fca0cec4bf"
     }
   ]
 }
