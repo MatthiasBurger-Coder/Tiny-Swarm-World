@@ -327,7 +327,7 @@ and public candidate policy remain distinct; no product/EPIC completion inferred
 All14 canonical metadata blocks and accepted safety/quality authority remain
 unchanged. This bounded S07 source-preparation checkpoint grants no live execution GO.
 
-## Current S07 exact admission prerequisites — TA37
+## Historical C4 S07 exact admission prerequisites — TA37
 
 | Owner | Actual evidence | Remaining execution gate |
 |---|---|---|
@@ -341,3 +341,19 @@ unchanged. This bounded S07 source-preparation checkpoint grants no live executi
 
 All14 metadata blocks and21 governing-file authority remain unchanged; no new
 source, full product gate, live execution, final result or EPIC claim.
+
+## Current C5 S07 admission prerequisites — TA43
+
+| Owner | Actual evidence | Pending boundary |
+|---|---|---|
+| Historical C4 / recovery | NativeNONPASS retained; TA38recovery0581e251… independently accepts ownedcleanup/fouroriginals/sixsnapshots/sourcepreservation; WSL NOT_RUN/BLOCKED | No failure relabel or application-datarestore claim from snapshot retention |
+| Source / public |8d98356e… exact local4148tests/37skips fullgatePASS | Not private C5 wholegate or live qualification |
+| C5 / TA41–42 | ccaf4a12…/tree5905801c…/1811manifest685d3494…; runnerba012881…/test6f2229c0…/emptycap; exactsourcecopies and200mockedPASS/zero skips/sourceunchanged independently accepted | C5 NOT_QUALIFIED; actualfixture effects NOT_RUN |
+| Exact roles / TA43 | Packet015b4c71…/driver45fd0a3c…/helper8ffa…; six real roles separately APPROVED both native+WSL exactbindings | Actual12verdicts are admission only, not Root effectGO |
+| Native context |33e3b53a…/resourceb17d8e0e…/draft9c4086a8…/closurec451531b…76entries; storedexpiry2026-11-13T16:07:38Z | Existing boundedmaintenance; preserve4originals/6oldsnapshots+plannedowned7th; independentpreservation beforeWSL |
+| WSL context | GOdraft6d1dd8ca…/resourcee7948e68…/closure39c0a3d4…28entries; storedexpiry2026-11-13T16:08:32Z | Preserve0originalinstances/default/2legitimateprofiles/provider/Windows/routes; ownedcleanup+independentaudit |
+| Finalization | Inventorydb5e727f…/reviewsnative d21fb759…/WSL6e14cc37…; initialSTOP/exactplaceholders only | Independent FINALIZATION_ACCEPTED; native staged readonlyinspectPASS/exit0/1811manifest685d3494… beforeafter/noeffects; WSLpostcheckSTOP+actualresultplaceholder retained |
+| Root / release | OneS07admission checkpoint; all14metadata unchanged | Exactdocgate/publication and currentJITsource/ownership/expiry andRootGO pending; C5fixture/restore/cleanup/pair/capabilitychild/product/EPIC NOT_RUN |
+
+Existing21governing-file authority is preserved; historical states do not admit
+new source or effects and no private resource identifiers are published.

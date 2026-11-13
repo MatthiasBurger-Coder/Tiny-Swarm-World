@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA37_EXACT_SIX_ROLE_PER_HOST_ADMISSION_READY_FINALIZED_BYTES_ACCEPTED_CHECKPOINT_JIT_ROOT_GO_PENDING_LIVE_NOT_RUN",
+  "status": "EXECUTING_TA43_C5_EXACT_TWELVE_PER_HOST_VERDICTS_APPROVED_FINALIZATION_ACCEPTED_NATIVE_STAGED_INSPECT_PASS_CHECKPOINT_JIT_ROOT_GO_PENDING_LIVE_NOT_RUN",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "fcef82e5b23955a417308aef67eef177099b7d3b8eac456af4a8ff33516e3ac9",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "c41bf75dcd6d8ef2a3d14895124c6cb43f4887786a6fe4069057df5357375c7c",
+    "documentation/handbook/05-development/workflow/context-pack.md": "6562e7a1c84922209741fda8208af37a28b1e64f41821a346db9890dd1d051ff",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "d3fd6aa2af406dd9d9d1658932d4b4f883924d29c5287fe06dea93b90f948002",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "1c542a92d932fab37490e9d6163bfbb7c0c06220f5253092329fee16c5f56eae"
+    "documentation/handbook/05-development/workflow/workflow.md": "7599bf5645558769ee1c44e7a19b58c0ef2ed97a74c856821eb0a978bf14789b"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-37",
+  "current_workflow_run": "TA440-20261113-43",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,196 +355,119 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-37",
+    "id": "TA440-20261113-43",
     "slice_id": "S440O-07",
-    "related_source_slice": "S440O-02",
-    "state": "EXACT_SIX_ROLE_PER_HOST_ADMISSION_READY_NOT_EFFECT_GO",
-    "workflow_record_precedes_consultation": true,
-    "plan_reviews": "REQUIREMENT_SECURITY_TEST_READY_BOUNDED_SUCCESSOR_PLAN",
-    "TA33_public_source": {
-      "commit": "0263f402e6e10c79f0874189554b23b8b5fcaf6e",
-      "published": true,
-      "exact_files": {
-        "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py": "2d1112feb326f494174d973bce1e760904f6aa004939429629f2e6f19190a75f",
-        "modules/tsw_core/tests/test_network_preparation.py": "cfaad007838b927e5f4eaa4bf112716c0a503751e73c7610ea2e3e0297e302fc"
-      },
-      "regression_old_source": "3_TESTS_1_RELEVANT_INVARIANT_FAILURE_2_PASS",
-      "focused_fixed": "3_PASS",
-      "nearest_network_incus": "68_PASS",
-      "full_quality": "PASS_4132_TESTS_37_SKIPS_44_ARCH_7_CONTRACTS_1056_TYPECHECKED",
-      "full_quality_exit": 0,
-      "source_before_after_1815_manifest": "c9c35f6ab49611b0804d124907797eb4acc6c318a0732b74c88561111ec0fe37",
-      "independent_final_audit": "a698c5829acb4ab533a727340a7233fb2e9bfc211e200878620919d7337abdb0",
-      "scope": "PUBLIC_LOCAL_RESULT_NOT_PRIVATE_C4_OR_LIVE_QUALIFICATION"
+    "state": "EXACT_SIX_ROLE_PER_HOST_ADMISSION_APPROVED_NOT_EFFECT_GO",
+    "historical_C4": {
+      "qualification": "NONPASS_BLOCKED_TARGET_DRIFT_JIT_COMMAND_FAILED",
+      "independent_recovery": "ACCEPTED",
+      "recovery_closure_sha256": "0581e251eb3ba42f48365a5520dad74cf48ed27dad9ced102de4e30d3987dce1",
+      "preserved": "FOUR_ORIGINALS_SIX_SNAPSHOTS_SOURCE_UNCHANGED",
+      "WSL": "NOT_RUN_BLOCKED",
+      "snapshot_retention_is_application_data_restore": false
     },
-    "current_diagnosis": {
-      "TA30_original_generic_failure": "UNKNOWN_REJECTED_SNAPSHOT_NOT_RETAINED",
-      "TA32_exact_input_delta": "SOLE_BRIDGE_GC_TIMER_94_78_TO_81_6_IN_BASE_AND_FULL_FINGERPRINT",
-      "raw_sha256": "95c9b9fc131c05d37b360fb920231a5a0cf10a94e93c2d3248101e90a3ada7b5",
-      "independent_delta_audit": "6d275986d30f6b945f692e6c0bfd5ee6e431c7ec630dc3efe373e9a7b416dce2"
+    "public_source": {
+      "commit": "8d98356e6fc408c757ced8c00927526f30cd4a3a",
+      "local_quality": "4148_TESTS_37_SKIPS_PASS_INDEPENDENTLY_ACCEPTED",
+      "private_or_live_qualification": false
     },
-    "C4": {
-      "commit": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
-      "tree": "ab13341dbca8ee18b76bbf9563e20517a0024ba2",
-      "sole_parent": "a56661915fd640d5574897e86847826b5b574c45",
-      "clean": true,
-      "private_not_pushed": true,
+    "C5": {
+      "commit": "ccaf4a12249c82d0a33e1a7b03399f59f6ea421e",
+      "tree": "5905801c409e51e65a95b10872b2612ab149b4ed",
+      "sole_parent": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
       "source_file_count": 1811,
-      "byte_mode_manifest": "465ce05726f8c79f194bccf16547e05c2316080136451d26618b8ccaa8fda001",
-      "changed_files": "ONLY_TWO_APPROVED_TA33_PATHS",
-      "fixture_sha256": "a90c3d0d42a055a3a7734ed82868cffbb155a5b6219d84079612336d8b6b2f1f",
+      "manifest": "685d34949919c36d231808dcfc75b50ad3cd5dbb9d6cefd3ae5d7bee5901c260",
+      "runner_sha256": "ba012881ad595c5afcb60cba49350f3420b64b4f287e786ef0c9c1ecb118aa7c",
+      "test_sha256": "6f2229c03e8d3a76aa8073d2ad3c4eba98da857c4e53050378ac50aadf0cce55",
       "empty_capability_sha256": "b2df1815b37a50dcf1dd5915d838597ba4164d8dd20f11afc5e4971f82b67e72",
-      "qualification": "NOT_RUN_NOT_QUALIFIED",
-      "old_C3_K3": "IMMUTABLE_CONTROLLERS_AND_HISTORICAL_RECEIPTS_NOT_RELABELLED"
+      "qualification": "NOT_QUALIFIED"
     },
-    "baseline_private_path": ".tiny-swarm/evidence/issue-440-open/slice-09/public-wsl/ta34-readonly-baselines/",
-    "baseline_preservation": {
-      "native": "FOUR_ORIGINALS_OBSERVED_STATES_FIVE_EXISTING_COLD_BACKUPS_INCLUDING_TA16_SETTLED_OPERATIONS_DOCKER_IDENTITY",
-      "wsl": "ZERO_INSTANCES_DEFAULT_AND_TWO_TA30_DOCKER_PROFILES_SCRIPT_ABSENT_QUARANTINE_RETAINED_UNIT_DISABLED",
-      "windows": "RUNNING_BRIDGE_OWNED_PORTPROXY_OBSERVED_RAW_CAMELCASE_CONTRACT_MUST_BE_INTERPRETED_RUNNING_ALONE_NOT_HEALTH_PROOF"
-    },
-    "native_authority": "EXISTING_SAME_MANAGER_PAUSE_BOUNDED_LISTENER_RESTORE_CONSENT_COVERS_CORRECTED_SOURCE_NO_REPEAT_PERMISSION_NO_NEW_PRODUCT_INSTALL_RESET",
-    "pending_before_effects": [
-      "checked_exact_four_document_gate_and_guarded_publication",
-      "fresh_JIT_context_source_UUID_ownership_expiry_remaining_time",
-      "explicit_Root_GO"
-    ],
-    "serial_order": "NATIVE_BOUNDED_ATTEMPT_AND_INDEPENDENT_RESTORE_ACCEPTANCE_THEN_WSL_FIXTURE_AND_OWNED_CLEANUP",
-    "new_native_backup": "PLANNED_MUST_RETAIN_NEW_SIXTH_ALONGSIDE_PRIOR_FIVE",
-    "K4": "PLANNED_CAPABILITY_ONLY_SINGLE_PARENT_CHILD_OF_C4_AFTER_NEW_ACTUAL_PAIR_REAL_VALIDATORS_TARGETED_AND_ONCE_FULL_PRIVATE_GATE",
-    "public_capability_integration": "SEPARATE_APPLICABLE_CHANGED_CONFIG_GATE",
-    "historical_cartesian_replay": "NOT_REQUIRED",
-    "runtime_source_staging_and_live": "SOURCE_PREPARED_TARGETED_AND_CALLER_TESTED_EXACT_ROLES_APPROVED_LIVE_NOT_RUN",
-    "draft_finalization": "ONLY_INITIAL_STOP_REMOVAL_AND_EXACT_PLACEHOLDERS_FINALIZED_BYTES_ACCEPTED",
-    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "canonical_metadata": "ALL_14_UNCHANGED",
-    "network_apply_image_nodes_stacks_recovery": "NOT_RUN",
-    "private_qualified_public_candidate_distinction": "RETAINED",
-    "S09_DONE": false,
-    "product_EPIC_DONE": false,
-    "source_preparation_run": "TA440-20261113-34",
-    "source_preparation": {
-      "status": "SOURCE_PREPARED",
-      "root_owned_copies": "BOTH_FIXED_TARGETS_1811_BYTES_MODES_OWNERS_EXT4_VERIFIED",
-      "finite_source_budgets_seconds": [
-        240,
-        300
-      ],
-      "native_proof_sha256": "849f57e4841f87314c15796dbcc4afa7b73378a9a96a640f5c4d1c4d4c5ae5ac",
-      "wsl_proof_sha256": "76486ef9a833d205914ff7fca06b089f2817b29507a3ac733077e3000b466efe",
-      "summary_sha256": "c8be3a9e270a9e4b1aa3bbe2c8d4bbfd6464cca861c5cd7be824d81e13e553d2",
-      "runtime_byte_mode_manifest": "27727a4ab2a277805ef0b1c5e8ed4a9c70b311684be2290d26fd692b19ff7f26",
-      "ordinary_pc_environment": "OWN_PYTHON_3_12_15_31_DEPENDENCIES_EDITABLE_ORIGIN_VERIFIED",
-      "old_environment": "5355_ENTRY_DEEP_HASH_UNCHANGED",
-      "repeat_completed_source_clones": false,
-      "qualification_or_full_private_gate": false
-    },
-    "C4_targeted_tests": {
-      "status": "TARGETED_PASS",
+    "TA42_actual_source_and_targeted": {
+      "source_entries": 1811,
+      "source_before_after": "EXACT_C5_MANIFEST",
       "designated_SSH_WSL": true,
       "mocked_bridge": 3,
-      "mocked_fixture": 181,
+      "mocked_fixture": 197,
+      "total": 200,
       "skips": 0,
-      "source_before_after": "EXACT",
-      "summary_sha256": "d359402eb8483351ece3e4231d2dc57ab760baba0b76a937a88dbc3ea04eb598",
-      "independent_Test_audit": "PASS_184_MOCKED_TESTS",
-      "live_qualification": false,
-      "full_private_C4_gate": "NOT_RUN_NOT_REQUIRED_FOR_THIS_GO"
+      "independent_Test_acceptance": "PASS_200_MOCKED_TESTS",
+      "summary_sha256": "02d0047903ecdf2b4197eaaf1c0552cdffd7033a7020c71ed0c8f949e5ff0e24",
+      "full_private_gate_or_live": false
     },
-    "packet_history": {
-      "V1": "STATIC_C3_TO_C4_REPLACEMENT_FAILURE_BEFORE_HOSTS_ARCHIVED",
-      "V2": "EXACT_BINDINGS_LITERAL_AUDIT_PASS_THREE_INDEPENDENT_READY_SOURCE_ONLY",
-      "native_window": "BBF8_UNCHANGED_LOGIC",
-      "completed_V2_source_receipts": "PRESERVED"
-    },
-    "TA35_caller_remediation": {
-      "record_matrix_before_Three_Amigos": true,
-      "finding": "PREEXISTING_WSL_OUTER_TIMEOUT_CAN_LEADER_ONLY_KILL_BYPASS_CLEANUP_AND_SOME_HELPER_CALLS_UNBOUNDED",
-      "Root_authority": "PRIVATE_CALLER_ONLY_REPAIR_ISOLATED_S07_HELPER_SCOPE",
-      "source_C4_and_runner": "UNCHANGED",
-      "new_C5_or_full_product_gate_repeat": false,
-      "implementation": "PRIVATE_V3_EXACT_CALLER_CODE_53_MOCKS_PASS_AND_SYNTHETIC_OS_ADAPTER_ACCEPTED",
-      "planned_budget_seconds": {
-        "total": 1100,
-        "forward": 700,
-        "SIGINT_grace": 300,
-        "settlement": 90,
-        "evidence": 10
-      },
-      "automatic_TERM_KILL": false,
-      "uncertain_state": "TIMEOUT_INTERRUPTION_UNKNOWN_LEFTOVERS_STICKY_RECOVERY_REQUIRED",
-      "testing_code_context_expiry_admission": "EXACT_CODE_CONTEXT_ROLE_REVIEW_APPROVED_FINALIZED_BYTES_ACCEPTED_CHECKPOINT_JIT_ROOT_GO_PENDING",
-      "actual_fixture_effects": "NOT_RUN_PROHIBITED"
-    },
-    "single_slice_checkpoint": "S440O-07_ONLY_NO_SECOND_SOURCE_IMPLEMENTATION_COMMIT",
-    "TA37_admission": {
-      "workflow_started_before_consultation": true,
-      "status": "READY_ROLE_ADMISSION_NOT_EFFECT_GO",
-      "source": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
-      "caller_sha256": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
-      "caller_tests": "53_PASS_ZERO_SKIPS_INDEPENDENTLY_ACCEPTED",
-      "synthetic_probe": {
-        "report_sha256": "9c24fd156632bb1b8193f4f25e6cb25db2a8079e5380ea7ffbe40c7b616b739a",
-        "independent_status": "ACCEPTED",
-        "classification": "SYNTHETIC_OS_ADAPTER_EVIDENCE_ONLY",
-        "qualification": false,
-        "infrastructure_effect_go": false
-      },
-      "TA36_readonly_capture": {
-        "source_before_after_manifest": "27727a4ab2a277805ef0b1c5e8ed4a9c70b311684be2290d26fd692b19ff7f26",
-        "source_entries": 1811,
-        "native_closure_entries": 72,
-        "wsl_closure_entries": 28,
-        "all_hash_verified": true
-      },
-      "actual_roles": {
+    "packet_inventory_sha256": "015b4c713cdbd41ef32375edda2bbab93b65e17eeedd914c7f714b6517ed3b15",
+    "native_driver_sha256": "45fd0a3cca3b9c6f4a3f5cabf42b5f4a48c031aeaeec7b0ca7f24c1bf5e11ef7",
+    "caller_sha256": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+    "native": {
+      "context_sha256": "33e3b53a4a649050a859bfb9e26d5054a9882aff9e11c7ea4c3e2459910c9533",
+      "deadline_utc": "2026-11-13T16:07:38Z",
+      "fixture_go_draft_sha256": "9c4086a85bdd7d512dabc2e9ba06d00abf19462ef611d73c4f353bec5f54eafa",
+      "resource_draft_sha256": "b17d8e0eb79339c8c84636ae7f9f8361c9636767306c88e25929191dbc0ba8c3",
+      "reviews": {
         "architecture": "APPROVED",
         "automation": "APPROVED",
         "devops": "APPROVED",
         "requirements": "APPROVED",
         "security": "APPROVED",
         "test_evidence": "APPROVED"
-      },
-      "role_receipt_hashes": {
-        "architecture.json": "32dff2d91000a0debaf60b3f76f1265b047feacb638fc9013b0a0f0b43708a5f",
-        "automation.json": "1e09ebe5fc88290aeb180d87c4c3c25099813a5194c334392bd2f59ee74b6b14",
-        "devops.json": "7be24ba3904ead7a8f588547b014414015339a742346ac6eeb5b749c2e482880",
-        "requirements.json": "132767408000992e0f5f00eb35bec12579227e3245fba68d0a8edcbfca5f2a66",
-        "security.json": "7ad3166caec34ef0914e34a58767e10f118042061b64c37f1c41e5924bc03349",
-        "test_evidence.json": "1ba3bba2aa5179eac55ddda5e07d17e8f8ce8e64efb206f9fcf625c0303fa026"
-      },
-      "native": {
-        "context_sha256": "28bb74863c7b1f961a5be0f8d2298dc61d4138d75973e4aa4824af674a64cb9a",
-        "deadline_utc": "2026-11-13T13:07:18Z",
-        "draft_sha256": "1d3d41db97009df65ebb0f734295d77a48f154f114c3a7124d0fde50b4d88807",
-        "resource_sha256": "662db488529c9853c9eee0fe9d4d517b4cff385046b1d631bb7ebb113d84043e",
-        "closure_sha256": "259300e917fe579f181fd90c7a0c45406381b701ea7c256911ea214dda31d9da"
-      },
-      "wsl": {
-        "deadline_utc": "2026-11-13T13:08:07Z",
-        "go_draft_sha256": "88f4032f164e3dd2b6f5b63106ff61cc4140ebf0d87324b0f4fd6877d8970523",
-        "resource_draft_sha256": "c1f85f3411fd5b7cea56fcea69ab30c7a452b0960a762395e9c223d61f819f29",
-        "closure_sha256": "cbabbe8834261545e21c96035ea02fc72f48a48023f88e878e3c58e7455708ef"
-      },
-      "native_review_sha256": "8083de58855a0e7ae03a14e3aad6bb1d9317bc8c4da5411dcbee114d6d505edb",
-      "wsl_review_sha256": "16195d1e592f4efbfb24d9f303589f1cd99d9f0892c3f55ba72904232d95c475",
-      "final_runtime_files": {
-        "caller_supervision.py": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
-        "native-manager-window-driver-c4-ta34.py": "bbf8c6c24b054c8cd12e8fce6b2e4ef0cac9617dbf2738f0fa8a394fafeca196",
-        "native-review.json": "8083de58855a0e7ae03a14e3aad6bb1d9317bc8c4da5411dcbee114d6d505edb",
-        "native_execute.sh": "7e11b77eef25b3e59afce7faf568cf8b5505db5ee88a1a56bc5c6d9f4830b0f6",
-        "native_postcheck.sh": "19491210f11d01f15862d227437ddc5db68aef8cf9b957eb53f777d599963b35",
-        "wsl-review-decisions.json": "16195d1e592f4efbfb24d9f303589f1cd99d9f0892c3f55ba72904232d95c475",
-        "wsl_execute.py": "ee505f2e82fa72ffdf2785f55e94e58fdc353bf5116e2b63638eb294543f8bd8",
-        "wsl_postcheck.py.in": "4071789bb6ccfaac48e18179bd38f074248fb31f6114d0d1204af6b253b2498d"
-      },
-      "recorded_expiries": "CAPTURED_VALUES_NOT_CURRENT_VALIDITY_ROOT_JIT_REQUIRED",
-      "finalization": "ONLY_FIRST_STOP_AND_EXACT_PLACEHOLDERS",
-      "independent_final_byte_audit": "FINALIZED_BYTES_ACCEPTED_ALL_8_ARTIFACT_HASHES_SIZES_AND_6_ROLE_RECEIPT_HASHES",
-      "WSL_postcheck": "STOP_AND_ACTUAL_RESULT_SHA_PLACEHOLDER_RETAINED_UNTIL_ACTUAL_RESULT",
-      "native_and_wsl_role_verdicts": "EACH_REAL_ROLE_APPROVED_SEPARATELY_PER_HOST",
-      "checkpoint_JIT_Root_GO": "PENDING",
-      "fixtures_restoration_cleanup_pair_K4_EPIC": "NOT_RUN"
+      }
+    },
+    "wsl": {
+      "deadline_utc": "2026-11-13T16:08:32Z",
+      "go_draft_sha256": "6d1dd8ca08bd349f12b330d979b3e8454b73a4997c205e6dc281e01dd72a1d10",
+      "resource_draft_sha256": "e7948e68546939ca2bc749434f6d968e7179994fdd499419510b362816bd020c",
+      "runtime_source_proof_sha256": "cd810450e45d137f5207dda9d2add9ca515acd587b03344fb55d0a50cfaf6bce",
+      "reviews": {
+        "architecture": "APPROVED",
+        "automation": "APPROVED",
+        "devops": "APPROVED",
+        "requirements": "APPROVED",
+        "security": "APPROVED",
+        "test_evidence": "APPROVED"
+      }
+    },
+    "native_closure": {
+      "sha256": "c451531b5c5e50de4e7807f38f265d246654bafc6d812782c089f0af4e2500d7",
+      "entries": 76
+    },
+    "wsl_closure": {
+      "sha256": "39c0a3d4a8d313120ee72f53088533f962be7bcd2657677d6a0b003b75575830",
+      "entries": 28
+    },
+    "actual_role_verdicts": "ALL_TWELVE_APPROVED_SIX_DISTINCT_ROLES_SEPARATELY_PER_HOST",
+    "finalization_inventory_sha256": "db5e727f50609dba533559a4f0b0baf2cd25bddd83c877df4976eb83c0276ee4",
+    "native_review_sha256": "d21fb759bb7723d23b426b91ab8428fc2fdf7cf9328b2b9e8aa0ed09ba82b4e2",
+    "wsl_review_sha256": "6e14cc37dbec084cb377e35ac502411c2e98445e101ea4d6df2a4c0b0bea88d8",
+    "final_runtime_files": {
+      "caller_supervision.py": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+      "native-manager-window-driver-c5-ta43.py": "45fd0a3cca3b9c6f4a3f5cabf42b5f4a48c031aeaeec7b0ca7f24c1bf5e11ef7",
+      "native-review.json": "d21fb759bb7723d23b426b91ab8428fc2fdf7cf9328b2b9e8aa0ed09ba82b4e2",
+      "native_execute.sh": "6e21e40012e83b0b075432f10e124b6700b1df5e84f2ade202a82ea0fe12de88",
+      "native_postcheck.sh": "b17926633c6ce20294a79c70d396eb7896c84969cb8cdf4cd7a85c40597ce44a",
+      "wsl-review-decisions.json": "6e14cc37dbec084cb377e35ac502411c2e98445e101ea4d6df2a4c0b0bea88d8",
+      "wsl_execute.py": "e05b21d0f259997cd3f9b79bf5a503d6847a63d90eefa80edc309cc389e1c307",
+      "wsl_postcheck.py.in": "bfd84fa68d553bdefd49ce037dc0c83ea04a154c7c295491d3b449b0dec71b2a"
+    },
+    "finalization": "ONLY_INITIAL_STOP_REMOVAL_AND_EXACT_PLACEHOLDERS",
+    "independent_final_byte_audit": "FINALIZATION_ACCEPTED",
+    "WSL_postcheck": "INITIAL_STOP_AND_ACTUAL_RESULT_PLACEHOLDER_RETAINED",
+    "recorded_deadlines": "NOT_CURRENT_VALIDITY_JIT_REQUIRED",
+    "serial_order": "BOUNDED_NATIVE_ATTEMPT_AND_INDEPENDENT_PRESERVATION_THEN_WSL_FIXTURE_AND_OWNED_CLEANUP",
+    "preservation": "FOUR_NATIVE_ORIGINALS_SIX_PRIOR_SNAPSHOTS_PLUS_PLANNED_OWNED_SEVENTH_AND_WSL_ZERO_ORIGINALS_DEFAULT_TWO_PROFILES_PROVIDER_WINDOWS_ROUTES",
+    "pending_before_effects": [
+      "exact_four_document_gate_and_guarded_publication",
+      "fresh_JIT_source_ownership_expiry_remaining_time",
+      "explicit_Root_GO"
+    ],
+    "canonical_metadata": "ALL_14_UNCHANGED",
+    "single_slice_checkpoint": "S440O-07_ONLY",
+    "fixtures_restoration_cleanup_pair_capability_successor_product_EPIC": "NOT_RUN",
+    "product_EPIC_DONE": false,
+    "native_staged_inspection": {
+      "status": "NATIVE_STAGED_JIT_READ_ONLY_PASS",
+      "exit": 0,
+      "source_entries": 1811,
+      "before_after_manifest": "685d34949919c36d231808dcfc75b50ad3cd5dbb9d6cefd3ae5d7bee5901c260",
+      "actual_fixture_effects": false
     }
   },
   "diagnostic_TA07_outcome": {
@@ -987,5 +910,198 @@
     "private_K3_public_candidate_policy_distinction": "RETAINED",
     "S09_DONE": false,
     "product_EPIC_DONE": false
+  },
+  "TA37_C4_admission_history": {
+    "id": "TA440-20261113-37",
+    "slice_id": "S440O-07",
+    "related_source_slice": "S440O-02",
+    "state": "EXACT_SIX_ROLE_PER_HOST_ADMISSION_READY_NOT_EFFECT_GO",
+    "workflow_record_precedes_consultation": true,
+    "plan_reviews": "REQUIREMENT_SECURITY_TEST_READY_BOUNDED_SUCCESSOR_PLAN",
+    "TA33_public_source": {
+      "commit": "0263f402e6e10c79f0874189554b23b8b5fcaf6e",
+      "published": true,
+      "exact_files": {
+        "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py": "2d1112feb326f494174d973bce1e760904f6aa004939429629f2e6f19190a75f",
+        "modules/tsw_core/tests/test_network_preparation.py": "cfaad007838b927e5f4eaa4bf112716c0a503751e73c7610ea2e3e0297e302fc"
+      },
+      "regression_old_source": "3_TESTS_1_RELEVANT_INVARIANT_FAILURE_2_PASS",
+      "focused_fixed": "3_PASS",
+      "nearest_network_incus": "68_PASS",
+      "full_quality": "PASS_4132_TESTS_37_SKIPS_44_ARCH_7_CONTRACTS_1056_TYPECHECKED",
+      "full_quality_exit": 0,
+      "source_before_after_1815_manifest": "c9c35f6ab49611b0804d124907797eb4acc6c318a0732b74c88561111ec0fe37",
+      "independent_final_audit": "a698c5829acb4ab533a727340a7233fb2e9bfc211e200878620919d7337abdb0",
+      "scope": "PUBLIC_LOCAL_RESULT_NOT_PRIVATE_C4_OR_LIVE_QUALIFICATION"
+    },
+    "current_diagnosis": {
+      "TA30_original_generic_failure": "UNKNOWN_REJECTED_SNAPSHOT_NOT_RETAINED",
+      "TA32_exact_input_delta": "SOLE_BRIDGE_GC_TIMER_94_78_TO_81_6_IN_BASE_AND_FULL_FINGERPRINT",
+      "raw_sha256": "95c9b9fc131c05d37b360fb920231a5a0cf10a94e93c2d3248101e90a3ada7b5",
+      "independent_delta_audit": "6d275986d30f6b945f692e6c0bfd5ee6e431c7ec630dc3efe373e9a7b416dce2"
+    },
+    "C4": {
+      "commit": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
+      "tree": "ab13341dbca8ee18b76bbf9563e20517a0024ba2",
+      "sole_parent": "a56661915fd640d5574897e86847826b5b574c45",
+      "clean": true,
+      "private_not_pushed": true,
+      "source_file_count": 1811,
+      "byte_mode_manifest": "465ce05726f8c79f194bccf16547e05c2316080136451d26618b8ccaa8fda001",
+      "changed_files": "ONLY_TWO_APPROVED_TA33_PATHS",
+      "fixture_sha256": "a90c3d0d42a055a3a7734ed82868cffbb155a5b6219d84079612336d8b6b2f1f",
+      "empty_capability_sha256": "b2df1815b37a50dcf1dd5915d838597ba4164d8dd20f11afc5e4971f82b67e72",
+      "qualification": "NOT_RUN_NOT_QUALIFIED",
+      "old_C3_K3": "IMMUTABLE_CONTROLLERS_AND_HISTORICAL_RECEIPTS_NOT_RELABELLED"
+    },
+    "baseline_private_path": ".tiny-swarm/evidence/issue-440-open/slice-09/public-wsl/ta34-readonly-baselines/",
+    "baseline_preservation": {
+      "native": "FOUR_ORIGINALS_OBSERVED_STATES_FIVE_EXISTING_COLD_BACKUPS_INCLUDING_TA16_SETTLED_OPERATIONS_DOCKER_IDENTITY",
+      "wsl": "ZERO_INSTANCES_DEFAULT_AND_TWO_TA30_DOCKER_PROFILES_SCRIPT_ABSENT_QUARANTINE_RETAINED_UNIT_DISABLED",
+      "windows": "RUNNING_BRIDGE_OWNED_PORTPROXY_OBSERVED_RAW_CAMELCASE_CONTRACT_MUST_BE_INTERPRETED_RUNNING_ALONE_NOT_HEALTH_PROOF"
+    },
+    "native_authority": "EXISTING_SAME_MANAGER_PAUSE_BOUNDED_LISTENER_RESTORE_CONSENT_COVERS_CORRECTED_SOURCE_NO_REPEAT_PERMISSION_NO_NEW_PRODUCT_INSTALL_RESET",
+    "pending_before_effects": [
+      "checked_exact_four_document_gate_and_guarded_publication",
+      "fresh_JIT_context_source_UUID_ownership_expiry_remaining_time",
+      "explicit_Root_GO"
+    ],
+    "serial_order": "NATIVE_BOUNDED_ATTEMPT_AND_INDEPENDENT_RESTORE_ACCEPTANCE_THEN_WSL_FIXTURE_AND_OWNED_CLEANUP",
+    "new_native_backup": "PLANNED_MUST_RETAIN_NEW_SIXTH_ALONGSIDE_PRIOR_FIVE",
+    "K4": "PLANNED_CAPABILITY_ONLY_SINGLE_PARENT_CHILD_OF_C4_AFTER_NEW_ACTUAL_PAIR_REAL_VALIDATORS_TARGETED_AND_ONCE_FULL_PRIVATE_GATE",
+    "public_capability_integration": "SEPARATE_APPLICABLE_CHANGED_CONFIG_GATE",
+    "historical_cartesian_replay": "NOT_REQUIRED",
+    "runtime_source_staging_and_live": "SOURCE_PREPARED_TARGETED_AND_CALLER_TESTED_EXACT_ROLES_APPROVED_LIVE_NOT_RUN",
+    "draft_finalization": "ONLY_INITIAL_STOP_REMOVAL_AND_EXACT_PLACEHOLDERS_FINALIZED_BYTES_ACCEPTED",
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "canonical_metadata": "ALL_14_UNCHANGED",
+    "network_apply_image_nodes_stacks_recovery": "NOT_RUN",
+    "private_qualified_public_candidate_distinction": "RETAINED",
+    "S09_DONE": false,
+    "product_EPIC_DONE": false,
+    "source_preparation_run": "TA440-20261113-34",
+    "source_preparation": {
+      "status": "SOURCE_PREPARED",
+      "root_owned_copies": "BOTH_FIXED_TARGETS_1811_BYTES_MODES_OWNERS_EXT4_VERIFIED",
+      "finite_source_budgets_seconds": [
+        240,
+        300
+      ],
+      "native_proof_sha256": "849f57e4841f87314c15796dbcc4afa7b73378a9a96a640f5c4d1c4d4c5ae5ac",
+      "wsl_proof_sha256": "76486ef9a833d205914ff7fca06b089f2817b29507a3ac733077e3000b466efe",
+      "summary_sha256": "c8be3a9e270a9e4b1aa3bbe2c8d4bbfd6464cca861c5cd7be824d81e13e553d2",
+      "runtime_byte_mode_manifest": "27727a4ab2a277805ef0b1c5e8ed4a9c70b311684be2290d26fd692b19ff7f26",
+      "ordinary_pc_environment": "OWN_PYTHON_3_12_15_31_DEPENDENCIES_EDITABLE_ORIGIN_VERIFIED",
+      "old_environment": "5355_ENTRY_DEEP_HASH_UNCHANGED",
+      "repeat_completed_source_clones": false,
+      "qualification_or_full_private_gate": false
+    },
+    "C4_targeted_tests": {
+      "status": "TARGETED_PASS",
+      "designated_SSH_WSL": true,
+      "mocked_bridge": 3,
+      "mocked_fixture": 181,
+      "skips": 0,
+      "source_before_after": "EXACT",
+      "summary_sha256": "d359402eb8483351ece3e4231d2dc57ab760baba0b76a937a88dbc3ea04eb598",
+      "independent_Test_audit": "PASS_184_MOCKED_TESTS",
+      "live_qualification": false,
+      "full_private_C4_gate": "NOT_RUN_NOT_REQUIRED_FOR_THIS_GO"
+    },
+    "packet_history": {
+      "V1": "STATIC_C3_TO_C4_REPLACEMENT_FAILURE_BEFORE_HOSTS_ARCHIVED",
+      "V2": "EXACT_BINDINGS_LITERAL_AUDIT_PASS_THREE_INDEPENDENT_READY_SOURCE_ONLY",
+      "native_window": "BBF8_UNCHANGED_LOGIC",
+      "completed_V2_source_receipts": "PRESERVED"
+    },
+    "TA35_caller_remediation": {
+      "record_matrix_before_Three_Amigos": true,
+      "finding": "PREEXISTING_WSL_OUTER_TIMEOUT_CAN_LEADER_ONLY_KILL_BYPASS_CLEANUP_AND_SOME_HELPER_CALLS_UNBOUNDED",
+      "Root_authority": "PRIVATE_CALLER_ONLY_REPAIR_ISOLATED_S07_HELPER_SCOPE",
+      "source_C4_and_runner": "UNCHANGED",
+      "new_C5_or_full_product_gate_repeat": false,
+      "implementation": "PRIVATE_V3_EXACT_CALLER_CODE_53_MOCKS_PASS_AND_SYNTHETIC_OS_ADAPTER_ACCEPTED",
+      "planned_budget_seconds": {
+        "total": 1100,
+        "forward": 700,
+        "SIGINT_grace": 300,
+        "settlement": 90,
+        "evidence": 10
+      },
+      "automatic_TERM_KILL": false,
+      "uncertain_state": "TIMEOUT_INTERRUPTION_UNKNOWN_LEFTOVERS_STICKY_RECOVERY_REQUIRED",
+      "testing_code_context_expiry_admission": "EXACT_CODE_CONTEXT_ROLE_REVIEW_APPROVED_FINALIZED_BYTES_ACCEPTED_CHECKPOINT_JIT_ROOT_GO_PENDING",
+      "actual_fixture_effects": "NOT_RUN_PROHIBITED"
+    },
+    "single_slice_checkpoint": "S440O-07_ONLY_NO_SECOND_SOURCE_IMPLEMENTATION_COMMIT",
+    "TA37_admission": {
+      "workflow_started_before_consultation": true,
+      "status": "READY_ROLE_ADMISSION_NOT_EFFECT_GO",
+      "source": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
+      "caller_sha256": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+      "caller_tests": "53_PASS_ZERO_SKIPS_INDEPENDENTLY_ACCEPTED",
+      "synthetic_probe": {
+        "report_sha256": "9c24fd156632bb1b8193f4f25e6cb25db2a8079e5380ea7ffbe40c7b616b739a",
+        "independent_status": "ACCEPTED",
+        "classification": "SYNTHETIC_OS_ADAPTER_EVIDENCE_ONLY",
+        "qualification": false,
+        "infrastructure_effect_go": false
+      },
+      "TA36_readonly_capture": {
+        "source_before_after_manifest": "27727a4ab2a277805ef0b1c5e8ed4a9c70b311684be2290d26fd692b19ff7f26",
+        "source_entries": 1811,
+        "native_closure_entries": 72,
+        "wsl_closure_entries": 28,
+        "all_hash_verified": true
+      },
+      "actual_roles": {
+        "architecture": "APPROVED",
+        "automation": "APPROVED",
+        "devops": "APPROVED",
+        "requirements": "APPROVED",
+        "security": "APPROVED",
+        "test_evidence": "APPROVED"
+      },
+      "role_receipt_hashes": {
+        "architecture.json": "32dff2d91000a0debaf60b3f76f1265b047feacb638fc9013b0a0f0b43708a5f",
+        "automation.json": "1e09ebe5fc88290aeb180d87c4c3c25099813a5194c334392bd2f59ee74b6b14",
+        "devops.json": "7be24ba3904ead7a8f588547b014414015339a742346ac6eeb5b749c2e482880",
+        "requirements.json": "132767408000992e0f5f00eb35bec12579227e3245fba68d0a8edcbfca5f2a66",
+        "security.json": "7ad3166caec34ef0914e34a58767e10f118042061b64c37f1c41e5924bc03349",
+        "test_evidence.json": "1ba3bba2aa5179eac55ddda5e07d17e8f8ce8e64efb206f9fcf625c0303fa026"
+      },
+      "native": {
+        "context_sha256": "28bb74863c7b1f961a5be0f8d2298dc61d4138d75973e4aa4824af674a64cb9a",
+        "deadline_utc": "2026-11-13T13:07:18Z",
+        "draft_sha256": "1d3d41db97009df65ebb0f734295d77a48f154f114c3a7124d0fde50b4d88807",
+        "resource_sha256": "662db488529c9853c9eee0fe9d4d517b4cff385046b1d631bb7ebb113d84043e",
+        "closure_sha256": "259300e917fe579f181fd90c7a0c45406381b701ea7c256911ea214dda31d9da"
+      },
+      "wsl": {
+        "deadline_utc": "2026-11-13T13:08:07Z",
+        "go_draft_sha256": "88f4032f164e3dd2b6f5b63106ff61cc4140ebf0d87324b0f4fd6877d8970523",
+        "resource_draft_sha256": "c1f85f3411fd5b7cea56fcea69ab30c7a452b0960a762395e9c223d61f819f29",
+        "closure_sha256": "cbabbe8834261545e21c96035ea02fc72f48a48023f88e878e3c58e7455708ef"
+      },
+      "native_review_sha256": "8083de58855a0e7ae03a14e3aad6bb1d9317bc8c4da5411dcbee114d6d505edb",
+      "wsl_review_sha256": "16195d1e592f4efbfb24d9f303589f1cd99d9f0892c3f55ba72904232d95c475",
+      "final_runtime_files": {
+        "caller_supervision.py": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+        "native-manager-window-driver-c4-ta34.py": "bbf8c6c24b054c8cd12e8fce6b2e4ef0cac9617dbf2738f0fa8a394fafeca196",
+        "native-review.json": "8083de58855a0e7ae03a14e3aad6bb1d9317bc8c4da5411dcbee114d6d505edb",
+        "native_execute.sh": "7e11b77eef25b3e59afce7faf568cf8b5505db5ee88a1a56bc5c6d9f4830b0f6",
+        "native_postcheck.sh": "19491210f11d01f15862d227437ddc5db68aef8cf9b957eb53f777d599963b35",
+        "wsl-review-decisions.json": "16195d1e592f4efbfb24d9f303589f1cd99d9f0892c3f55ba72904232d95c475",
+        "wsl_execute.py": "ee505f2e82fa72ffdf2785f55e94e58fdc353bf5116e2b63638eb294543f8bd8",
+        "wsl_postcheck.py.in": "4071789bb6ccfaac48e18179bd38f074248fb31f6114d0d1204af6b253b2498d"
+      },
+      "recorded_expiries": "CAPTURED_VALUES_NOT_CURRENT_VALIDITY_ROOT_JIT_REQUIRED",
+      "finalization": "ONLY_FIRST_STOP_AND_EXACT_PLACEHOLDERS",
+      "independent_final_byte_audit": "FINALIZED_BYTES_ACCEPTED_ALL_8_ARTIFACT_HASHES_SIZES_AND_6_ROLE_RECEIPT_HASHES",
+      "WSL_postcheck": "STOP_AND_ACTUAL_RESULT_SHA_PLACEHOLDER_RETAINED_UNTIL_ACTUAL_RESULT",
+      "native_and_wsl_role_verdicts": "EACH_REAL_ROLE_APPROVED_SEPARATELY_PER_HOST",
+      "checkpoint_JIT_Root_GO": "PENDING",
+      "fixtures_restoration_cleanup_pair_K4_EPIC": "NOT_RUN"
+    }
   }
 }

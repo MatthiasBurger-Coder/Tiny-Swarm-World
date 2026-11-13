@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA37 exact six-role per-host admission READY; finalized bytes accepted; checkpoint/JIT Root GO pending; live qualification NOT_RUN; no product/EPIC DONE
+Status: EXECUTING; TA43 C5 exact six-role per-host admission/finalized bytes APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C5 fixtures NOT_RUN; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -993,6 +993,56 @@ Actual native/WSL fixtures, restoration/cleanup results, pair qualification, K4,
 network/image/product recovery and EPIC completion are NOT_RUN. All14 canonical
 metadata blocks and21 governing-file authority remain unchanged. This S07
 checkpoint records exact admissions and prerequisites; it does not execute them.
+
+## Execution run TA440-20261113-43 — fresh C5 per-host admission
+
+TA37 C4 admission above is historical. The subsequent C4 native attempt remains
+NONPASS/BLOCKED_TARGET_DRIFT/JIT_COMMAND_FAILED. TA38 independent recovery accepts
+closure0581e251…: three owned deletions exit0, RECOVERED/PRESERVATION_POSTCHECK_PASS,
+four originals and all six snapshots preserved, source unchanged. Raw fixture
+68b64663… stays NONPASS; WSL was NOT_RUN/BLOCKED. Snapshot retention is not proof
+of application-data restoration. No prior failure is relabeled as qualification.
+
+Public source8d98356e… preserves failure provenance/private diagnostics; its exact
+local full gate passes4148tests/37skips, independent TA40 acceptance. Private C5
+`ccaf4a12249c82d0a33e1a7b03399f59f6ea421e`, tree
+`5905801c409e51e65a95b10872b2612ab149b4ed`, is a sole-parent successor of C4 with
+1811byte/mode manifest685d3494…, runnerba012881…/test6f2229c0… and empty capability.
+It is NOT_QUALIFIED. TA42 actual source copies are verified; designated mocked
+bridge3+fixture197=200PASS/zero skips/sourcebeforeafter identical (summary02d00479…,
+independently accepted). Public full quality and private targeted tests remain
+distinct from actual C5 live qualification or a full private-candidate gate.
+
+TA43 exact packet inventory015b4c71…/native driver45fd0a3c…/unchanged V3 helper8ffa…
+received six exact-code reviews, then fresh actual native and WSL contexts. All
+six real roles separately APPROVED BOTH host bindings: Requirements, Architecture,
+Automation, Test-Evidence, Security, DevOps. Actual12verdicts are persisted; no
+approval is inferred from the prior C4 attempt or synthetic probe.
+
+Native context33e3b53a…/resourceb17d8e0e…/GOdraft9c4086a8… binds stored deadline
+2026-11-13T16:07:38Z; native closurec451531b… contains76verified entries. WSL
+GOdraft6d1dd8ca…/resourcee7948e68… binds stored deadline2026-11-13T16:08:32Z; WSL
+closure39c0a3d4… contains28verified entries. These captured deadlines require JIT
+validity/remaining-time checks, not presumed validity at execution. Private run/
+resource identifiers remain in protected evidence.
+
+Finalization inventorydb5e727f… pins deterministic native reviewd21fb759… and WSL
+review6e14cc37… plus exact runtime outputs. Only initial STOP removal and exact
+placeholders are permitted; independent FINALIZATION_ACCEPTED binds this inventory.
+Native staged read-only inspection PASS/exit0 retains1811manifest685d3494… before/
+after with actual fixture effects false. WSL postcheck
+retains STOP/actual-result placeholder until a real result exists. No source,
+helper behavior, review decision, context or deadline substitution is authorized.
+
+Existing native maintenance scope remains managerpause/ownedfixture/restore only,
+serially followed by WSL fixture after independent native preservation acceptance.
+Preserve four native originals/six prior snapshots plus planned owned seventh;
+preserve WSL zero originals/default/two legitimate Docker profiles/provider/Windows/
+routes. Exact four-doc checkpoint and current ownership/source/
+expiry JIT and explicit Root GO remain pending. C5 native/WSL fixtures, restoration/
+cleanup results, paired qualification, capability-only successor, installation,
+product recovery and EPIC completion are NOT_RUN. All14 metadata blocks and existing
+21governing-file authority remain unchanged; this is one S07 admission checkpoint.
 
 ## Verified Baseline and Target Picture
 

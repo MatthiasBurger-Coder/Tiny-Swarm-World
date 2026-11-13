@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA37 exact six-role per-host admission READY; finalized bytes accepted; checkpoint/JIT Root GO pending; live qualification NOT_RUN; no product/EPIC DONE.
+Status: EXECUTING; TA43 C5 exact six-role per-host admission/finalized bytes APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C5 fixtures NOT_RUN; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -411,7 +411,7 @@ No network/image/nodes/stacks/recovery/EPIC success.14metadataunchanged. ExactSS
 docreceipt precedes guarded S07 source-preparation checkpoint; no liveGO/context/
 expiry/qualification claim or secondsourceimplementationcommit.
 
-## Current exact per-host admission — TA37
+## Historical C4 per-host admission — TA37
 
 PrivateV3caller8ffa96dd… actual53mocksPASS and independently accepted synthetic
 OSprobe9c24fd15… prove caller/adapter behavior only; no infrastructure GO or live
@@ -435,3 +435,28 @@ independentpreservation acceptance before WSLfixture/cleanup; preserve4originals
 5priorbackups+planned6th andWSL2profiles/default/provider/Windows/routes. Actual
 fixtures/restoration/cleanup/pair/K4/productrecovery/EPIC NOT_RUN;14metadata and
 21governingauthority unchanged. This checkpoint grants no execution by itself.
+
+## Current C5 exact admission — TA43
+
+C4 actualnativeNONPASS is preserved. TA38recovery0581e251… independently accepted
+ownedcleanup/fouroriginals/allsixsnapshots/sourcepreservation; WSL NOT_RUN/BLOCKED.
+Snapshots do not prove applicationdatarestore. Public8d98356e… local4148tests/
+37skipsPASS is distinct from privateC5 ccaf4a12…/tree5905801c…/1811manifest685d3494…,
+runnerba012881…/test6f2229c0…/emptycapability NOT_QUALIFIED. TA42exactsource copies
+and actual designated mocked bridge3+fixture197=200PASS/zeroskips/sourceunchanged,
+summary02d00479… independently accepted; no live or fullprivategate inference.
+
+TA43packet015b4c71…/driver45fd0a3c…/helper8ffa unchanged; all12actual native+WSL
+six-role verdicts APPROVED exactfreshbindings. Native context33e3b53a…/resource
+b17d8e0e…/GOdraft9c4086a8…/76entryclosurec451531b… stores16:07:38Z; WSLGOdraft
+6d1dd8ca…/resourcee7948e68…/28entryclosure39c0a3d4… stores16:08:32Z (2026-11-13).
+Captured deadlines require currentJIT, not assumedvalidity. Finalizationinventory
+db5e727f…/native reviewd21fb759…/WSLreview6e14cc37… exactSTOP/placeholders only;
+independent FINALIZATION_ACCEPTED; native staged readonlyinspectPASS/exit0 retains
+1811manifest685d3494… beforeafter/noeffects; WSLpostcheck retainsSTOP/resultplaceholder.
+
+Nativeboundedmaintenance preserves4originals/6priorbackups+plannedowned7th; then
+WSLfixture after independentnativepreservation, retaining0originalinstances/default/
+2profiles/provider/Windows/routes. Checkpoint/JITsourceownershipexpiry/
+RootGO pending; C5fixtures/restore/cleanup/pair/capabilitychild/productrecovery/EPIC
+NOT_RUN.14metadata and21governingauthority unchanged; oneS07checkpoint only.
