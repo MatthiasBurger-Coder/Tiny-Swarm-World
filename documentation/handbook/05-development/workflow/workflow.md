@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; S07/S08 accepted; S09 prerequisite apply PARTIAL and TA53 diagnostic NONPASS/cause unproven; S09–11 product/live data-restore acceptance OPEN; EPIC incomplete
+Status: EXECUTING; TA56 continuation coherence repair addendum READY; S09 PAUSED; product/deployment execution not released; original accepted evidence retained; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -3212,3 +3212,167 @@ actual applicable verification, preserved historical acceptance, accepted source
 equivalence, current host lifecycle results, required CI/Sonar and independent
 P15 acceptance. Native/WSL/live/local/external states remain distinct. No issue
 closure, PR merge, cleanup or release is performed by this plan's publication.
+
+## Continuation repair addendum TA56 — coherent bridge inventory (Repair01)
+
+This bounded amendment continues the selected workflow on its verified existing
+CONTROL branch/clean baselinecb795b6…. It creates no branch/head/worktree or new
+workflow, deletes/regenerates nothing and preserves all14 original metadata
+blocks byte-for-byte. One explicit additional repair block S440O-R56-01 follows;
+S3/S3D selects this serial repair, with concrete dependencyS440O-08. TA55 evidence
+is a prerequisite artifact, not an invented slice dependency. S09 and dependent
+product live cases are PAUSED; no original dependency edge is rewritten.
+
+TA55 actual evidence attributes the false inventory heartbeat predicate to the
+consumed cached reconcile_in_progress/degraded state while service/routing return
+true. A later ready state's generation timestamp precedes evaluation, but atomic
+publication was observed only afterwards: do NOT claim ready was already written
+at evaluation. Fix coherent observation by waiting for writer completion and
+reading under the same existing reconcile mutex; the first historical partial
+network-apply cause is not retrospectively proven. The corrected attributed JSON
+and retained earlier interpretation are preserved, not relabeled.
+
+Four actual Requirement/Architecture/Test/PythonAutomation planning gates are
+READY. This authoring release requires guarded commit/push before product writes,
+then Root fresh S3/S3D/distribution and a single worker. Senior DevOps owns ONLY
+existing tws-wsl-bridge.ps1 and bridge-preparation.Tests.ps1; Python Automation is
+an implementation reviewer, not a mandatory PowerShell worker; Root integrates.
+Use finite30second mutex wait and finally release; retain every Root/failure/
+owner/heartbeat/route/readiness guard and genuine failed/stale/degraded refusal.
+No ignorefalse, unlocked fallback, journal edit or service/routes/firewall/
+credential mutation is authorized by LOCAL repair or mocked regression testing.
+
+Sequence: meaningful regression RED→minimal GREEN→nearest real native Windows
+PowerShell bridge wrapper/asset tests→applicable full QUALITY→independent review→
+source checkpoint. Exact tests remain on designated SSH/Ubuntu WSL source through
+existing Windows PowerShell wrappers, never Windows Python; unavailable/skipped
+required native behavior is BLOCKED. No current repair test or success is claimed.
+
+Before live continuation, explicitly decide new source/controller lease and
+installed protected bundle/manifest hash impact. Checkout edits do not update an
+installed bridge. C6/K6/source and paired receipts stay immutable: no K6 patching,
+old-proof retarget or strict C→K capability-only bypass. Determine actual new-
+context/equivalence/qualification/gate needs; no automatic blanket replay. Accepted
+exact lineage/deployment decision and a later separate normal guarded deployment/
+Root live GO are required before installed service/bundle changes or S09 resume.
+Unknown lineage, ownership, architecture or required extra scope is STOP.
+
+Canonical workflow.md already has exactly one Part5 source-catalogue assignment;
+no new topic file, catalogue or authority is created. Existing21 governing-file
+map shape remains, with current canonical hashes refreshed. This is planning/
+source publication only: no live effect, PR/merge/issue close or EPIC DONE.
+
+```yaml
+{
+  "slice_id": "S440O-R56-01",
+  "goal": "Observe coherent existing bridge inventory under the periodic-reconcile mutex without weakening true failure, stale-heartbeat, ownership or readiness predicates.",
+  "profile": "FULL_PATH_LOCAL_REPAIR",
+  "owner": "Senior DevOps",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Python Automation Developer"
+  ],
+  "affected_files": [
+    "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1",
+    "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1"
+  ],
+  "affected_modules": [
+    "existing Windows/WSL bridge preparation"
+  ],
+  "affected_contracts": [
+    "Existing inventory/heartbeat/readiness contract unchanged"
+  ],
+  "dependencies": [
+    "S440O-08"
+  ],
+  "prerequisite_evidence": [
+    {
+      "path": ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261113-55/actual-readiness-race-attribution.json",
+      "sha256": "6e39db3ce203c565388a6fdef109c11db6d692aaab31205df9398fa9749e342a",
+      "decision": "ACTUAL_CACHED_INTERMEDIATE_HEARTBEAT_PREDICATE_ATTRIBUTED",
+      "timing_limit": "READY generation precedes evaluation; atomic publication only observed later, not proven earlier; no historic-first-partial cause assignment"
+    }
+  ],
+  "parallel_group": "ta56-repair-serial",
+  "parallel_execution_eligible": false,
+  "parallelization_status": "SERIAL_ONE_PRODUCT_WORKER",
+  "file_locks": [
+    "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1",
+    "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1"
+  ],
+  "contract_locks": [
+    "Existing Root/owner/heartbeat/route/failure/readiness semantics"
+  ],
+  "architecture_locks": [
+    "Existing Windows Service bridge owner/protected installed bundle",
+    "Strict immutable C-to-K capability-only provenance"
+  ],
+  "allowed_write_scope": [
+    "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1",
+    "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1"
+  ],
+  "shared_files": [
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md"
+  ],
+  "shared_infrastructure": [
+    "Designated SSH Windows host and Ubuntu WSL verification source",
+    "Existing Windows/WSL bridge; no LOCAL test service/network mutation"
+  ],
+  "requires_isolated_worktree": true,
+  "worktree_rule": "Reuse existing isolated CONTROL on docs/workflow-issue440-open-20261111; no new branch/worktree/head or original-workspace writes.",
+  "requires_serialized_live_validation": true,
+  "distribution_evidence": ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261113-56/repair-distribution.json",
+  "consolidation_evidence": ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261113-56/repair-consolidation.json",
+  "execution_order": [
+    "Four actual Requirement/Architecture/Test/PythonAutomation planning gates READY",
+    "Guarded addendum commit/push then fresh Root S3/S3D and exact one-worker handoff before product writes",
+    "Regression RED on exact designated source through real Windows PowerShell wrapper",
+    "Minimal coherent inventory under same existing reconcile mutex, finite30second wait, finally release; no unlocked fallback",
+    "GREEN nearest native Windows PowerShell behavior and asset suite, then applicable full QUALITY",
+    "Independent review, Root integration and source checkpoint commit/push",
+    "Explicit source-lineage and installed-bundle deployment decision; later separate normal guarded deployment/live Root GO before S09 resumes"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PYTHONPATH=. .venv/bin/python -B -m unittest modules.tsw_windows_wsl.tests.test_prepare_windows.TestWindowsPreparation.test_read_only_bridge_inventory_and_existing_address_owner",
+      "PYTHONPATH=. .venv/bin/python -B -m unittest modules.tsw_windows_wsl.tests.test_windows_wsl_bridge_assets"
+    ],
+    "required": [
+      ".venv/bin/python -B modules/tsw_core/tools/linux/quality_gate.py quality"
+    ],
+    "regression_contract": "Reproduce cached intermediate observation as expected RED; GREEN proves writer completion/coherent snapshot,30s timeout refusal/finally release, real stale/degraded/foreign-owner refusal and no service/routes/firewall/credential writes.",
+    "host_rule": "SSH pc@192.168.178.58 then Ubuntu WSL with private ~/.access credentials; existing Python wrapper invokes native Windows PowerShell, never Windows Python. Required native behavior skipped/unavailable is BLOCKED.",
+    "status": "NOT_RUN_FOR_THIS_REPAIR"
+  },
+  "documentation": {
+    "arc42": "Recheck existing Windows/WSL service ADR/runtime/deployment constraints; no architecture change planned; STOP for required out-of-scope synchronization.",
+    "adr": "Existing bridge owner/authority/readiness decision retained; STOP if a new decision is needed.",
+    "status_files": [
+      "documentation/handbook/05-development/workflow/workflow.md",
+      "documentation/handbook/05-development/workflow/context-pack.md",
+      "documentation/handbook/05-development/workflow/context-pack.json",
+      "documentation/handbook/05-development/workflow/prerequisite-ledger.md"
+    ],
+    "catalogue": "Existing Part5 source catalogue registers workflow.md once; no new source/catalogue authority."
+  },
+  "lineage_and_installed_bundle_decision": "Mandatory before live continuation: map new source/test/controller lease and changed bridge bundle/installed-manifest hashes. Keep C6/K6/paired receipts immutable; no K6 patching, proof retarget or strict C-to-K-only-capability bypass. Determine actual new-context/equivalence/qualification/gate needs without automatic blanket repetition; no assumption that a checkout changes installed code. Accepted exact lineage/deployment plan and separate normal guarded deployment/Root GO required.",
+  "execution_barrier": "S09 and dependent product live cases PAUSED until accepted repair plus explicit source-lineage/installed-bundle decision and separate live Root GO. Original14 dependency blocks unchanged; select only this serial repair.",
+  "stop_conditions": [
+    "Missing four planning verdicts, authoring publication, clean matched branch, fresh S3/S3D or distribution evidence",
+    "Write requested outside exact two PS product files or original user workspace/newheads touched",
+    "Unsafe lock ordering/reentrancy/finite timeout/finally semantics, ignoredfalse or unlocked fallback",
+    "Expected RED fails for unrelated import/parse reason or required native behavior is unavailable/skipped",
+    "Any required targeted/full gate fails, is unverifiable or old failures are relabeled",
+    "Readiness/failure/owner/heartbeat/route/Root guards weakened or manual journals requested",
+    "Frozen C6/K6/source-controller/proof identity would be silently changed or legitimate lineage/deployment is unresolved",
+    "Service/route/firewall/installed bundle mutation before later separate exact guarded deployment/Root GO",
+    "S09 or overlapping execution resumes before accepted barrier release"
+  ],
+  "status": "AUTHORING_READY_PRODUCT_EXECUTION_NOT_RELEASED"
+}
+```

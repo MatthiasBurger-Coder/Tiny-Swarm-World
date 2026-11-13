@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_S07_S08_ACCEPTED_S09_PREREQUISITES_PARTIAL_TA53_AUDIT_NONPASS_CAUSE_UNPROVEN_S09_TO_S11_PRODUCT_LIVE_DATA_RESTORE_OPEN_EPIC_INCOMPLETE",
+  "status": "EXECUTING_TA56_CONTINUATION_REPAIRADDENDUM_AUTHORING_READY_S09_PAUSED_PRODUCT_DEPLOYMENT_NOT_RELEASED_EPIC_INCOMPLETE",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "3b4b2d1f8ebc60b3f9e46571828304c1de379c2162fb76d69912b55a0d3abc9e",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "3a87f80d1b018aaa06d9da4c29700c2ed01240aa932d610b3e53c67b63c769e8",
+    "documentation/handbook/05-development/workflow/context-pack.md": "b5b93834bc9368f1d2733dd39642283065caf9a3f8c2abed690d569bcef347be",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "31a6a6375ae7a770e0041d3dd937d488c5f02169fcbcfa96b0a0d625126af619",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "62e098a84601246738610e4e5eb11a09cdc4655e86da0db97b424a61c1c179d3"
+    "documentation/handbook/05-development/workflow/workflow.md": "a6a9d1bcaa76105842982b87710117b26cc656708a86ceac1d0ab09366fe326b"
   },
   "slices": [
     "S440O-01",
@@ -80,7 +80,8 @@
     "S440O-11",
     "S440O-12",
     "S440O-13",
-    "S440O-14"
+    "S440O-14",
+    "S440O-R56-01"
   ],
   "verified_repair_manifest": {
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1": "e42834dbdb7eef4c292074c932a724a10c65798373606f04583d40009a4f962b",
@@ -195,7 +196,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-53",
+  "current_workflow_run": "TA440-20261113-56",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,80 +356,60 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-53",
-    "slice_id": "S440O-09",
-    "record_type": "DOCUMENTATION_STATUS_MAINTENANCE_ACTUAL_PARTIAL_PREREQUISITES_AND_NONPASS_DIAGNOSIS",
-    "state": "PREPARATION_PARTIAL_PRODUCT_COMPONENT_LIVE_APPLICATION_DATA_RESTORE_ACCEPTANCE_OPEN",
-    "accepted_S07_S08": "UNCHANGED_PRIOR_INDEPENDENT_ACCEPTANCES",
-    "TA52_completed_checkpoint": {
-      "actual": "ARCHIVED_COMPLETED_READY_SOURCE_ONLY_IDENTITY_DIFFERENCE",
-      "identity_difference_only": "source_sha256",
-      "raw_sha256": "dd0aa80d3cd5afdc905aaf12f771f4ea5b1323e162be01d6f5bb13723c916ba8",
-      "same_inode_full_stat": "PRESERVED",
-      "active_checkpoint": "ABSENT",
-      "bootstrap_lock": "FREE",
-      "pending_or_uncertain_checkpoint_erased": false,
-      "closed_bound_files": 36,
-      "closed_manifest_sha256": "c0b3187d662c3ca7f29d5dcb6b228fc9d4b961de1ef8f8e46d664baeb6ef4c65",
-      "independent_acceptance_sha256": "2e2a951b9525450b86a7c1b79340a953dfb2ceab593d9b01296a552d1bb51ab9"
+    "id": "TA440-20261113-56",
+    "slice_id": "S440O-R56-01",
+    "record_type": "CONTINUATION_REPAIRADDENDUM_AUTHORING_NOT_WORKFLOW_REGENERATION",
+    "state": "FOUR_ACTUAL_PLANNING_GATES_READY_PRODUCT_EXECUTION_NOT_RELEASED",
+    "actual_gates": {
+      "requirements": "READY",
+      "architecture": "READY",
+      "test": "READY",
+      "PythonAutomation": "READY"
     },
-    "TA52_separate_test_evidence": {
-      "session_tests_passed": 32,
-      "corrected_focused_tests_passed": 9,
-      "single_combined_41_PASS": false,
-      "initial_import_attempt": "NONPASS_PRESERVED",
-      "independent_acceptance_sha256": "13f4ce6ba4ee50d3f9eefff6d4abc019becfcc46fce3d21f7b0947482a7343c0",
-      "official_prerequisite_session_mocked_tests": 45,
-      "image_import_mocked_tests": 11,
-      "nearest_total": 56,
-      "image_or_product_execution_proven": false
+    "TA55_attribution": {
+      "path": ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261113-55/actual-readiness-race-attribution.json",
+      "sha256": "6e39db3ce203c565388a6fdef109c11db6d692aaab31205df9398fa9749e342a",
+      "raw_sha256": "143cdcfca794f7767682c82945ec7a322d2feea7d6bdee27755077738bab035c",
+      "decision": "ACTUAL_CACHED_INTERMEDIATE_HEARTBEAT_PREDICATE_ATTRIBUTED",
+      "timing_limit": "READYgeneratedAtprecedesevaluation; actualatomicpublicationtimeisNOTindependentlymeasured, finalreadisafterevaluation. DonotclaimREADYwasalreadywrittenatheartbeat.",
+      "prior_interpretation_retained_sha256": "ab9aafe0d876c8454b1b42679bb6597f50748e73fc0cfae32ae2e0b8f7f1595e",
+      "source_before_after": "K6_UNCHANGED",
+      "mutations": false,
+      "earlier_first_partial_cause": "NOT_RETROSPECTIVELY_ATTRIBUTED"
     },
-    "official_prerequisite_actual": {
-      "status": "PARTIAL",
-      "wrapper_status": "BLOCKED_OR_PARTIAL",
-      "phase": "NETWORK_APPLY",
-      "code": "NETWORK_RESULT_NOT_READY",
-      "Incus": "VERIFIED_NO_ACTIONS",
-      "completed": [
-        "file:/usr/local/bin/tsw-apply-incus-forwarding.sh"
+    "owner": "Senior DevOps",
+    "allowed_product_paths": [
+      "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1",
+      "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1"
+    ],
+    "runtime_contract": "SAME_EXISTING_RECONCILE_MUTEX_WRITER_COMPLETION_COHERENT_READ_FINITE_30S_FINALLY_RELEASE_NO_GUARD_WEAKENING",
+    "ordered_execution": [
+      "Four actual Requirement/Architecture/Test/PythonAutomation planning gates READY",
+      "Guarded addendum commit/push then fresh Root S3/S3D and exact one-worker handoff before product writes",
+      "Regression RED on exact designated source through real Windows PowerShell wrapper",
+      "Minimal coherent inventory under same existing reconcile mutex, finite30second wait, finally release; no unlocked fallback",
+      "GREEN nearest native Windows PowerShell behavior and asset suite, then applicable full QUALITY",
+      "Independent review, Root integration and source checkpoint commit/push",
+      "Explicit source-lineage and installed-bundle deployment decision; later separate normal guarded deployment/live Root GO before S09 resumes"
+    ],
+    "quality_commands": {
+      "targeted": [
+        "PYTHONPATH=. .venv/bin/python -B -m unittest modules.tsw_windows_wsl.tests.test_prepare_windows.TestWindowsPreparation.test_read_only_bridge_inventory_and_existing_address_owner",
+        "PYTHONPATH=. .venv/bin/python -B -m unittest modules.tsw_windows_wsl.tests.test_windows_wsl_bridge_assets"
       ],
-      "completed_forwarding_sha256": "5786ceecaa2a2444d302449e97ceb474750f6f4f00780c5c83931b882d3e1bac",
-      "remaining_enable": "NOT_ATTEMPTED",
-      "uncertain": [],
-      "services_verified": false,
-      "auth_cache_cleanup_exit": [
-        0,
-        0,
-        0
+      "required": [
+        ".venv/bin/python -B modules/tsw_core/tools/linux/quality_gate.py quality"
       ],
-      "source_after_verified": true,
-      "raw_files_preserved": 22,
-      "network_READY_unit_start_node_stack_success": false
+      "regression_contract": "Reproduce cached intermediate observation as expected RED; GREEN proves writer completion/coherent snapshot,30s timeout refusal/finally release, real stale/degraded/foreign-owner refusal and no service/routes/firewall/credential writes.",
+      "host_rule": "SSH pc@192.168.178.58 then Ubuntu WSL with private ~/.access credentials; existing Python wrapper invokes native Windows PowerShell, never Windows Python. Required native behavior skipped/unavailable is BLOCKED.",
+      "status": "NOT_RUN_FOR_THIS_REPAIR"
     },
-    "TA53_diagnosis": {
-      "workflow_before_three_role_consultation": true,
-      "requirements_architecture_test": "READY_READONLY_AUDIT_ONLY",
-      "actual_status": "NONPASS_EXECUTION_PROVENANCE_GUARD",
-      "actual_failure_code": "PROCESS_RECOVERY_REQUIRED",
-      "raw_audit_report": "NOT_RETAINED",
-      "independent_later_process_observation": "RECORDED_TOOL_SID_PGID_ABSENT_NO_SIGNALS",
-      "network_change_cause": "UNPROVEN",
-      "repair": "PRIMARY_EXCEPTION_AND_PARTIAL_TOOL_OUTPUT_PRESERVATION_AUTHORING",
-      "ownership_guard_relaxation_or_effect_retry": false,
-      "later_process_absence_relabels_audit_PASS": false
-    },
-    "observer_unit_evidence": {
-      "foundation_mocked_tests": 21,
-      "integration_mocked_tests": 9,
-      "status": "ACTUAL_MOCKED_PASS",
-      "source_before_after": "b22fc5ceb0025afab33cb4b31505bafad4a04b23c7d71c95275f45fc90e68e47",
-      "actual_runtime_observation": "NOT_RUN",
-      "data_restore": "NOT_RUN",
-      "actual_data_auth_pin_convergence_routes_component_results": false
-    },
-    "S09_to_S11_product_component_update_selection_live_data_restore_acceptance": "OPEN_NOT_RUN_PREPARATION_PARTIAL",
-    "remaining": "PRESERVE_PARTIAL_EFFECT_DIAGNOSE_WITH_PRIMARY_EVIDENCE_COMPLETE_PREREQUISITES_EXACT_LIVE_ADMISSIONS_ACTUAL_PRODUCT_APPLICATION_DATA_RECOVERY_AND_INDEPENDENT_FINAL_ACCEPTANCE",
-    "canonical_metadata": "ALL_14_BYTE_IDENTICAL",
+    "current_product_writes_tests_gates": "NOT_RUN_NOT_RELEASED",
+    "S09_execution_barrier": "PAUSED_UNTIL_ACCEPTED_REPAIR_EXPLICIT_SOURCE_LINEAGE_INSTALLED_BUNDLE_PLAN_AND_SEPARATE_ROOT_LIVE_GO",
+    "lineage_constraints": "C6_K6_PAIRED_PROOFS_IMMUTABLE_STRICT_C_TO_K_ONLY_CORE_CAPABILITY_DELTA_NO_CONTROLLER_PATCH_OR_PROOF_RETARGET",
+    "deployment_constraints": "CHECKOUT_DOES_NOT_CHANGE_INSTALLED_BUNDLE_NO_SERVICE_ROUTE_FIREWALL_MUTATION_BEFORE_LATER_EXACT_NORMAL_REPAIR_DEPLOYMENT_GO",
+    "source_gates_qualification_scope": "DETERMINE_ACTUAL_NEW_CONTEXT_EQUIVALENCE_QUALIFICATION_REQUIREMENTS_NO_AUTOMATIC_BLANKET_REPEATS",
+    "canonical_metadata": "14_ORIGINAL_BYTE_IDENTICAL_PLUS_ONE_EXPLICIT_REPAIR",
     "governing_file_map_shape": "EXISTING_21_PRESERVED",
     "product_EPIC_DONE": false
   },
@@ -1445,5 +1426,144 @@
     "canonical_metadata": "ALL_14_BYTE_IDENTICAL",
     "governing_file_map_shape": "EXISTING_21_PRESERVED",
     "product_EPIC_DONE": false
+  },
+  "TA53_partial_preparation_history": {
+    "id": "TA440-20261113-53",
+    "slice_id": "S440O-09",
+    "record_type": "DOCUMENTATION_STATUS_MAINTENANCE_ACTUAL_PARTIAL_PREREQUISITES_AND_NONPASS_DIAGNOSIS",
+    "state": "PREPARATION_PARTIAL_PRODUCT_COMPONENT_LIVE_APPLICATION_DATA_RESTORE_ACCEPTANCE_OPEN",
+    "accepted_S07_S08": "UNCHANGED_PRIOR_INDEPENDENT_ACCEPTANCES",
+    "TA52_completed_checkpoint": {
+      "actual": "ARCHIVED_COMPLETED_READY_SOURCE_ONLY_IDENTITY_DIFFERENCE",
+      "identity_difference_only": "source_sha256",
+      "raw_sha256": "dd0aa80d3cd5afdc905aaf12f771f4ea5b1323e162be01d6f5bb13723c916ba8",
+      "same_inode_full_stat": "PRESERVED",
+      "active_checkpoint": "ABSENT",
+      "bootstrap_lock": "FREE",
+      "pending_or_uncertain_checkpoint_erased": false,
+      "closed_bound_files": 36,
+      "closed_manifest_sha256": "c0b3187d662c3ca7f29d5dcb6b228fc9d4b961de1ef8f8e46d664baeb6ef4c65",
+      "independent_acceptance_sha256": "2e2a951b9525450b86a7c1b79340a953dfb2ceab593d9b01296a552d1bb51ab9"
+    },
+    "TA52_separate_test_evidence": {
+      "session_tests_passed": 32,
+      "corrected_focused_tests_passed": 9,
+      "single_combined_41_PASS": false,
+      "initial_import_attempt": "NONPASS_PRESERVED",
+      "independent_acceptance_sha256": "13f4ce6ba4ee50d3f9eefff6d4abc019becfcc46fce3d21f7b0947482a7343c0",
+      "official_prerequisite_session_mocked_tests": 45,
+      "image_import_mocked_tests": 11,
+      "nearest_total": 56,
+      "image_or_product_execution_proven": false
+    },
+    "official_prerequisite_actual": {
+      "status": "PARTIAL",
+      "wrapper_status": "BLOCKED_OR_PARTIAL",
+      "phase": "NETWORK_APPLY",
+      "code": "NETWORK_RESULT_NOT_READY",
+      "Incus": "VERIFIED_NO_ACTIONS",
+      "completed": [
+        "file:/usr/local/bin/tsw-apply-incus-forwarding.sh"
+      ],
+      "completed_forwarding_sha256": "5786ceecaa2a2444d302449e97ceb474750f6f4f00780c5c83931b882d3e1bac",
+      "remaining_enable": "NOT_ATTEMPTED",
+      "uncertain": [],
+      "services_verified": false,
+      "auth_cache_cleanup_exit": [
+        0,
+        0,
+        0
+      ],
+      "source_after_verified": true,
+      "raw_files_preserved": 22,
+      "network_READY_unit_start_node_stack_success": false
+    },
+    "TA53_diagnosis": {
+      "workflow_before_three_role_consultation": true,
+      "requirements_architecture_test": "READY_READONLY_AUDIT_ONLY",
+      "actual_status": "NONPASS_EXECUTION_PROVENANCE_GUARD",
+      "actual_failure_code": "PROCESS_RECOVERY_REQUIRED",
+      "raw_audit_report": "NOT_RETAINED",
+      "independent_later_process_observation": "RECORDED_TOOL_SID_PGID_ABSENT_NO_SIGNALS",
+      "network_change_cause": "UNPROVEN",
+      "repair": "PRIMARY_EXCEPTION_AND_PARTIAL_TOOL_OUTPUT_PRESERVATION_AUTHORING",
+      "ownership_guard_relaxation_or_effect_retry": false,
+      "later_process_absence_relabels_audit_PASS": false
+    },
+    "observer_unit_evidence": {
+      "foundation_mocked_tests": 21,
+      "integration_mocked_tests": 9,
+      "status": "ACTUAL_MOCKED_PASS",
+      "source_before_after": "b22fc5ceb0025afab33cb4b31505bafad4a04b23c7d71c95275f45fc90e68e47",
+      "actual_runtime_observation": "NOT_RUN",
+      "data_restore": "NOT_RUN",
+      "actual_data_auth_pin_convergence_routes_component_results": false
+    },
+    "S09_to_S11_product_component_update_selection_live_data_restore_acceptance": "OPEN_NOT_RUN_PREPARATION_PARTIAL",
+    "remaining": "PRESERVE_PARTIAL_EFFECT_DIAGNOSE_WITH_PRIMARY_EVIDENCE_COMPLETE_PREREQUISITES_EXACT_LIVE_ADMISSIONS_ACTUAL_PRODUCT_APPLICATION_DATA_RECOVERY_AND_INDEPENDENT_FINAL_ACCEPTANCE",
+    "canonical_metadata": "ALL_14_BYTE_IDENTICAL",
+    "governing_file_map_shape": "EXISTING_21_PRESERVED",
+    "product_EPIC_DONE": false
+  },
+  "repair_addendum": {
+    "slice_id": "S440O-R56-01",
+    "canonical_metadata_path": "documentation/handbook/05-development/workflow/workflow.md",
+    "original_slice_ids": [
+      "S440O-01",
+      "S440O-02",
+      "S440O-03",
+      "S440O-04",
+      "S440O-05",
+      "S440O-06",
+      "S440O-07",
+      "S440O-08",
+      "S440O-09",
+      "S440O-10",
+      "S440O-11",
+      "S440O-12",
+      "S440O-13",
+      "S440O-14"
+    ],
+    "original_metadata_sha256": {
+      "S440O-01": "ba0378f46ce875f0803d79e4892d9cfc22c6c2bf1fcf4c97754a349c5c6dc0a4",
+      "S440O-02": "70ae11cb6c76e58d284d545b0d8b0eb8f9f0c07886fb72dd57ac22d8ee5d7f2d",
+      "S440O-03": "b5c9b86e83d9bc53fd7e8e98c1497bc6154ed2c713534d5448da927181036bfa",
+      "S440O-04": "364bd4ea87a3c390e011f44421caab4f971e2741d4f0ba9acc880e2025472172",
+      "S440O-05": "61cc1ac0a46b26e5cab54347b5d59e4b900455005b9d100f1c0b098dd00d82c6",
+      "S440O-06": "49c5260f0c3876bbbea83621abc293a4b3bd68d496f564e2f89311d526493cb4",
+      "S440O-07": "849282495e3cb8339fd474f689fb6da074a5986727a723fc54d43b7ccb43e935",
+      "S440O-08": "b9377369b1744eeca70c6a95d17c76c3eb3ec75c979d74ac45807743e97e3ac4",
+      "S440O-09": "9cefc2aea8178ece31c38b7c05acddbf007330f0d87930f6fc5f0234d7c4e19a",
+      "S440O-10": "fcc6d5842912d49a19e091c5da7fe8b9edc43e2da92db2b463267c16a029953e",
+      "S440O-11": "5fa813e971b463459de7fed2360ecfe9241ea64a813fce9590a19caa9f7b759f",
+      "S440O-12": "e57a64ed8bf83d213b8d9d73dd496973cca7333da0e80581a9f8e49ff7a424df",
+      "S440O-13": "8bb0818f86cfb83a95b1725966e9aa08cc184e9ca471aeb3cf5150052a2bb83d",
+      "S440O-14": "3b9cb01e08a50a6ff9c7ddae62a3d50a2d7d9a6eec3d718af28375caf5726198"
+    },
+    "additional_repair_metadata_count": 1,
+    "dependencies": [
+      "S440O-08"
+    ],
+    "prerequisite_evidence": [
+      {
+        "path": ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261113-55/actual-readiness-race-attribution.json",
+        "sha256": "6e39db3ce203c565388a6fdef109c11db6d692aaab31205df9398fa9749e342a",
+        "decision": "ACTUAL_CACHED_INTERMEDIATE_HEARTBEAT_PREDICATE_ATTRIBUTED",
+        "timing_limit": "READY generation precedes evaluation; atomic publication only observed later, not proven earlier; no historic-first-partial cause assignment"
+      }
+    ],
+    "execution": "SERIAL_ONE_PRODUCT_WORKER_S09_PAUSED",
+    "code_owner": "Senior DevOps",
+    "implementation_reviewer": "Senior Python Automation Developer",
+    "allowed_product_paths": [
+      "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1",
+      "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1"
+    ],
+    "same_existing_workflow_branch": "docs/workflow-issue440-open-20261111",
+    "verified_clean_authoring_baseline": "cb795b6df375f045991b323769e394e3350e664a",
+    "new_branches_worktrees_or_regeneration": false,
+    "lineage_installed_bundle_decision": "REQUIRED_BEFORE_SEPARATE_NORMAL_GUARDED_DEPLOYMENT_ROOT_LIVE_GO_S09_RESUME",
+    "existing_Part5_catalogue": "CANONICAL_WORKFLOW_ALREADY_REGISTERED_NO_NEW_SOURCE",
+    "governing_map_authority": "EXISTING_21_KEYS_NO_NEW_AUTHORITY_INFERRED"
   }
 }

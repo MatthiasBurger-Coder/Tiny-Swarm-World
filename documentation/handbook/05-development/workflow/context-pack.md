@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; S07/S08 accepted; S09 prerequisites PARTIAL/TA53 diagnostic NONPASS cause unproven; S09–11 product/live data-restore acceptance OPEN; EPIC incomplete.
+Status: EXECUTING; TA56 continuation coherence REPAIRADDENDUM READY; S09 PAUSED; product/deployment execution not released; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -548,3 +548,29 @@ Observerfoundation21+integration9 mockedPASS/sourceunchanged; actualruntime/
 datarestoreNOT_RUN. S09–11product/component/update/selection/liveapplicationdata
 acceptance OPEN/PREPARATIONPARTIAL; exactdiagnosis/prerequisites/liveadmissions/
 independentproduct/recovery/EPICacceptance pending.14metadata/21mapshape preserved.
+
+## Current continuation repair addendum — TA56
+
+Existing matched CONTROL/cleancb795b6… retained; no newheads/worktree/regeneration.
+Four actual Req/Arch/Test/PythonAutomation planning gatesREADY. Canonicalworkflow.md
+appends S440O-R56-01, dependencyS440O-08 plus hashedTA55 evidence (not a fake slice).
+14original blocks stay byte-frozen plus1newrepair; existing21governingmapshape and
+Part5catalogue assignment retained. S09/product live continuation PAUSED.
+
+TA55 cachedintermediate state alone fails heartbeatstatus while service/routing
+true; laterREADYgeneratedAt precedes evaluation but atomicpublication only observed
+afterwards. Do not claimREADYalreadywritten or retroactivelyassignfirstPARTIALcause.
+Waitforwritercompletion and coherentread under existingreconcilemutex/30s/finally;
+allRoot/failure/ownership/heartbeat/route/readiness guards remain, realfailed/stale
+state staysfailed; no ignorefalse/unlockedfallback/manualjournals/live mutations.
+
+SeniorDevOps owns EXACT2PSproductfiles, PythonAutomation implementationreviewer.
+Addendumcommit/push→freshS3/S3D/oneworker→regressionRED/GREEN→realnativeWinPSwrapper+
+assetchecks→applicablefullQUALITY→independentreview/sourcecheckpoint. RequiredPS
+skip/unavailable BLOCKED; currentrepaircode/tests NOT_RUN/notreleased.
+
+Explicit source-lineage/installedbundle/controllerlease decision before separate
+normalguardeddeployment/RootliveGO/S09resume; frozenC6/K6/pairproofs immutable/no
+retarget/strictC→K-onlycap bypass, no assumptioncheckoutchangesinstalledcode or
+automaticblanketrepeats. STOPunresolvedlineage/ownership/scope. No newtopicfile/
+catalogueauthority, live effect, PRmerge or EPICDONE from planningpublication.

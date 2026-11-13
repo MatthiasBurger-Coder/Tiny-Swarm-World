@@ -408,3 +408,18 @@ the existing21governing-file map shape/authority is preserved with refreshed has
 | Product/release | S09–11 acceptanceOPEN/PREPARATIONPARTIAL | Diagnosis/prerequisites/exactliveadmissions/actualproduct/application-data-recovery and independentEPICacceptance required |
 
 All14 metadata blocks remain byte-identical; existing21governing map shape retained.
+
+## Current sequential repair barrier — TA56 / S440O-R56-01
+
+| Owner/dependency | Accepted planning baseline | Required ordered gate |
+|---|---|---|
+| Root / authoring | ExistingmatchedCONTROL/cleancb795b6…;4actualReq/Arch/Test/PythonAutomation gatesREADY | Guarded addendumcommit/push beforeproductwrites, freshS3/S3D/singleworker; no newheads/regeneration |
+| S440O-08 + TA55 | PriorS08accepted; correctedTA55cachedintermediateheartbeat attribution hashed inrepairmetadata | DependencyS440O-08 only; TA55artifact notslice; generationordering doesnotproveatomicpublicationbeforeevaluation orfirstPARTIALcause |
+| SeniorDevOps | EXACT tws-wsl-bridge.ps1 +bridge-preparation.Tests.ps1, PythonAutomationreviewer | Sameexistingreconcilemutex/30sfinitewait/finally/writercompletion; retainallRoot/failure/owner/heartbeat/route/readiness guards |
+| Tester / review | MeaningfulRED→GREEN; verifiedexistingnativeWinPSbridgewrapper+assets+QUALITY | ExactdesignatedSSH/WSL source; requiredPSskip/unavailable BLOCKED; nearest→applicablefullQUALITY→independentreview/sourcecheckpoint |
+| Architecture/DevOps/Root | NewPS affects source/controllerlease/protectedinstalledbundle identity | Explicitlineage/deploymentdecision, C6/K6/pairproofs immutable/strictC→K-onlycap retained; actualevidenceneeds notblanketreplay |
+| S09/product | PAUSED at partialpreparation, currentrepaircode/tests NOT_RUN | Resumeonlyafteracceptedrepair+acceptedlineage/bundleplan+separateRootliveGO/normalguardeddeployment; no implicitservice/routes/firewall/journal mutation |
+
+Canonicalmetadata appended once inworkflow.md;14original blocks unchanged plus1
+repair. ExistingPart5catalogue link and21governingmapshape retained; no newtopic/
+workflow/authority or implementation/live/EPIC success from this planning addendum.
