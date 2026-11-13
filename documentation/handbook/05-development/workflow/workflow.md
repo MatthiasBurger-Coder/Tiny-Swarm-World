@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; S07 paired qualification/preservation and S08 private/public capability evidence ACCEPTED; S09–11 product/live application-data restore NOT_RUN; EPIC incomplete
+Status: EXECUTING; S07/S08 accepted; S09 prerequisite apply PARTIAL and TA53 diagnostic NONPASS/cause unproven; S09–11 product/live data-restore acceptance OPEN; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -1134,7 +1134,7 @@ Remaining exact capability admission, applicable integration checks, actual prod
 selection/update/recovery cases and independent final EPIC acceptance stay open.
 No actual product or EPIC DONE claim follows from the accepted listener pair.
 
-## Current status maintenance — accepted S07/S08 and S09 preparation, TA48–TA51
+## Historical status maintenance — accepted S07/S08 and S09 preparation, TA48–TA51
 
 Actual S07 paired C6 listener qualification and independent native/WSL preservation
 remain accepted b0c7154c… as recorded above. Original C4/C5 NONPASS/recovery and
@@ -1179,6 +1179,46 @@ independent acceptance must precede any success claim. Capability admission does
 not complete those cases or final EPIC/CI/Sonar/issue acceptance. This maintenance
 changes only current documentation status; all14 canonical metadata blocks and
 existing21governing-file map shape remain intact, with current hashes refreshed.
+
+## Current S09 preparation and diagnostic status — TA52–TA53
+
+Accepted S07 paired qualification/preservation and S08 private/public capability
+records remain unchanged. S09–11 product, component/update/selection and live
+application-data-restore acceptance remain OPEN/NOT_RUN; current prerequisite
+preparation is PARTIAL, not product readiness or EPIC completion.
+
+TA52 retained the old completed READY checkpoint with only source_sha256 identity
+difference, then atomically archived it under finite exact Root GO without overwrite:
+rawdd0aa80d… has the same inode/full stat, active checkpoint absent/bootstrap lock
+free. No pending/uncertain checkpoint was erased. The closed36-file preparation
+manifestc0b3187d… and independent acceptance2e2a951b… bind this evidence-only action.
+Separate32session tests PASS and corrected9focused tests PASS are accepted13f4ce6b…;
+the initial import/NONPASS is retained, not reported as one combined41PASS run.
+Official prerequisite/session45 and image-import11 mocked tests PASS separately
+(56total), code readiness only; no image import is established by those tests.
+
+The subsequent official prerequisite apply actually reached PARTIAL: Incus was
+already verified/no actions, and the canonical forwarding file5786ceec… was created
+and verified. Remaining forwarding:enable was NOT_ATTEMPTED; uncertain[] and
+services_verified=false. Auth/cache/cleanup all exit0, source unchanged;22raw
+files preserve the blocked/partial result. No completed network preparation,
+unit enable/start, node/stack installation or runtime health follows from it.
+
+TA53 workflow started before the three-role read-only diagnostic consultation;
+Requirement/Architecture/Test approved only bounded observation, not retry/apply.
+Actual diagnostic is NONPASS/PROCESS_RECOVERY_REQUIRED with no raw audit report
+retained. Independent later inspection found the recorded tool SID/PGID absent
+without signals, but this does not relabel the audit PASS or prove the network
+change cause. Primary-exception/partial-output preservation repair is authoring;
+no ownership/provenance guard relaxation or effect retry is admitted.
+
+Actual observer foundation21 and integration9 mocked tests PASS with unchanged
+K6 source. Runtime observations and data restoration are NOT_RUN; mocked observer
+success does not prove data/auth/pin/convergence/routes or component-case results.
+Keep the partial forwarding effect and original NONPASS evidence; actual diagnosis,
+remaining prerequisites, exact live admissions and independent product/recovery/
+final EPIC acceptance stay open. All14 metadata blocks and existing21governing
+map shape remain intact; this maintenance changes documentation status only.
 
 ## Verified Baseline and Target Picture
 

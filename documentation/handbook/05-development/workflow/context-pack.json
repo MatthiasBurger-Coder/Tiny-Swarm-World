@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_S07_PAIRED_AND_S08_PRIVATE_PUBLIC_CAPABILITY_ACCEPTED_S09_TO_S11_PRODUCT_LIVE_DATA_RESTORE_NOT_RUN_EPIC_INCOMPLETE",
+  "status": "EXECUTING_S07_S08_ACCEPTED_S09_PREREQUISITES_PARTIAL_TA53_AUDIT_NONPASS_CAUSE_UNPROVEN_S09_TO_S11_PRODUCT_LIVE_DATA_RESTORE_OPEN_EPIC_INCOMPLETE",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "62daad001b6e5676705a8797317266cd6ea1aaffb53a4b02625487e83f30de55",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "ac8ce1a7a1db19aafbe7ab27963a2d98a80ff29aef9ae50ac9b403e285160fae",
+    "documentation/handbook/05-development/workflow/context-pack.md": "3b4b2d1f8ebc60b3f9e46571828304c1de379c2162fb76d69912b55a0d3abc9e",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "3a87f80d1b018aaa06d9da4c29700c2ed01240aa932d610b3e53c67b63c769e8",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "aa918871d43cdbb2a47b470a6d0aa4f404b5e9d5ca55fa303ec4cb42266a37a0"
+    "documentation/handbook/05-development/workflow/workflow.md": "62e098a84601246738610e4e5eb11a09cdc4655e86da0db97b424a61c1c179d3"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-51",
+  "current_workflow_run": "TA440-20261113-53",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,67 +355,79 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-51",
+    "id": "TA440-20261113-53",
     "slice_id": "S440O-09",
-    "record_type": "DOCUMENTATION_STATUS_MAINTENANCE_PRIOR_ACCEPTED_S07_S08_AND_S09_PRIVATE_PREPARATION_ONLY",
-    "state": "S07_S08_EVIDENCE_ACCEPTED_PRODUCT_LIVE_APPLICATION_DATA_RESTORE_NOT_RUN",
-    "accepted_S07_pair_sha256": "b0c7154c99c3221c68086b3070a0f3ae7acc044d24244f052b2592450b582dd3",
-    "accepted_private_S08": {
-      "acceptance_sha256": "5106d34943e3c96ef530383f3e04201ea6cc75ac1ff435f31d188101ce1afa18",
-      "K6_commit": "1a597f3c9c75eaabe68d100946fd98b7b7d09c11",
-      "sole_parent_C6": "dee0f025cd5c201d6de3ce62e212e7f0afd9ee2f",
-      "CORE_matrix_sha256": "1d596bf1cf992949e0e037eeacef05f3ddc3943d37fd61ef0858230787d08e79",
-      "actual_real_Git_promotion_pair_receipt_source_capability_validators": "PASS",
-      "targeted_tests": 103,
-      "nearest_journal_tests": 5,
-      "full_quality_tests": 4156,
-      "skips": 37,
-      "status": "PASS",
-      "original_full_gate_NONPASS_and_causal_077_RED_022_GREEN": "RETAINED_NOT_RELABELED",
-      "other_1810_paths_modes_two_empty_mirrors_private_policy": "UNCHANGED"
+    "record_type": "DOCUMENTATION_STATUS_MAINTENANCE_ACTUAL_PARTIAL_PREREQUISITES_AND_NONPASS_DIAGNOSIS",
+    "state": "PREPARATION_PARTIAL_PRODUCT_COMPONENT_LIVE_APPLICATION_DATA_RESTORE_ACCEPTANCE_OPEN",
+    "accepted_S07_S08": "UNCHANGED_PRIOR_INDEPENDENT_ACCEPTANCES",
+    "TA52_completed_checkpoint": {
+      "actual": "ARCHIVED_COMPLETED_READY_SOURCE_ONLY_IDENTITY_DIFFERENCE",
+      "identity_difference_only": "source_sha256",
+      "raw_sha256": "dd0aa80d3cd5afdc905aaf12f771f4ea5b1323e162be01d6f5bb13723c916ba8",
+      "same_inode_full_stat": "PRESERVED",
+      "active_checkpoint": "ABSENT",
+      "bootstrap_lock": "FREE",
+      "pending_or_uncertain_checkpoint_erased": false,
+      "closed_bound_files": 36,
+      "closed_manifest_sha256": "c0b3187d662c3ca7f29d5dcb6b228fc9d4b961de1ef8f8e46d664baeb6ef4c65",
+      "independent_acceptance_sha256": "2e2a951b9525450b86a7c1b79340a953dfb2ceab593d9b01296a552d1bb51ab9"
     },
-    "accepted_public_S08": {
-      "acceptance_sha256": "48e612bb859318b5706639fabe6203959bdf85826454d3ea97df8cd9e78bdad0",
-      "published_commit": "86ea6b23208b91fe05ea81edbebb8f4d80e5bdb4",
-      "publication": "PUSHED_REMOTE_EXACT_CLEAN_VERIFIED",
-      "actual_config_and_refusal_checks": "PASS",
-      "targeted_tests": 103,
-      "full_quality_tests": 4156,
-      "skips": 37,
-      "status": "PASS_PUBLIC_EXACT_SOURCE_CONFIG_SEPARATELY_VERIFIED",
-      "report_only_changes": "DESIGNATED_DOCUMENTATION_RECEIPT",
-      "public_candidate_policy_sha256": "9f75a1986717c223f0a3bbc07a588d70346f5f8f2500e3346d421c924da3e3ed",
-      "private_qualified_policy_sha256": "06510557373d1ba40fcb272eb9fd6b4d377a1ca5c148335e2f00c7c6e9045679",
-      "two_empty_mirrors": "PRESERVED",
-      "product_or_global_acceptance": false
+    "TA52_separate_test_evidence": {
+      "session_tests_passed": 32,
+      "corrected_focused_tests_passed": 9,
+      "single_combined_41_PASS": false,
+      "initial_import_attempt": "NONPASS_PRESERVED",
+      "independent_acceptance_sha256": "13f4ce6ba4ee50d3f9eefff6d4abc019becfcc46fce3d21f7b0947482a7343c0",
+      "official_prerequisite_session_mocked_tests": 45,
+      "image_import_mocked_tests": 11,
+      "nearest_total": 56,
+      "image_or_product_execution_proven": false
     },
-    "TA50_controller_preparation": {
-      "receipt_sha256": "911b7e50de5cdef6cb49ec3b1f27b40b074c42c3f11df988a407fdfacff84466",
-      "source_commit": "1a597f3c9c75eaabe68d100946fd98b7b7d09c11",
-      "source_entries": 1811,
+    "official_prerequisite_actual": {
+      "status": "PARTIAL",
+      "wrapper_status": "BLOCKED_OR_PARTIAL",
+      "phase": "NETWORK_APPLY",
+      "code": "NETWORK_RESULT_NOT_READY",
+      "Incus": "VERIFIED_NO_ACTIONS",
+      "completed": [
+        "file:/usr/local/bin/tsw-apply-incus-forwarding.sh"
+      ],
+      "completed_forwarding_sha256": "5786ceecaa2a2444d302449e97ceb474750f6f4f00780c5c83931b882d3e1bac",
+      "remaining_enable": "NOT_ATTEMPTED",
+      "uncertain": [],
+      "services_verified": false,
+      "auth_cache_cleanup_exit": [
+        0,
+        0,
+        0
+      ],
+      "source_after_verified": true,
+      "raw_files_preserved": 22,
+      "network_READY_unit_start_node_stack_success": false
+    },
+    "TA53_diagnosis": {
+      "workflow_before_three_role_consultation": true,
+      "requirements_architecture_test": "READY_READONLY_AUDIT_ONLY",
+      "actual_status": "NONPASS_EXECUTION_PROVENANCE_GUARD",
+      "actual_failure_code": "PROCESS_RECOVERY_REQUIRED",
+      "raw_audit_report": "NOT_RETAINED",
+      "independent_later_process_observation": "RECORDED_TOOL_SID_PGID_ABSENT_NO_SIGNALS",
+      "network_change_cause": "UNPROVEN",
+      "repair": "PRIMARY_EXCEPTION_AND_PARTIAL_TOOL_OUTPUT_PRESERVATION_AUTHORING",
+      "ownership_guard_relaxation_or_effect_retry": false,
+      "later_process_absence_relabels_audit_PASS": false
+    },
+    "observer_unit_evidence": {
+      "foundation_mocked_tests": 21,
+      "integration_mocked_tests": 9,
+      "status": "ACTUAL_MOCKED_PASS",
       "source_before_after": "b22fc5ceb0025afab33cb4b31505bafad4a04b23c7d71c95275f45fc90e68e47",
-      "mode_source_environment_and_donor": "UNCHANGED",
-      "runtime": "OWN_ORDINARY_PC_PRIVATE_EXT4_PYTHON_3_12_15_31_DEPENDENCIES_EDITABLE_ORIGIN",
-      "readonly_preflight": "INCUS_CLIENT_SERVER_6_0_5_ZERO_INSTANCES_REQUIRED_TARGET_PORTS_FREE",
-      "credential_metadata": "OBSERVED_NO_VALUES_READ",
-      "live_admission": false
+      "actual_runtime_observation": "NOT_RUN",
+      "data_restore": "NOT_RUN",
+      "actual_data_auth_pin_convergence_routes_component_results": false
     },
-    "TA51_private_driver": {
-      "workflow_started_before_consultation": true,
-      "original_RED": "RETAINED_21_TESTS_20_PASS_1_FAIL",
-      "fixed_GREEN": "21_PASS_ZERO_SKIPS_EXIT0",
-      "cause": "PRIMARY_RECORDING_EVENT_KIND_AND_CHECKPOINT_KIND_COLLISION_AT_CALLSITE",
-      "repair": "PRIVATE_CALLSITE_PRESERVES_BOTH_FACTS_GUARDS_UNCHANGED",
-      "driver_sha256": "07df9e0b887575c889557041de1c51e1654aff5da24960d1866445d9607ed276",
-      "safety_sha256": "62872293014bb7ee9257d7b3e1fe176e5ff91d22e999de025cee75e802f4038c",
-      "test_sha256": "2a1f77c2f67f7fc7174a57845245e38f5638b938d9c9557696b8de6ef2cf25f7",
-      "source_before_after": "b22fc5ceb0025afab33cb4b31505bafad4a04b23c7d71c95275f45fc90e68e47",
-      "provider_product_effects": false,
-      "full_source_or_live_qualification_repeat": "NOT_REQUIRED_NOT_RUN"
-    },
-    "remaining": "S09_TO_S11_EXACT_DRIVER_JOURNEY_RESOURCE_IMAGE_CREDENTIAL_ADMISSIONS_AND_ACTUAL_INSTALL_UPDATE_SELECTION_DATA_AUTH_CONVERGENCE_PINS_ROUTES_APPLICATION_RECOVERY_AND_INDEPENDENT_FINAL_ACCEPTANCE",
-    "S09_to_S11_product_live_application_data_restore": "NOT_RUN",
-    "historical_NONPASS_causal_evidence": "IMMUTABLE_RETAINED_NOT_RELABELED",
+    "S09_to_S11_product_component_update_selection_live_data_restore_acceptance": "OPEN_NOT_RUN_PREPARATION_PARTIAL",
+    "remaining": "PRESERVE_PARTIAL_EFFECT_DIAGNOSE_WITH_PRIMARY_EVIDENCE_COMPLETE_PREREQUISITES_EXACT_LIVE_ADMISSIONS_ACTUAL_PRODUCT_APPLICATION_DATA_RECOVERY_AND_INDEPENDENT_FINAL_ACCEPTANCE",
     "canonical_metadata": "ALL_14_BYTE_IDENTICAL",
     "governing_file_map_shape": "EXISTING_21_PRESERVED",
     "product_EPIC_DONE": false
@@ -1366,6 +1378,72 @@
     "canonical_metadata": "ALL_14_BYTE_IDENTICAL",
     "single_slice_checkpoint": "S440O-07_ACTUAL_RESULT_DOCUMENTATION_ONLY",
     "remaining": "CAPABILITY_ADMISSION_APPLICABLE_INTEGRATION_ACTUAL_PRODUCT_SELECTION_UPDATE_APPLICATION_RECOVERY_AND_FINAL_INDEPENDENT_EPIC_ACCEPTANCE",
+    "product_EPIC_DONE": false
+  },
+  "TA48_to_TA51_accepted_status_history": {
+    "id": "TA440-20261113-51",
+    "slice_id": "S440O-09",
+    "record_type": "DOCUMENTATION_STATUS_MAINTENANCE_PRIOR_ACCEPTED_S07_S08_AND_S09_PRIVATE_PREPARATION_ONLY",
+    "state": "S07_S08_EVIDENCE_ACCEPTED_PRODUCT_LIVE_APPLICATION_DATA_RESTORE_NOT_RUN",
+    "accepted_S07_pair_sha256": "b0c7154c99c3221c68086b3070a0f3ae7acc044d24244f052b2592450b582dd3",
+    "accepted_private_S08": {
+      "acceptance_sha256": "5106d34943e3c96ef530383f3e04201ea6cc75ac1ff435f31d188101ce1afa18",
+      "K6_commit": "1a597f3c9c75eaabe68d100946fd98b7b7d09c11",
+      "sole_parent_C6": "dee0f025cd5c201d6de3ce62e212e7f0afd9ee2f",
+      "CORE_matrix_sha256": "1d596bf1cf992949e0e037eeacef05f3ddc3943d37fd61ef0858230787d08e79",
+      "actual_real_Git_promotion_pair_receipt_source_capability_validators": "PASS",
+      "targeted_tests": 103,
+      "nearest_journal_tests": 5,
+      "full_quality_tests": 4156,
+      "skips": 37,
+      "status": "PASS",
+      "original_full_gate_NONPASS_and_causal_077_RED_022_GREEN": "RETAINED_NOT_RELABELED",
+      "other_1810_paths_modes_two_empty_mirrors_private_policy": "UNCHANGED"
+    },
+    "accepted_public_S08": {
+      "acceptance_sha256": "48e612bb859318b5706639fabe6203959bdf85826454d3ea97df8cd9e78bdad0",
+      "published_commit": "86ea6b23208b91fe05ea81edbebb8f4d80e5bdb4",
+      "publication": "PUSHED_REMOTE_EXACT_CLEAN_VERIFIED",
+      "actual_config_and_refusal_checks": "PASS",
+      "targeted_tests": 103,
+      "full_quality_tests": 4156,
+      "skips": 37,
+      "status": "PASS_PUBLIC_EXACT_SOURCE_CONFIG_SEPARATELY_VERIFIED",
+      "report_only_changes": "DESIGNATED_DOCUMENTATION_RECEIPT",
+      "public_candidate_policy_sha256": "9f75a1986717c223f0a3bbc07a588d70346f5f8f2500e3346d421c924da3e3ed",
+      "private_qualified_policy_sha256": "06510557373d1ba40fcb272eb9fd6b4d377a1ca5c148335e2f00c7c6e9045679",
+      "two_empty_mirrors": "PRESERVED",
+      "product_or_global_acceptance": false
+    },
+    "TA50_controller_preparation": {
+      "receipt_sha256": "911b7e50de5cdef6cb49ec3b1f27b40b074c42c3f11df988a407fdfacff84466",
+      "source_commit": "1a597f3c9c75eaabe68d100946fd98b7b7d09c11",
+      "source_entries": 1811,
+      "source_before_after": "b22fc5ceb0025afab33cb4b31505bafad4a04b23c7d71c95275f45fc90e68e47",
+      "mode_source_environment_and_donor": "UNCHANGED",
+      "runtime": "OWN_ORDINARY_PC_PRIVATE_EXT4_PYTHON_3_12_15_31_DEPENDENCIES_EDITABLE_ORIGIN",
+      "readonly_preflight": "INCUS_CLIENT_SERVER_6_0_5_ZERO_INSTANCES_REQUIRED_TARGET_PORTS_FREE",
+      "credential_metadata": "OBSERVED_NO_VALUES_READ",
+      "live_admission": false
+    },
+    "TA51_private_driver": {
+      "workflow_started_before_consultation": true,
+      "original_RED": "RETAINED_21_TESTS_20_PASS_1_FAIL",
+      "fixed_GREEN": "21_PASS_ZERO_SKIPS_EXIT0",
+      "cause": "PRIMARY_RECORDING_EVENT_KIND_AND_CHECKPOINT_KIND_COLLISION_AT_CALLSITE",
+      "repair": "PRIVATE_CALLSITE_PRESERVES_BOTH_FACTS_GUARDS_UNCHANGED",
+      "driver_sha256": "07df9e0b887575c889557041de1c51e1654aff5da24960d1866445d9607ed276",
+      "safety_sha256": "62872293014bb7ee9257d7b3e1fe176e5ff91d22e999de025cee75e802f4038c",
+      "test_sha256": "2a1f77c2f67f7fc7174a57845245e38f5638b938d9c9557696b8de6ef2cf25f7",
+      "source_before_after": "b22fc5ceb0025afab33cb4b31505bafad4a04b23c7d71c95275f45fc90e68e47",
+      "provider_product_effects": false,
+      "full_source_or_live_qualification_repeat": "NOT_REQUIRED_NOT_RUN"
+    },
+    "remaining": "S09_TO_S11_EXACT_DRIVER_JOURNEY_RESOURCE_IMAGE_CREDENTIAL_ADMISSIONS_AND_ACTUAL_INSTALL_UPDATE_SELECTION_DATA_AUTH_CONVERGENCE_PINS_ROUTES_APPLICATION_RECOVERY_AND_INDEPENDENT_FINAL_ACCEPTANCE",
+    "S09_to_S11_product_live_application_data_restore": "NOT_RUN",
+    "historical_NONPASS_causal_evidence": "IMMUTABLE_RETAINED_NOT_RELABELED",
+    "canonical_metadata": "ALL_14_BYTE_IDENTICAL",
+    "governing_file_map_shape": "EXISTING_21_PRESERVED",
     "product_EPIC_DONE": false
   }
 }

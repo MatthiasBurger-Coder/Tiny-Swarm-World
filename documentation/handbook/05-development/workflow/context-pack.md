@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; S07 paired qualification/preservation and S08 private/public capability evidence ACCEPTED; S09–11 product/live data restore NOT_RUN; EPIC incomplete.
+Status: EXECUTING; S07/S08 accepted; S09 prerequisites PARTIAL/TA53 diagnostic NONPASS cause unproven; S09–11 product/live data-restore acceptance OPEN; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -506,7 +506,7 @@ realvalidators/targeted/fullprivategates PENDING, NOT_ADMITTED. This S07resultdo
 checkpoint adds no S08implementation or actualproduct/EPICDONE.14metadata and21map
 shape preserved; capability/product/update/selection/recovery/finalacceptance open.
 
-## Current accepted evidence and preparation — TA48–TA51
+## Historical accepted evidence and preparation — TA48–TA51
 
 S07pairb0c7154c… remains actualaccepted. PrivateK6 S08 acceptance5106d349… verifies
 actualrealGit/promotion/pair/source/capability checks,103targeted/journal5/full4156/
@@ -526,3 +526,25 @@ fullsourcegate repetition. S09–11product/liveapplicationdatarestore remainNOT_
 drivercoverage/journey/resource/image/credential admissions and actualdata/auth/
 convergence/pins/routes/recovery/finalindependentacceptance stay open. No EPICDONE;
 14metadata/21governingmapshape preserved and actualacceptedresults not repeated.
+
+## Current prerequisite/diagnostic status — TA52–TA53
+
+S07/S08 accepted evidence stays unchanged. TA52old completedREADY checkpoint,
+source_sha256-only difference, archived underfiniteexactRootGO preservinginode/
+fullstat/rawdd0aa80d…; activeabsent/lockfree, no uncertainstate erased. Closed36file
+manifestc0b3187d…/independent2e2a951b… accepted. Separate32sessionPASS+corrected9
+focusedPASS/independent13f4ce6b…, originalimportNONPASS retained; notcombined41PASS.
+Officialhelpers45+image11=56mockedPASS are code readiness, not image/product success.
+
+Officialprerequisite LIVEactualPARTIAL: canonicalforwarding5786ceec… created/
+verified, enable NOT_ATTEMPTED, uncertain[], servicesfalse; auth/cache/cleanup0,
+sourceunchanged/22rawfiles retained. No networkREADY/unitstart/node/stack claim.
+TA53record-before3rolereview admits readonlyaudit only. Actualaudit NONPASS/
+PROCESS_RECOVERY_REQUIRED/no rawreport; recordedtoolSID/PGID laterindependently
+absent/no signals, causeUNPROVEN. Diagnosticprimary/partial-outputpreservation
+repair authoring, no guardrelaxation/effectretry or retroactivePASS.
+
+Observerfoundation21+integration9 mockedPASS/sourceunchanged; actualruntime/
+datarestoreNOT_RUN. S09–11product/component/update/selection/liveapplicationdata
+acceptance OPEN/PREPARATIONPARTIAL; exactdiagnosis/prerequisites/liveadmissions/
+independentproduct/recovery/EPICacceptance pending.14metadata/21mapshape preserved.

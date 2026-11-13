@@ -381,7 +381,7 @@ new source or effects and no private resource identifiers are published.
 | Future S08 / TA47 | Workflowbeforeconsult/sixrolesREADY; privatebranchlessK6=1a597f3c…/tree7f7c7417…/soleparentC6/onlyCOREmatrix1d596bf1…;1810otherbytes+modes/2emptymirrors/policy065… unchanged;3localheads | ActualK6source/env/realvalidators/targeted/fullprivategates PENDING; K6NOT_ADMITTED, not S08implementation in this S07resultdoc |
 | Parent / release | S07actualqualification+preservation accepted;14metadata/21governingmapshape retained | Capabilityadmission/integration/product/update/selection/applicationrecovery/finalindependentEPICacceptance remain open; no product/EPICDONE |
 
-## Current acceptance status and remaining product prerequisites — TA48–TA51
+## Historical acceptance status and remaining product prerequisites — TA48–TA51
 
 | Owner | Actual accepted/prepared evidence | Remaining boundary |
 |---|---|---|
@@ -394,3 +394,17 @@ new source or effects and no private resource identifiers are published.
 
 Documentation status maintenance only;14metadata blocks remain byte-identical and
 the existing21governing-file map shape/authority is preserved with refreshed hashes.
+
+## Current S09 partial preparation and diagnosis — TA52–TA53
+
+| Owner | Actual evidence/status | Open boundary |
+|---|---|---|
+| S07/S08 | Accepted pair/private/public capability records retained | No product/component/recovery completion inferred |
+| TA52 checkpoint | CompletedREADY/source_sha256-only difference atomically archived underfiniteexactRootGO; rawdd0aa80d… sameinode/fullstat, activeabsent/lockfree; closed36filec0b3187d…/acceptance2e2a951b… | No pending/uncertain state erased; evidence-only action |
+| TA52 tests | Separate32sessionPASS+corrected9focusedPASS accepted13f4ce6b…; initialimportNONPASS retained;45official+11image helper mockedPASS | No combined41PASS or image-import/product claim |
+| Official prerequisite apply | ActualPARTIAL after canonicalforwarding5786ceec… created/verified; enable NOT_ATTEMPTED, uncertain[], servicesfalse; auth/cache/cleanup0/sourceunchanged/22rawfiles | Preservepartial effect; no networkREADY/unitstart/node/stack outcome |
+| TA53 audit | Workflowbefore3roles/read-onlyscopeREADY; actualNONPASS/PROCESS_RECOVERY_REQUIRED/no rawreport; toolSID/PGID laterabsent/no signals | NetworkcauseUNPROVEN; primary/partial-output preservation repair authoring; no guardrelaxation/effectretry/PASS relabel |
+| Observers | Foundation21+integration9 mockedPASS/sourceunchanged | Actualruntime/datarestore NOT_RUN; no data/auth/pin/convergence/routes/component-result proof |
+| Product/release | S09–11 acceptanceOPEN/PREPARATIONPARTIAL | Diagnosis/prerequisites/exactliveadmissions/actualproduct/application-data-recovery and independentEPICacceptance required |
+
+All14 metadata blocks remain byte-identical; existing21governing map shape retained.
