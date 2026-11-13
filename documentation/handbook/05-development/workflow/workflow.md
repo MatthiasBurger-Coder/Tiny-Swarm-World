@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA46 actual C6 native+WSL listener qualification and independent preservation ACCEPTED; capability/product/recovery acceptance pending; EPIC incomplete
+Status: EXECUTING; S07 paired qualification/preservation and S08 private/public capability evidence ACCEPTED; S09–11 product/live application-data restore NOT_RUN; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -1090,7 +1090,7 @@ capability successor, product recovery and EPIC DONE remain NOT_RUN/unverified.
 All14 metadata blocks and the existing21governing-file map shape are unchanged;
 this is one S07 exact admission checkpoint, not another source implementation.
 
-## S07 actual result — TA46 paired C6 qualification and preservation accepted
+## Historical S07 result checkpoint — TA46 paired C6 acceptance
 
 The admission checkpoint1ce86620… was published before the bounded executions.
 Actual native and WSL listener qualifications both PASS on identical C6
@@ -1133,6 +1133,52 @@ All14 metadata blocks and the existing21governing-file map shape remain unchange
 Remaining exact capability admission, applicable integration checks, actual product/
 selection/update/recovery cases and independent final EPIC acceptance stay open.
 No actual product or EPIC DONE claim follows from the accepted listener pair.
+
+## Current status maintenance — accepted S07/S08 and S09 preparation, TA48–TA51
+
+Actual S07 paired C6 listener qualification and independent native/WSL preservation
+remain accepted b0c7154c… as recorded above. Original C4/C5 NONPASS/recovery and
+original K6 full-gate NONPASS causal evidence remain immutable; no failure is
+relabeled or needlessly repeated. Neither retained snapshots nor listener success
+prove product health or application-data restoration.
+
+TA48 independent private K6 S08 acceptance5106d349… verifies actual real Git/
+promotion/paired-receipt/source/capability validators,103targeted tests, nearest
+journal5 and full4156tests/37skips PASS. The corrected closed evidence is accepted;
+the original partial NONPASS and causal077RED/022GREEN proof are retained. K6
+`1a597f3c9c75eaabe68d100946fd98b7b7d09c11`, sole-parent C6, still differs only in
+CORE matrix1d596bf1… for exact Incus client/server6.0.5; other1810paths/modes,
+two empty mirrors and private policy06510557… stay unchanged.
+
+TA49 independent public acceptance48e612bb… separately verifies the public CORE
+configuration binding/refusals,103targeted and full4156tests/37skips PASS. Public
+checkpoint `86ea6b23208b91fe05ea81edbebb8f4d80e5bdb4` is pushed and verified clean;
+report-only evidence changes have their own designated documentation receipt.
+Public candidate component policy9f75a198… and both empty mirror assets remain
+protected; private qualified policy06510557… is not substituted into public code.
+This is accepted capability evidence, not product execution or global acceptance.
+
+TA50 actual K6 ordinary-user WSL controller source/environment receipt911b7e50…
+verifies1811unchanged paths/modes, private ext4 ownership, Python3.12.15/31dependencies/
+correct editable origin and unchanged donor source/environment. Read-only host
+preflight observes Incusclient/server6.0.5, zero instances and required target ports
+free; protected operator credential metadata is checked without reading values.
+These observations do not grant live installation/update/recovery authority.
+
+TA51 workflow preceded the private-driver collision consultation. The21-test
+baseline has20PASS/1FAIL from a recording event-kind/checkpoint-kind collision;
+a minimal private callsite repair preserves both facts, and actual nearest21tests
+PASS/exit0 on the designated SSH/WSL controller. Sourcebeforeafterb22fc5ce… is
+unchanged; no provider/product effects, qualification/source reruns or full product
+gate repeats follow from this private helper repair. Historical failure retained.
+
+S09–11 product installation, service/update/selection cases and live application-
+data restoration remain NOT_RUN. Remaining driver coverage and exact journey/
+resource/credential/image admissions, actual data/auth/convergence/pin/routes and
+independent acceptance must precede any success claim. Capability admission does
+not complete those cases or final EPIC/CI/Sonar/issue acceptance. This maintenance
+changes only current documentation status; all14 canonical metadata blocks and
+existing21governing-file map shape remain intact, with current hashes refreshed.
 
 ## Verified Baseline and Target Picture
 

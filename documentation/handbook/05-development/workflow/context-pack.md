@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA46 actual C6 paired listener qualification/preservation ACCEPTED; capability/product/recovery acceptance pending; EPIC incomplete.
+Status: EXECUTING; S07 paired qualification/preservation and S08 private/public capability evidence ACCEPTED; S09–11 product/live data restore NOT_RUN; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -486,7 +486,7 @@ WSL0originals/default/2profiles/provider/Windows/routes. C6fixture/restore/clean
 pair/capabilitysuccessor/productrecovery/EPIC NOT_RUN.14metadata/21governingmapshape
 unchanged, oneS07checkpoint; no newsource or fullprivategate claim.
 
-## Current S07 actual paired result — TA46; S08 remains separate
+## Historical S07 result checkpoint — TA46; then-pending S08
 
 Published1ce86620… preceded actual sameC6dee0…/runnerb787…/test2593…/frozenworkflow
 8608… native+WSL listener PASS. Both1811manifest2359… beforeafter unchanged;
@@ -505,3 +505,24 @@ policy065… unchanged; no newbranches/worktrees/3localheads. ActualK6source/env
 realvalidators/targeted/fullprivategates PENDING, NOT_ADMITTED. This S07resultdoc
 checkpoint adds no S08implementation or actualproduct/EPICDONE.14metadata and21map
 shape preserved; capability/product/update/selection/recovery/finalacceptance open.
+
+## Current accepted evidence and preparation — TA48–TA51
+
+S07pairb0c7154c… remains actualaccepted. PrivateK6 S08 acceptance5106d349… verifies
+actualrealGit/promotion/pair/source/capability checks,103targeted/journal5/full4156/
+37skipsPASS; originalNONPASS and077RED/022GREENcausalproof retained. PublicS08
+acceptance48e612bb… separately verifies COREconfig/refusals/103targeted/full4156/
+37skipsPASS; public86ea6b23208b91fe05ea81edbebb8f4d80e5bdb4 pushed/clean verified.
+K6 COREmatrix1d596bf1… admits onlyclient=server6.0.5; privatepolicy065… and public
+candidate9f75… remain distinct; twoempty mirrors/protected public blobs retained.
+
+TA50controller receipt911b7e50… proves1811K6source/modes/env unchanged, ownprivate
+ext4/Python3.12.15/31deps/editableorigin/donorunchanged. Readonlypreflight6.0.5/
+zeroinstances/requiredportsfree and credentialmetadata are not liveadmission.
+TA51private eventkind/checkpointkind collision21suite20PASS1FAIL→21PASS/exit0,
+sourceb22fc5ce… unchanged/noeffects. Exactdriver07df9e0b…/safety62872293…/test2a1f77c2…
+retain signal/source/ownership guards; originalRED retained, no qualification or
+fullsourcegate repetition. S09–11product/liveapplicationdatarestore remainNOT_RUN;
+drivercoverage/journey/resource/image/credential admissions and actualdata/auth/
+convergence/pins/routes/recovery/finalindependentacceptance stay open. No EPICDONE;
+14metadata/21governingmapshape preserved and actualacceptedresults not repeated.

@@ -371,7 +371,7 @@ new source or effects and no private resource identifiers are published.
 | Finalization |5821026b…/reviewsnativefe18d2b2…/WSL5f3d7542… independentFINALIZATION_ACCEPTED/all12artifacts | Existing actualresult/live/collection RootGO guards retained; no inventedresult/preservation |
 | Root / release | OneS07admission,14metadata/21governingmapshape unchanged | Exactdocgate/publication and JITsource/ownership/remainingexpiry andRootGO pending; C6fixture/restore/cleanup/pair/capabilitychild/product/EPIC NOT_RUN |
 
-## Current S07 accepted paired result — TA46
+## Historical S07 accepted paired result — TA46
 
 | Owner | Actual accepted evidence | Remaining boundary |
 |---|---|---|
@@ -380,3 +380,17 @@ new source or effects and no private resource identifiers are published.
 | WSL | ActualPASS9aa4…/post6c5e…/acceptanceba8ea36b… after nativeindependentacceptance; ownedinstances/profiles/volumes/listeners absent; default+2profiles/Windowsrules/kernel unchanged | Closedc922…/manifest4271…109members/108files/issues[];21V3+24capture sidecars accepted |
 | Future S08 / TA47 | Workflowbeforeconsult/sixrolesREADY; privatebranchlessK6=1a597f3c…/tree7f7c7417…/soleparentC6/onlyCOREmatrix1d596bf1…;1810otherbytes+modes/2emptymirrors/policy065… unchanged;3localheads | ActualK6source/env/realvalidators/targeted/fullprivategates PENDING; K6NOT_ADMITTED, not S08implementation in this S07resultdoc |
 | Parent / release | S07actualqualification+preservation accepted;14metadata/21governingmapshape retained | Capabilityadmission/integration/product/update/selection/applicationrecovery/finalindependentEPICacceptance remain open; no product/EPICDONE |
+
+## Current acceptance status and remaining product prerequisites — TA48–TA51
+
+| Owner | Actual accepted/prepared evidence | Remaining boundary |
+|---|---|---|
+| S07 listener pair | C6pairedacceptanceb0c7154c… actualnative/WSLqualification+independentpreservation | No producthealth/application-datarestore inference; oldNONPASS/recovery retained |
+| S08 private | Acceptance5106d349… realGit/promotion/pair/source/capability checksPASS,103targeted+journal5/full4156tests37skipsPASS; exactCORE1d596bf1… | OriginalpartialNONPASS and077RED/022GREENcausalproof immutable; scope exact6.0.5 only |
+| S08 public | Acceptance48e612bb… separateconfig/refusals/103targeted/full4156tests37skipsPASS;86ea6b… pushedclean | Candidatepolicy9f75… vsprivate065… and twoempty mirrors preserved; no productexecutionclaim |
+| S09 controller / TA50 | Receipt911b7e50… ownK6source1811/modes/env/donor unchanged;3.12.15/31deps/editableorigin/privateext4 | Readonly6.0.5/zeroinstances/requiredportsfree/credentialmetadata are preparation, not liveGO |
+| Private driver / TA51 | Actual21suite20PASS1FAIL event-kind collision→minimalrepair21PASS, sourceb22fc5ce… unchanged/noeffects | OriginalRED retained; no source/qualification/fullgate repetitions; remaining drivercoverage/exactjourneyadmission pending |
+| Product/release | S09–11product/liveapplication-datarestore NOT_RUN | Actualinstall/update/selection/auth/data/convergence/pin/routes/recovery evidence and independentfinalEPIC/applicableCI/Sonar acceptance required |
+
+Documentation status maintenance only;14metadata blocks remain byte-identical and
+the existing21governing-file map shape/authority is preserved with refreshed hashes.
