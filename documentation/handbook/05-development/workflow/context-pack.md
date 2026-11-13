@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; S09 PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION; S08 admitted capability retained; no product/EPIC DONE.
+Status: EXECUTING; S09 owned-persistence cleanup awaits checkpoint/fresh guards; credential blocker RESOLVED; no product/EPIC DONE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -294,7 +294,7 @@ accepted/preservation audited, no oldtransfer. Narrow S08capability only, not
 producthealth/backuprestore/EPICPASS. WSL ordinarypublicCLI qualification next
 planning; no TA18publicamend/liveGO. Exact Root receipt/doccheckpoint required.
 
-## Current S09 preparation — TA18–TA26
+## Historical S09 preparation — TA18–TA26
 
 Actual private K3 controller/environment and protected product credentials are
 prepared; read-only minimal preview PASS: service-access/requested[]/resolved
@@ -304,12 +304,29 @@ TA25: four code acceptances/23 mock PASS; helper V3 TA26: four acceptances/30 mo
 PASS/actual read-only inspect PASS. Earlier driver failures/helper review gaps
 remain in private consultation/S09 records; no full4129 rerun for unchanged K3.
 
-Blocker: official network dry run first sudo-n ss exits1, interactive authentication
-required; Ubuntu credential mapping absent from private access file, operator
-question pending. No real password attempt/authenticated session or image/profile/
-network/node/stack effect; profiles/image plans remain prospective. Native TA19
-bounded current-component case remains later/unadmitted; historical P01 retained.
+The initial missing-credential diagnosis is superseded by TA27–TA29 below.
+Earlier mock/inspection results do not prove infrastructure/product success.
+Native TA19 bounded current-component case remains later/unadmitted; P01 retained.
 Private qualified K3 and public candidate policy have distinct actual source/policy
 hashes in private slice-12/public-private-policy-scope.json; no public promotion.
 S09 not DONE; phase GO/preservation/independent review still required. Exact
 SSH/WSL doc receipt REQUIRED_BEFORE_CHECKPOINT, guarded publication; DOC_ONLY.
+
+## Current S09 admission — TA27–TA29
+
+Credential mapping RESOLVED: operator was correct, existing private access data
+valid. TA27 auth0/cache1/cleanup0: combined-k-v disables sudo-rs0.2.13 cache.
+TA28 one-flag V4 correction30 mocksPASS; actual auth/cache/cleanup0/0/0,
+sourceaftertrue. Official preparation correctly refuses stale old-owner W06 script.
+TA29 whole33740-byte canonical proof distinguishes qualbr447 from new incusbr0;
+three canonical files/rules/provider/default retained. Exact codeced074d7…/
+plan42dfd72a… Requirement/Security/Test READY; actual readonly inspect315cb4ba…
+and privilege-drop regression53f1fe3c… PASS,1811source/target/provider unchanged.
+
+After exact SSH/WSL doc receipt and guarded checkpoint, Root fresh guards may
+release ONLY durablebackup→owned-unit stop/disable withoutPID/ExecStop→oldscript
+CAS/NOREPLACE quarantine. Preserve unitfile/config/canonical3files/allrules/provider;
+disabled if script absent, no oldscript/unitstart/installerapply. Later officialprep
+may enable only, not start; no originally-active claim. Actual cleanup NOT_RUN,
+no infrastructure/productPASS/newconsentquestion. Private final-code-admission.json
+binds proofs; K3/publicpolicy distinction retained, full4129 not repeated; DOC_ONLY.

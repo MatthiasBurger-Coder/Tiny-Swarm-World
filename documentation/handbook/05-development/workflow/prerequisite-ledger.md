@@ -248,7 +248,7 @@ Next ownedWSL publicCLI product qualification needs its own actual admission/
 evidence; no TA18publicchange or producthealth/backuprestore/EPICPASS implied.
 Root exactdocreceipt and separate guarded checkpoint required.
 
-## S09 partial progress — TA18–TA26
+## Historical S09 partial progress — TA18–TA26
 
 | Owner | Actual evidence | Remaining gate |
 |---|---|---|
@@ -264,3 +264,19 @@ private slice-12/public-private-policy-scope.json binds distinct policy sources.
 K3/source1811/environment unchanged; full4129 gate not repeated. Exact designated
 SSH/WSL receipt REQUIRED_BEFORE_CHECKPOINT and guarded publication apply to this
 DOC_ONLY update; no product, backup-restoration or EPIC completion inferred.
+
+## Current S09 prerequisite — TA29 exact cleanup admission
+
+The earlier missing-credential diagnosis is superseded: operator correctly
+identified valid existing private access data; no repeated question is needed.
+
+| Owner | Actual evidence | Gate / strict scope |
+|---|---|---|
+| Authentication / TA27–28 | sudo-rs combined-k-v cache issue corrected;30 mocksPASS, actual auth/cache/cleanup0/0/0/sourceaftertrue | Authentication resolved; no product/setup PASS |
+| Ownership / TA29 |33740-byte old W06 script matches canonical qualbr447; expected incusbr0 differs; canonical3files/rules/provider retained | Exact owned script only; source1811 and observed target/provider/routes unchanged |
+| Requirement/Security/Test | Exact codeced074d7…/plan42dfd72a… READY, readonly inspect315cb4ba…/privilege-drop53f1fe3c… PASS | Actual cleanup NOT_RUN; exact SSH/WSL receipt REQUIRED_BEFORE_CHECKPOINT, guarded publication then Root fresh guards |
+| Root / existing reset grant | Final-code-admission.json binds exact code/fullproofs; no new question | Durablebackup→owned-unit stop/disable withoutPID/ExecStop→CAS/NOREPLACE oldscript quarantine only |
+| Preservation / later prep | Unitfile/config/canonical3files/allrules/provider/default retained | Disabled while script absent; no oldscript/unitstart/installerapply; later officialprep enable-only, no originally-active claim |
+
+Private qualified K3/public candidate policy stay distinct. No full4129 rerun for
+unchanged source; DOC_ONLY report. No cleanup/product/backup-restoration/EPIC PASS.

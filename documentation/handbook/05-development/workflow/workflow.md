@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; S09 PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION; S08 capability retained; no product/EPIC DONE
+Status: EXECUTING; S09 exact owned-persistence cleanup admitted after checkpoint/fresh guards; credential blocker RESOLVED; no product/EPIC DONE
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -716,10 +716,11 @@ not a live GO or TA18 public amendment. Full product health and backup-restorati
 remain UNVERIFIED; component/update/selection/product/EPIC acceptance stays OPEN.
 Exact Root SSHdocreceipt/separate guarded documentation checkpoint required.
 
-## Execution run TA440-20261112-18 — S09 preparation blocked on credential information
+## Execution run TA440-20261112-18 — historical S09 preparation checkpoint
 
-The ordinary public-CLI WSL journey has made preparation progress; S09 remains
-PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION. The new private K3
+At this checkpoint, the ordinary public-CLI WSL journey was recorded as
+PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION; TA27–TA29 below supersede
+that credential diagnosis. The new private K3
 controller/environment and protected product credentials are prepared. Actual
 read-only minimal preview PASS resolves `service-access`, requested components
 `[]`, resolved `incus` and `portainer`, with clean source and no infrastructure
@@ -741,13 +742,10 @@ its environment do not require repeating the accepted full4129 quality gate.
 | TA23 / TA24 | Earlier helper mock/inspect results and four-review code gaps retained; superseded artifacts are not reclassified PASS |
 | TA25 / TA26 | Corrected private V3 driver/helper accepted and verified within the mock/inspection scopes above |
 
-The official network dry run stops at its first `sudo -n ss`: exit1,
-interactive authentication required. Private `~/.access` has no mapped Ubuntu
-credential; the operator credential-mapping question is pending. No real
-password attempt or authenticated session occurred. Two profiles and the exact
-Ubuntu image remain prospective; no image/profile/network/node/stack mutations
-have occurred. Wait for the required information; do not infer it from SSH or
-product credentials, bypass sudo or treat mock success as session admission.
+The initial network dry run stopped at `sudo -n ss`, exit1. The initial
+missing-credential inference and pending question were incorrect and are
+superseded below: the operator correctly identified valid existing access data.
+TA18–TA26 results retain their actual mock/inspection scopes and failures.
 
 Execution uses private K3's qualified-transition policy; public integration
 still has candidate-transition policy. Exact distinct commits/policy hashes are
@@ -759,6 +757,47 @@ Existing phase GO, preservation and independent-evidence review remain required.
 Exact designated SSH/WSL documentation receipt is REQUIRED_BEFORE_CHECKPOINT,
 followed by guarded publication. This four-document report is DOC_ONLY; no new
 ADR, architecture policy, canonical slice metadata or acceptance criteria change.
+
+## Execution run TA440-20261113-29 — exact owned-persistence cleanup admission
+
+Credential blocker RESOLVED: the operator was correct; valid Ubuntu credentials
+were already in the private access source. No repeated information/permission
+question is needed. TA27 actual authentication/cache/cleanup exits0/1/0 traced
+the cache failure to combined `-k -v` in source-matched sudo-rs0.2.13. TA28's
+one-flag helper correction9485ef80 passed30 mocks; actual auth/cache/cleanup
+exits0/0/0 and source-after comparison true. Official preparation then correctly
+blocked on stale W06 persistence for old owner qualbr447; authentication success
+is not infrastructure or product acceptance.
+
+TA29 whole-byte ownership proof binds the33740-byte old script52886f25… to its
+canonical old-owner render; new owner incusbr0 expects5786ceec…. Three other
+canonical persistence files, rules, provider/default and routes remain retained.
+Requirement/Security/Test actual READY reviews accept exact code
+`ced074d7d1370e6c8311881dd9180d9b53b07da2ae644e94fca6c0eb305e2dc2`
+and plan`42dfd72a3894b2b5126bd75efc897ef3f76e49c5172c540e7701b241c8ab40c6`.
+Actual read-only inspect PASS receipt315cb4ba… and meaningful Git privilege-drop
+regression PASS53f1fe3c… prove UID/GID1000/groups[] and denied root-sentinel write;
+1811 source files, target unit/files, provider, rules and routes remain unchanged.
+Private TA29 final-code-admission.json retains full proofs and exact decisions.
+
+After the required public checkpoint, Root alone may execute under existing
+complete-test-reset consent and fresh exact runtime/ownership/hash guards:
+durable backup, then stop/disable only the owned unit without PID handling or
+ExecStop execution, then CAS/NOREPLACE quarantine of only the old script.
+Preserve the unit file, three canonical files, configuration, all rules,
+provider/default and foreign resources. Keep the unit disabled while the script
+is absent. Do not execute the old script or start the unit; later official
+preparation may enable only, not start, and is not admitted by this cleanup.
+No claim is made that the unit was originally active. Actual cleanup NOT_RUN;
+no new installer apply or image/profile/network/node/stack effect has occurred.
+
+Exact designated SSH/WSL documentation receipt is REQUIRED_BEFORE_CHECKPOINT,
+then guarded publication before effects. S09 remains incomplete; subsequent
+preparation/product phases require their own admission and independent evidence.
+Private K3 qualified policy and public candidate policy remain distinct; no
+public-policy promotion, backup-restoration proof or product/EPIC PASS. Source
+unchanged: no full4129 rerun. This DOC_ONLY update changes no canonical metadata,
+acceptance criterion, ADR or architecture policy.
 
 ## Verified Baseline and Target Picture
 
