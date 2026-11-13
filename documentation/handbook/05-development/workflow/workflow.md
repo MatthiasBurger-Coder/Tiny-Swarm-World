@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA43 C5 exact six-role per-host admission/finalized bytes APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C5 fixtures NOT_RUN; EPIC incomplete
+Status: EXECUTING; TA46 C6 exact per-host admission/finalization APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C6 fixtures NOT_RUN; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -994,7 +994,7 @@ network/image/product recovery and EPIC completion are NOT_RUN. All14 canonical
 metadata blocks and21 governing-file authority remain unchanged. This S07
 checkpoint records exact admissions and prerequisites; it does not execute them.
 
-## Execution run TA440-20261113-43 — fresh C5 per-host admission
+## Historical execution run TA440-20261113-43 — C5 per-host admission
 
 TA37 C4 admission above is historical. The subsequent C4 native attempt remains
 NONPASS/BLOCKED_TARGET_DRIFT/JIT_COMMAND_FAILED. TA38 independent recovery accepts
@@ -1043,6 +1043,52 @@ expiry JIT and explicit Root GO remain pending. C5 native/WSL fixtures, restorat
 cleanup results, paired qualification, capability-only successor, installation,
 product recovery and EPIC completion are NOT_RUN. All14 metadata blocks and existing
 21governing-file authority remain unchanged; this is one S07 admission checkpoint.
+
+## Execution run TA440-20261113-46 — fresh C6 exact admission
+
+C5's actual attempt is NONPASS/INCUS_INVENTORY_UNREADABLE; owned cleanup and
+independent preservation of four originals/all seven snapshots are retained.
+Earlier C4 NONPASS/recovery remains historical too; no threshold, qualification
+or application-data restore is inferred from cleanup or retained snapshots.
+Public5f20df63… contains bounded instance-metadata enumeration, runnerb7876225…/
+test25931153…; TA45 independent D8 accepts full local4156tests/37skips PASS.
+This published local source result does not qualify a private candidate or host.
+
+C6 `dee0f025cd5c201d6de3ce62e212e7f0afd9ee2f`, tree
+`493edc0b58bae97582d6ac4e2e32b7021beac176`, sole parent C5, has1811byte/mode
+manifest23597782…, runnerb7876225…/test25931153…, three empty capability mirrors
+and unchanged private-policy06510557…. All three actual source roots are prepared;
+designated mocked bridge3+fixture205=208PASS/zero skips/exactsourcebeforeafter,
+summary1e1eb838… independently accepted. C6 remains NOT_QUALIFIED; no repeated
+full private C6 gate or live success is claimed from those targeted tests.
+
+Corrected runtime packet70158610… uses driver1e662235…/unchanged helper8ffa96dd…
+and carrierf0f5e546…. The actual1.1MB synthetic transport probe PASS validates
+transport only, not qualification. New evidence stays in the admitted private
+ext4 transport roots; no raw9p evidence route is admitted. Fresh native80-entry
+closure18bf635f… and WSL33-entry closure2e6a227c… bind the captured contexts. WSL
+capture descriptor5211bytes/SHA37ac5b18… is exact; old C5 context files are not reused.
+
+All12 actual role verdicts separately APPROVE native and WSL source/context/
+resource/GOdraft bindings. Native context2e66470b…/resource41d6c591…/draft0e7679e0…
+stores deadline2026-11-13T18:35:19Z; WSL draft e02fb97c…/resource2f7de8cd… stores
+2026-11-13T18:36:57Z. Stored expiry is not current validity: ownership/source and
+remaining time require a fresh JIT. Reviews nativefe18d2b2…/WSL5f3d7542… and all
+12 runtime artifacts are pinned by finalization5821026b…; independent Test reports
+FINALIZATION_ACCEPTED. Deterministic STOP/placeholder finalization adds no effect
+GO. WSL postcheck and live/collection root gates remain guarded by actual result/
+RootGO/preservation dependencies; no result hash or preservation is invented.
+
+Native source-only stage/read-only inspection now PASS/exit0:1811manifest23597782…
+is identical before/after, actual fixture effects false. Exact four-doc checkpoint/
+publication, fresh JIT and explicit Root GO remain pending. Execute only existing
+bounded native managerpause/ownedfixture/restore, independently accept preservation,
+then WSL ownedfixture/cleanup. Preserve four originals/seven prior snapshots plus
+planned owned eighth and WSL zero originals/default/two legitimate Docker profiles/
+provider/Windows/routes. C6 fixtures, restore/cleanup results, paired qualification,
+capability successor, product recovery and EPIC DONE remain NOT_RUN/unverified.
+All14 metadata blocks and the existing21governing-file map shape are unchanged;
+this is one S07 exact admission checkpoint, not another source implementation.
 
 ## Verified Baseline and Target Picture
 

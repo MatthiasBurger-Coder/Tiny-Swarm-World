@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA43 C5 exact six-role per-host admission/finalized bytes APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C5 fixtures NOT_RUN; EPIC incomplete.
+Status: EXECUTING; TA46 C6 exact per-host admission/finalization APPROVED; native staged inspect PASS; checkpoint/JIT Root GO pending; C6 fixtures NOT_RUN; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -436,7 +436,7 @@ independentpreservation acceptance before WSLfixture/cleanup; preserve4originals
 fixtures/restoration/cleanup/pair/K4/productrecovery/EPIC NOT_RUN;14metadata and
 21governingauthority unchanged. This checkpoint grants no execution by itself.
 
-## Current C5 exact admission — TA43
+## Historical C5 exact admission — TA43
 
 C4 actualnativeNONPASS is preserved. TA38recovery0581e251… independently accepted
 ownedcleanup/fouroriginals/allsixsnapshots/sourcepreservation; WSL NOT_RUN/BLOCKED.
@@ -460,3 +460,28 @@ WSLfixture after independentnativepreservation, retaining0originalinstances/defa
 2profiles/provider/Windows/routes. Checkpoint/JITsourceownershipexpiry/
 RootGO pending; C5fixtures/restore/cleanup/pair/capabilitychild/productrecovery/EPIC
 NOT_RUN.14metadata and21governingauthority unchanged; oneS07checkpoint only.
+
+## Current C6 exact admission — TA46
+
+C5 actualNONPASS/INCUS_INVENTORY_UNREADABLE, ownedcleanup and independently
+preserved4originals/7snapshots remain retained, not qualification/datarestore.
+Public5f20df63… runnerb7876225…/test25931153… full4156tests/37skips D8PASS is local
+only. C6dee0f025…/tree493edc0b…/soleparentC5/1811manifest23597782… retains3emptycap
+mirrors/privatepolicy06510557…. All3source roots prepared, actual208mockedPASS
+(bridge3+fixture205), summary1e1eb838… independently accepted; C6NOT_QUALIFIED.
+
+Packet70158610…/driver1e662235…/helper8ffa…/carrierf0f5e546…; actual1.1MBsynthetic
+transportPASS is not livequalification. Privateext4 transport only/no raw9p.
+Native80entryclosure18bf635f…/context2e66470b…/resource41d6c591…/draft0e7679e0…
+stores18:35:19Z; WSL33entryclosure2e6a227c…/drafte02fb97c…/resource2f7de8cd… stores
+18:36:57Z on2026-11-13; descriptor5211bytes/37ac5b18… exact. All12realperhostroles
+APPROVED; reviewsnativefe18d2b2…/WSL5f3d7542… and finalization5821026b… independently
+FINALIZATION_ACCEPTED; WSLactualresult/live/collection RootGO guards retained.
+
+Native stage/readonlyinspectPASS/exit0/1811manifest23597782… beforeafter/noeffects.
+Exactdoccheckpoint/publication, freshJITsource/ownership/remainingexpiry andRootGO
+PENDING. Serialnativeboundedmaintenance+
+independentpreservation beforeWSL; preserve4originals/7priorbackups+plannedowned8th,
+WSL0originals/default/2profiles/provider/Windows/routes. C6fixture/restore/cleanup/
+pair/capabilitysuccessor/productrecovery/EPIC NOT_RUN.14metadata/21governingmapshape
+unchanged, oneS07checkpoint; no newsource or fullprivategate claim.

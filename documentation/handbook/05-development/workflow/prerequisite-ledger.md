@@ -342,7 +342,7 @@ unchanged. This bounded S07 source-preparation checkpoint grants no live executi
 All14 metadata blocks and21 governing-file authority remain unchanged; no new
 source, full product gate, live execution, final result or EPIC claim.
 
-## Current C5 S07 admission prerequisites — TA43
+## Historical C5 S07 admission prerequisites — TA43
 
 | Owner | Actual evidence | Pending boundary |
 |---|---|---|
@@ -357,3 +357,16 @@ source, full product gate, live execution, final result or EPIC claim.
 
 Existing21governing-file authority is preserved; historical states do not admit
 new source or effects and no private resource identifiers are published.
+
+## Current C6 S07 exact admission — TA46
+
+| Owner | Actual evidence | Pending boundary |
+|---|---|---|
+| Historical C5 | NONPASS/INCUS_INVENTORY_UNREADABLE; ownedcleanup/independent4original+7snapshot preservation retained | No threshold/qualification/application-datarestore inference |
+| Public source / TA45 |5f20df63… runnerb7876225…/test25931153… full4156tests/37skips independentD8PASS | Public local source only, not private/fullC6/live qualification |
+| C6 source / test | dee0f025…/tree493edc0b…/soleparentC5/1811manifest23597782…/3emptycap/privatepolicy065…;3source roots prepared and208mockedPASS/zero skips/unchangedsource independently accepted | C6 NOT_QUALIFIED |
+| Runtime / transport | Packet70158610…/driver1e662235…/helper8ffa…/carrierf0f5…; actual1.1MBsynthetictransportPASS | Privateext4 evidence/no raw9p; synthetictransport is not qualification |
+| Exact native roles | All6APPROVED context2e66470b…/resource41d6c591…/draft0e7679e0…/80entryclosure18bf635f…/storedexpiry2026-11-13T18:35:19Z | Stage/readonlyinspectPASS/exit0/source1811unchanged/noeffects; preserve4originals/7oldsnapshots+plannedowned8th; existing boundedmaintenance only |
+| Exact WSL roles | All6APPROVED drafte02fb97c…/resource2f7de8cd…/33entryclosure2e6a227c…/storedexpiry2026-11-13T18:36:57Z; descriptor5211bytes/37ac5b18… | Preserve0originals/default/2profiles/provider/Windows/routes; native independentpreservation beforeWSL |
+| Finalization |5821026b…/reviewsnativefe18d2b2…/WSL5f3d7542… independentFINALIZATION_ACCEPTED/all12artifacts | Existing actualresult/live/collection RootGO guards retained; no inventedresult/preservation |
+| Root / release | OneS07admission,14metadata/21governingmapshape unchanged | Exactdocgate/publication and JITsource/ownership/remainingexpiry andRootGO pending; C6fixture/restore/cleanup/pair/capabilitychild/product/EPIC NOT_RUN |

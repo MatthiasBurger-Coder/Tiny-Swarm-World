@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA43_C5_EXACT_TWELVE_PER_HOST_VERDICTS_APPROVED_FINALIZATION_ACCEPTED_NATIVE_STAGED_INSPECT_PASS_CHECKPOINT_JIT_ROOT_GO_PENDING_LIVE_NOT_RUN",
+  "status": "EXECUTING_TA46_C6_EXACT_PER_HOST_ADMISSION_FINALIZATION_APPROVED_NATIVE_STAGED_INSPECT_PASS_CHECKPOINT_JIT_ROOT_GO_PENDING_LIVE_NOT_RUN",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "6562e7a1c84922209741fda8208af37a28b1e64f41821a346db9890dd1d051ff",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "d3fd6aa2af406dd9d9d1658932d4b4f883924d29c5287fe06dea93b90f948002",
+    "documentation/handbook/05-development/workflow/context-pack.md": "2c4a0db9ced9f6c19f50299b66a8194b0427e96c91f211035abccc4a92b908ac",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "53269e01cfd6408c6e7c5696e98382ee793527075fce584627f3b5d31e8786fb",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "7599bf5645558769ee1c44e7a19b58c0ef2ed97a74c856821eb0a978bf14789b"
+    "documentation/handbook/05-development/workflow/workflow.md": "7c55452f890a5b4aa9bb7b6c72379e102250a1f54980c3d574a5c9f2884bb8d4"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-43",
+  "current_workflow_run": "TA440-20261113-46",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,53 +355,74 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-43",
+    "id": "TA440-20261113-46",
     "slice_id": "S440O-07",
-    "state": "EXACT_SIX_ROLE_PER_HOST_ADMISSION_APPROVED_NOT_EFFECT_GO",
-    "historical_C4": {
-      "qualification": "NONPASS_BLOCKED_TARGET_DRIFT_JIT_COMMAND_FAILED",
-      "independent_recovery": "ACCEPTED",
-      "recovery_closure_sha256": "0581e251eb3ba42f48365a5520dad74cf48ed27dad9ced102de4e30d3987dce1",
-      "preserved": "FOUR_ORIGINALS_SIX_SNAPSHOTS_SOURCE_UNCHANGED",
-      "WSL": "NOT_RUN_BLOCKED",
-      "snapshot_retention_is_application_data_restore": false
+    "state": "TWELVE_ACTUAL_ROLE_VERDICTS_APPROVED_FINALIZED_BYTES_ACCEPTED_NOT_EFFECT_GO",
+    "historical_C5": {
+      "qualification": "NONPASS_INCUS_INVENTORY_UNREADABLE",
+      "cleanup": "CLEAN",
+      "independently_preserved": "FOUR_ORIGINALS_SEVEN_SNAPSHOTS",
+      "threshold_qualification_application_data_restore_claim": false
     },
     "public_source": {
-      "commit": "8d98356e6fc408c757ced8c00927526f30cd4a3a",
-      "local_quality": "4148_TESTS_37_SKIPS_PASS_INDEPENDENTLY_ACCEPTED",
+      "commit": "5f20df632c9ea12037e95818c1067f6131e87ef7",
+      "runner_sha256": "b7876225a7d516633e801abae4d3582272aca5ad86245e482572d2fca0cec4bf",
+      "test_sha256": "259311531762ca5dcdb62c8e7e0de4c78915b068eb8aecbc20f47700c27a53b7",
+      "local_quality": "4156_TESTS_37_SKIPS_D8_PASS",
       "private_or_live_qualification": false
     },
-    "C5": {
-      "commit": "ccaf4a12249c82d0a33e1a7b03399f59f6ea421e",
-      "tree": "5905801c409e51e65a95b10872b2612ab149b4ed",
-      "sole_parent": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
+    "C6": {
+      "commit": "dee0f025cd5c201d6de3ce62e212e7f0afd9ee2f",
+      "tree": "493edc0b58bae97582d6ac4e2e32b7021beac176",
+      "sole_parent": "ccaf4a12249c82d0a33e1a7b03399f59f6ea421e",
       "source_file_count": 1811,
-      "manifest": "685d34949919c36d231808dcfc75b50ad3cd5dbb9d6cefd3ae5d7bee5901c260",
-      "runner_sha256": "ba012881ad595c5afcb60cba49350f3420b64b4f287e786ef0c9c1ecb118aa7c",
-      "test_sha256": "6f2229c03e8d3a76aa8073d2ad3c4eba98da857c4e53050378ac50aadf0cce55",
+      "manifest": "235977826b70548b5b9e25a24e0dad2293c44c2c4392ff9d6991273fe1c0f652",
+      "empty_capability_mirrors": [
+        "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+        "modules/tsw_native_linux/infra/config/incus-profile-capabilities.json",
+        "modules/tsw_windows_wsl/infra/config/incus-profile-capabilities.json"
+      ],
       "empty_capability_sha256": "b2df1815b37a50dcf1dd5915d838597ba4164d8dd20f11afc5e4971f82b67e72",
+      "private_policy_sha256": "06510557373d1ba40fcb272eb9fd6b4d377a1ca5c148335e2f00c7c6e9045679",
       "qualification": "NOT_QUALIFIED"
     },
-    "TA42_actual_source_and_targeted": {
-      "source_entries": 1811,
-      "source_before_after": "EXACT_C5_MANIFEST",
-      "designated_SSH_WSL": true,
+    "actual_source_and_targeted": {
+      "all_three_roots": "SOURCE_PREPARED",
       "mocked_bridge": 3,
-      "mocked_fixture": 197,
-      "total": 200,
+      "mocked_fixture": 205,
+      "total": 208,
       "skips": 0,
-      "independent_Test_acceptance": "PASS_200_MOCKED_TESTS",
-      "summary_sha256": "02d0047903ecdf2b4197eaaf1c0552cdffd7033a7020c71ed0c8f949e5ff0e24",
-      "full_private_gate_or_live": false
+      "summary_sha256": "1e1eb8389dcd96aebbccf45c3046bb6861fc9ca6746b22e81116684274cb87fc",
+      "independent_Test": "ACCEPTED",
+      "source_before_after": "EXACT_1811_C6_MANIFEST",
+      "full_private_C6_gate_or_live": false
     },
-    "packet_inventory_sha256": "015b4c713cdbd41ef32375edda2bbab93b65e17eeedd914c7f714b6517ed3b15",
-    "native_driver_sha256": "45fd0a3cca3b9c6f4a3f5cabf42b5f4a48c031aeaeec7b0ca7f24c1bf5e11ef7",
-    "caller_sha256": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+    "packet_inventory_sha256": "70158610575f24c2bff48852991d18f15a98dac53b7090eea84524fb18a0b80b",
+    "runtime_files": {
+      "caller_supervision.py": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+      "collect-carrier-call.py.in": "fd7e1f0fa74398a51d8f184270c26da54ef0ea3ea12bd21d1e699e7ed79f0520",
+      "native-manager-window-driver-c6-ta46.py": "1e66223565d9b17268f33a51d15a3f3880b7a28fe031ab1ce577d3e7b18e8771",
+      "native-review.json": "fe18d2b23f71f2d56c0bae511a5574151260d4af49a970cdd423e0ed84b5fc7d",
+      "native_execute.sh": "69768eb73c65aa605b0b000022a51f248e8724ed1e82598812fe613bcc4b6fd9",
+      "native_postcheck.sh": "641ce15f22f1be54c74dc0c2f23f4e52a545bd69423813ec732fc59a640dcb75",
+      "private_carrier.py": "f0f5e546f88ece96ee6a1ab4ff95737da9d15b33bd589fe9d8d376946f81003b",
+      "wsl-collect-root.py.in": "0b49958fd9a28348566eb58dae5da743c3eccc80188bf65aeb945f8f46e914cb",
+      "wsl-live-root.py.in": "e56673e41af0a0c3d616de075c797be86e5f311f3b7b8eb7d18f61754b34ce83",
+      "wsl-review-decisions.json": "5f3d7542ae4bfc8211cbba3f778062d178e0bbb6055024a8a713cc61d096a920",
+      "wsl_execute.py": "f7890a2809626c3521acd7d01bc9545b309613f462ad3d50d37be756dd0da064",
+      "wsl_postcheck.py.in": "534102a449cd454f8f2e67f4957d1ee8c660a66b285533298742afd74fb3c764"
+    },
+    "synthetic_transport": {
+      "actual": "PASS_1_1_MB",
+      "qualification": false,
+      "private_ext4_evidence": true,
+      "raw_9p_evidence_route": false
+    },
     "native": {
-      "context_sha256": "33e3b53a4a649050a859bfb9e26d5054a9882aff9e11c7ea4c3e2459910c9533",
-      "deadline_utc": "2026-11-13T16:07:38Z",
-      "fixture_go_draft_sha256": "9c4086a85bdd7d512dabc2e9ba06d00abf19462ef611d73c4f353bec5f54eafa",
-      "resource_draft_sha256": "b17d8e0eb79339c8c84636ae7f9f8361c9636767306c88e25929191dbc0ba8c3",
+      "context_sha256": "2e66470b8a9a8d55f66a90d4d51a3e6e83faed8fffd0594e00cefc0713d8b33f",
+      "deadline_utc": "2026-11-13T18:35:19Z",
+      "fixture_go_draft_sha256": "0e7679e0b8b2ef622a1e47f19fe802f912aae0dee51abef86c20a54cead48a78",
+      "resource_draft_sha256": "41d6c5919ef281ed6c574d57a9ab37c7d3e30769bd06ebddf5345991e5728c53",
       "reviews": {
         "architecture": "APPROVED",
         "automation": "APPROVED",
@@ -412,10 +433,10 @@
       }
     },
     "wsl": {
-      "deadline_utc": "2026-11-13T16:08:32Z",
-      "go_draft_sha256": "6d1dd8ca08bd349f12b330d979b3e8454b73a4997c205e6dc281e01dd72a1d10",
-      "resource_draft_sha256": "e7948e68546939ca2bc749434f6d968e7179994fdd499419510b362816bd020c",
-      "runtime_source_proof_sha256": "cd810450e45d137f5207dda9d2add9ca515acd587b03344fb55d0a50cfaf6bce",
+      "deadline_utc": "2026-11-13T18:36:57Z",
+      "go_draft_sha256": "e02fb97c2afbb94a341c836ec86210b253cb6f555da8d75717b64124f586ee21",
+      "resource_draft_sha256": "2f7de8cd0b1ae8c9a03dd15dbdb89d463740b0988ee204b09341ee73455ae955",
+      "runtime_source_proof_sha256": "ce6a513c1423eb36a8d11f80325cafcd80295deaaa48af2b0f896975fd22c526",
       "reviews": {
         "architecture": "APPROVED",
         "automation": "APPROVED",
@@ -426,33 +447,25 @@
       }
     },
     "native_closure": {
-      "sha256": "c451531b5c5e50de4e7807f38f265d246654bafc6d812782c089f0af4e2500d7",
-      "entries": 76
+      "entries": 80,
+      "sha256": "18bf635f092f5f969e46d08486992f78e38fe3b62af005c4b39be6a39ac6f3a5"
     },
     "wsl_closure": {
-      "sha256": "39c0a3d4a8d313120ee72f53088533f962be7bcd2657677d6a0b003b75575830",
-      "entries": 28
+      "entries": 33,
+      "sha256": "2e6a227c23596130314b920fe24a8086ff6b12b1a14bf91e4ed3ff5fe25f9d66"
     },
-    "actual_role_verdicts": "ALL_TWELVE_APPROVED_SIX_DISTINCT_ROLES_SEPARATELY_PER_HOST",
-    "finalization_inventory_sha256": "db5e727f50609dba533559a4f0b0baf2cd25bddd83c877df4976eb83c0276ee4",
-    "native_review_sha256": "d21fb759bb7723d23b426b91ab8428fc2fdf7cf9328b2b9e8aa0ed09ba82b4e2",
-    "wsl_review_sha256": "6e14cc37dbec084cb377e35ac502411c2e98445e101ea4d6df2a4c0b0bea88d8",
-    "final_runtime_files": {
-      "caller_supervision.py": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
-      "native-manager-window-driver-c5-ta43.py": "45fd0a3cca3b9c6f4a3f5cabf42b5f4a48c031aeaeec7b0ca7f24c1bf5e11ef7",
-      "native-review.json": "d21fb759bb7723d23b426b91ab8428fc2fdf7cf9328b2b9e8aa0ed09ba82b4e2",
-      "native_execute.sh": "6e21e40012e83b0b075432f10e124b6700b1df5e84f2ade202a82ea0fe12de88",
-      "native_postcheck.sh": "b17926633c6ce20294a79c70d396eb7896c84969cb8cdf4cd7a85c40597ce44a",
-      "wsl-review-decisions.json": "6e14cc37dbec084cb377e35ac502411c2e98445e101ea4d6df2a4c0b0bea88d8",
-      "wsl_execute.py": "e05b21d0f259997cd3f9b79bf5a503d6847a63d90eefa80edc309cc389e1c307",
-      "wsl_postcheck.py.in": "bfd84fa68d553bdefd49ce037dc0c83ea04a154c7c295491d3b449b0dec71b2a"
+    "capture_closure_descriptor": {
+      "bytes": 5211,
+      "sha256": "37ac5b18f82359f4df5063a86ce35fc3f8c17dd2f5654b72c994697c972b34ca"
     },
-    "finalization": "ONLY_INITIAL_STOP_REMOVAL_AND_EXACT_PLACEHOLDERS",
+    "actual_role_verdicts": "ALL_TWELVE_APPROVED_SEPARATE_SIX_PER_HOST",
+    "finalization_inventory_sha256": "5821026b09cca403ba666398e3f7dd74a8c5bd26422e01759d9ceff55fd5460b",
     "independent_final_byte_audit": "FINALIZATION_ACCEPTED",
-    "WSL_postcheck": "INITIAL_STOP_AND_ACTUAL_RESULT_PLACEHOLDER_RETAINED",
-    "recorded_deadlines": "NOT_CURRENT_VALIDITY_JIT_REQUIRED",
-    "serial_order": "BOUNDED_NATIVE_ATTEMPT_AND_INDEPENDENT_PRESERVATION_THEN_WSL_FIXTURE_AND_OWNED_CLEANUP",
-    "preservation": "FOUR_NATIVE_ORIGINALS_SIX_PRIOR_SNAPSHOTS_PLUS_PLANNED_OWNED_SEVENTH_AND_WSL_ZERO_ORIGINALS_DEFAULT_TWO_PROFILES_PROVIDER_WINDOWS_ROUTES",
+    "native_source_only_stage_and_inspect": "PASS_NATIVE_STAGED_JIT_READ_ONLY_AND_INSPECTED_READ_ONLY_EXIT0_NO_FIXTURE_EFFECTS",
+    "late_guards": "WSL_POSTCHECK_ACTUAL_RESULT_LIVE_ROOT_GO_PRESERVATION_AND_COLLECTION_ROOT_GO_RETAINED",
+    "recorded_deadlines": "CAPTURED_VALUES_NOT_CURRENT_VALIDITY_JIT_REQUIRED",
+    "preservation": "FOUR_NATIVE_ORIGINALS_SEVEN_PRIOR_SNAPSHOTS_PLUS_PLANNED_OWNED_EIGHTH_WSL_ZERO_ORIGINALS_DEFAULT_TWO_PROFILES_PROVIDER_WINDOWS_ROUTES",
+    "serial_order": "EXISTING_NATIVE_BOUNDED_MAINTENANCE_INDEPENDENT_PRESERVATION_THEN_WSL_OWNED_FIXTURE_CLEANUP",
     "pending_before_effects": [
       "exact_four_document_gate_and_guarded_publication",
       "fresh_JIT_source_ownership_expiry_remaining_time",
@@ -460,14 +473,11 @@
     ],
     "canonical_metadata": "ALL_14_UNCHANGED",
     "single_slice_checkpoint": "S440O-07_ONLY",
-    "fixtures_restoration_cleanup_pair_capability_successor_product_EPIC": "NOT_RUN",
+    "C6_fixture_restoration_cleanup_pair_capability_successor_product_EPIC": "NOT_RUN",
     "product_EPIC_DONE": false,
-    "native_staged_inspection": {
-      "status": "NATIVE_STAGED_JIT_READ_ONLY_PASS",
-      "exit": 0,
-      "source_entries": 1811,
-      "before_after_manifest": "685d34949919c36d231808dcfc75b50ad3cd5dbb9d6cefd3ae5d7bee5901c260",
-      "actual_fixture_effects": false
+    "native_staged_inspection_source_before_after": {
+      "entries": 1811,
+      "mode_sha_manifest": "235977826b70548b5b9e25a24e0dad2293c44c2c4392ff9d6991273fe1c0f652"
     }
   },
   "diagnostic_TA07_outcome": {
@@ -1102,6 +1112,122 @@
       "native_and_wsl_role_verdicts": "EACH_REAL_ROLE_APPROVED_SEPARATELY_PER_HOST",
       "checkpoint_JIT_Root_GO": "PENDING",
       "fixtures_restoration_cleanup_pair_K4_EPIC": "NOT_RUN"
+    }
+  },
+  "TA43_C5_admission_history": {
+    "id": "TA440-20261113-43",
+    "slice_id": "S440O-07",
+    "state": "EXACT_SIX_ROLE_PER_HOST_ADMISSION_APPROVED_NOT_EFFECT_GO",
+    "historical_C4": {
+      "qualification": "NONPASS_BLOCKED_TARGET_DRIFT_JIT_COMMAND_FAILED",
+      "independent_recovery": "ACCEPTED",
+      "recovery_closure_sha256": "0581e251eb3ba42f48365a5520dad74cf48ed27dad9ced102de4e30d3987dce1",
+      "preserved": "FOUR_ORIGINALS_SIX_SNAPSHOTS_SOURCE_UNCHANGED",
+      "WSL": "NOT_RUN_BLOCKED",
+      "snapshot_retention_is_application_data_restore": false
+    },
+    "public_source": {
+      "commit": "8d98356e6fc408c757ced8c00927526f30cd4a3a",
+      "local_quality": "4148_TESTS_37_SKIPS_PASS_INDEPENDENTLY_ACCEPTED",
+      "private_or_live_qualification": false
+    },
+    "C5": {
+      "commit": "ccaf4a12249c82d0a33e1a7b03399f59f6ea421e",
+      "tree": "5905801c409e51e65a95b10872b2612ab149b4ed",
+      "sole_parent": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
+      "source_file_count": 1811,
+      "manifest": "685d34949919c36d231808dcfc75b50ad3cd5dbb9d6cefd3ae5d7bee5901c260",
+      "runner_sha256": "ba012881ad595c5afcb60cba49350f3420b64b4f287e786ef0c9c1ecb118aa7c",
+      "test_sha256": "6f2229c03e8d3a76aa8073d2ad3c4eba98da857c4e53050378ac50aadf0cce55",
+      "empty_capability_sha256": "b2df1815b37a50dcf1dd5915d838597ba4164d8dd20f11afc5e4971f82b67e72",
+      "qualification": "NOT_QUALIFIED"
+    },
+    "TA42_actual_source_and_targeted": {
+      "source_entries": 1811,
+      "source_before_after": "EXACT_C5_MANIFEST",
+      "designated_SSH_WSL": true,
+      "mocked_bridge": 3,
+      "mocked_fixture": 197,
+      "total": 200,
+      "skips": 0,
+      "independent_Test_acceptance": "PASS_200_MOCKED_TESTS",
+      "summary_sha256": "02d0047903ecdf2b4197eaaf1c0552cdffd7033a7020c71ed0c8f949e5ff0e24",
+      "full_private_gate_or_live": false
+    },
+    "packet_inventory_sha256": "015b4c713cdbd41ef32375edda2bbab93b65e17eeedd914c7f714b6517ed3b15",
+    "native_driver_sha256": "45fd0a3cca3b9c6f4a3f5cabf42b5f4a48c031aeaeec7b0ca7f24c1bf5e11ef7",
+    "caller_sha256": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+    "native": {
+      "context_sha256": "33e3b53a4a649050a859bfb9e26d5054a9882aff9e11c7ea4c3e2459910c9533",
+      "deadline_utc": "2026-11-13T16:07:38Z",
+      "fixture_go_draft_sha256": "9c4086a85bdd7d512dabc2e9ba06d00abf19462ef611d73c4f353bec5f54eafa",
+      "resource_draft_sha256": "b17d8e0eb79339c8c84636ae7f9f8361c9636767306c88e25929191dbc0ba8c3",
+      "reviews": {
+        "architecture": "APPROVED",
+        "automation": "APPROVED",
+        "devops": "APPROVED",
+        "requirements": "APPROVED",
+        "security": "APPROVED",
+        "test_evidence": "APPROVED"
+      }
+    },
+    "wsl": {
+      "deadline_utc": "2026-11-13T16:08:32Z",
+      "go_draft_sha256": "6d1dd8ca08bd349f12b330d979b3e8454b73a4997c205e6dc281e01dd72a1d10",
+      "resource_draft_sha256": "e7948e68546939ca2bc749434f6d968e7179994fdd499419510b362816bd020c",
+      "runtime_source_proof_sha256": "cd810450e45d137f5207dda9d2add9ca515acd587b03344fb55d0a50cfaf6bce",
+      "reviews": {
+        "architecture": "APPROVED",
+        "automation": "APPROVED",
+        "devops": "APPROVED",
+        "requirements": "APPROVED",
+        "security": "APPROVED",
+        "test_evidence": "APPROVED"
+      }
+    },
+    "native_closure": {
+      "sha256": "c451531b5c5e50de4e7807f38f265d246654bafc6d812782c089f0af4e2500d7",
+      "entries": 76
+    },
+    "wsl_closure": {
+      "sha256": "39c0a3d4a8d313120ee72f53088533f962be7bcd2657677d6a0b003b75575830",
+      "entries": 28
+    },
+    "actual_role_verdicts": "ALL_TWELVE_APPROVED_SIX_DISTINCT_ROLES_SEPARATELY_PER_HOST",
+    "finalization_inventory_sha256": "db5e727f50609dba533559a4f0b0baf2cd25bddd83c877df4976eb83c0276ee4",
+    "native_review_sha256": "d21fb759bb7723d23b426b91ab8428fc2fdf7cf9328b2b9e8aa0ed09ba82b4e2",
+    "wsl_review_sha256": "6e14cc37dbec084cb377e35ac502411c2e98445e101ea4d6df2a4c0b0bea88d8",
+    "final_runtime_files": {
+      "caller_supervision.py": "8ffa96dd85f4179b539d586501bf3f42777862fd7751c79aa65b5712629fd6de",
+      "native-manager-window-driver-c5-ta43.py": "45fd0a3cca3b9c6f4a3f5cabf42b5f4a48c031aeaeec7b0ca7f24c1bf5e11ef7",
+      "native-review.json": "d21fb759bb7723d23b426b91ab8428fc2fdf7cf9328b2b9e8aa0ed09ba82b4e2",
+      "native_execute.sh": "6e21e40012e83b0b075432f10e124b6700b1df5e84f2ade202a82ea0fe12de88",
+      "native_postcheck.sh": "b17926633c6ce20294a79c70d396eb7896c84969cb8cdf4cd7a85c40597ce44a",
+      "wsl-review-decisions.json": "6e14cc37dbec084cb377e35ac502411c2e98445e101ea4d6df2a4c0b0bea88d8",
+      "wsl_execute.py": "e05b21d0f259997cd3f9b79bf5a503d6847a63d90eefa80edc309cc389e1c307",
+      "wsl_postcheck.py.in": "bfd84fa68d553bdefd49ce037dc0c83ea04a154c7c295491d3b449b0dec71b2a"
+    },
+    "finalization": "ONLY_INITIAL_STOP_REMOVAL_AND_EXACT_PLACEHOLDERS",
+    "independent_final_byte_audit": "FINALIZATION_ACCEPTED",
+    "WSL_postcheck": "INITIAL_STOP_AND_ACTUAL_RESULT_PLACEHOLDER_RETAINED",
+    "recorded_deadlines": "NOT_CURRENT_VALIDITY_JIT_REQUIRED",
+    "serial_order": "BOUNDED_NATIVE_ATTEMPT_AND_INDEPENDENT_PRESERVATION_THEN_WSL_FIXTURE_AND_OWNED_CLEANUP",
+    "preservation": "FOUR_NATIVE_ORIGINALS_SIX_PRIOR_SNAPSHOTS_PLUS_PLANNED_OWNED_SEVENTH_AND_WSL_ZERO_ORIGINALS_DEFAULT_TWO_PROFILES_PROVIDER_WINDOWS_ROUTES",
+    "pending_before_effects": [
+      "exact_four_document_gate_and_guarded_publication",
+      "fresh_JIT_source_ownership_expiry_remaining_time",
+      "explicit_Root_GO"
+    ],
+    "canonical_metadata": "ALL_14_UNCHANGED",
+    "single_slice_checkpoint": "S440O-07_ONLY",
+    "fixtures_restoration_cleanup_pair_capability_successor_product_EPIC": "NOT_RUN",
+    "product_EPIC_DONE": false,
+    "native_staged_inspection": {
+      "status": "NATIVE_STAGED_JIT_READ_ONLY_PASS",
+      "exit": 0,
+      "source_entries": 1811,
+      "before_after_manifest": "685d34949919c36d231808dcfc75b50ad3cd5dbb9d6cefd3ae5d7bee5901c260",
+      "actual_fixture_effects": false
     }
   }
 }
