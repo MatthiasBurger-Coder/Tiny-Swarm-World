@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA17 S08 observed6.0.5 profile capability ADMITTED on verified K3 and published equivalent8e7e8b1f; public-CLI WSL product qualification next; no product/EPIC DONE
+Status: EXECUTING; S09 PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION; S08 capability retained; no product/EPIC DONE
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -715,6 +715,50 @@ support claim. Public-CLI qualification on an owned WSL runtime is next planning
 not a live GO or TA18 public amendment. Full product health and backup-restoration
 remain UNVERIFIED; component/update/selection/product/EPIC acceptance stays OPEN.
 Exact Root SSHdocreceipt/separate guarded documentation checkpoint required.
+
+## Execution run TA440-20261112-18 — S09 preparation blocked on credential information
+
+The ordinary public-CLI WSL journey has made preparation progress; S09 remains
+PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION. The new private K3
+controller/environment and protected product credentials are prepared. Actual
+read-only minimal preview PASS resolves `service-access`, requested components
+`[]`, resolved `incus` and `portainer`, with clean source and no infrastructure
+effects. Fresh minimal setup uses no explicit preset; `services add` forbids a
+preset and retains existing exposure. Preview success is not installation success.
+
+Private driver V3 (TA25) has four code acceptances and 23 mock tests PASS;
+authentication helper V3 (TA26) has four code acceptances, 30 mock tests PASS
+and actual read-only `--inspect` PASS. These are private operational artifacts,
+not product-source changes or live product acceptance. Exact inventories and
+receipts remain in private S09 evidence; unchanged 1811-file K3 source and
+its environment do not require repeating the accepted full4129 quality gate.
+
+| Consultation | Actual outcome and retained boundary |
+|---|---|
+| TA19 | Three-role native current-component review requires a bounded new case; no new native effects consent; finish WSL first and preserve historical P01 |
+| TA20 | Exact sudo failure; four conditional real-session READY decisions do not supply credential information or authentication authority |
+| TA21 / TA22 | Driver V1:12 tests/11 PASS/1 ERROR; V2:21 tests/20 PASS/1 FAIL, actual event-kind collision and post-intent callback-check gap retained |
+| TA23 / TA24 | Earlier helper mock/inspect results and four-review code gaps retained; superseded artifacts are not reclassified PASS |
+| TA25 / TA26 | Corrected private V3 driver/helper accepted and verified within the mock/inspection scopes above |
+
+The official network dry run stops at its first `sudo -n ss`: exit1,
+interactive authentication required. Private `~/.access` has no mapped Ubuntu
+credential; the operator credential-mapping question is pending. No real
+password attempt or authenticated session occurred. Two profiles and the exact
+Ubuntu image remain prospective; no image/profile/network/node/stack mutations
+have occurred. Wait for the required information; do not infer it from SSH or
+product credentials, bypass sudo or treat mock success as session admission.
+
+Execution uses private K3's qualified-transition policy; public integration
+still has candidate-transition policy. Exact distinct commits/policy hashes are
+bound in private `slice-12/public-private-policy-scope.json`. No public-policy
+promotion, product PASS, backup-restoration proof or EPIC completion is claimed.
+Private consultation packages TA18–TA26 and S09 public-wsl artifacts retain the
+failed versions, accepted inventories, actual previews and credential blocker.
+Existing phase GO, preservation and independent-evidence review remain required.
+Exact designated SSH/WSL documentation receipt is REQUIRED_BEFORE_CHECKPOINT,
+followed by guarded publication. This four-document report is DOC_ONLY; no new
+ADR, architecture policy, canonical slice metadata or acceptance criteria change.
 
 ## Verified Baseline and Target Picture
 

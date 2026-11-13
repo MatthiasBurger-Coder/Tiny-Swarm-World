@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA17_S08_CAPABILITY_ADMITTED_PRODUCT_QUALIFICATION_NEXT",
+  "status": "EXECUTING_S09_PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "57ee80c079a90c5e42045e2fcbcbd98c9f1995a1351845481697b2ac6bb59185",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "332b1b298804b107502d133dff91a254a5e0a1353da5d967dd1a67c268c6ba2d",
+    "documentation/handbook/05-development/workflow/context-pack.md": "ff427ea85ac4c6428449fdecb0cc90287d74375bb70e658492a6a0d1aa084826",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "6be903045455e25c8fa36ba0f47a7f50b1ef4d7ad52f13b3891b7b4671a6ae0f",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "d6a7bde1a421a14ab7e5893e01ee4a409115373d7edefda127c4183daa482d38"
+    "documentation/handbook/05-development/workflow/workflow.md": "1b8b820ac37ab21177797888935582e502080e93ae20a9def22b1daa124c7d52"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261112-17",
+  "current_workflow_run": "TA440-20261112-18",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,51 +355,87 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261112-17",
-    "state": "S08_OBSERVED_PROFILE_CAPABILITY_ADMITTED",
-    "slice_id": "S440O-08",
-    "actual_reviews": "ALL_SIX_ACCEPT_PAIRED_EVIDENCE_AND_CAPABILITY_PROPOSAL",
-    "paired_source": "a56661915fd640d5574897e86847826b5b574c45",
-    "accepted_host_inputs": {
-      "native": "be49ec522c872d816e4810b3982dd6c5dd4b79570ff4da92b063f89a5cd7d33a/180all0",
-      "WSL": "79358dcaac141011181e39681ad8df5a138e887d6d475429eec6965b48c4e512/155all0",
-      "native_preservation": "ALL_FOUR_ORIGINALS_RESTORED_FIVE_BACKUPS_RETAINED",
-      "WSL_postcheck": "9c06875074787bdb63811ae552b2b06e334f988d5fbe9657eff887f36e15b88e/PASS",
-      "old_proof_transfer": false
+    "id": "TA440-20261112-18",
+    "supporting_consultations": [
+      "TA440-20261112-19",
+      "TA440-20261112-20",
+      "TA440-20261112-21",
+      "TA440-20261112-22",
+      "TA440-20261112-23",
+      "TA440-20261112-24",
+      "TA440-20261112-25",
+      "TA440-20261112-26"
+    ],
+    "slice_id": "S440O-09",
+    "state": "PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION",
+    "actual_preparation": {
+      "private_K3_controller_environment": "READY_VERIFIED",
+      "protected_product_credentials": "PREPARED_NO_INFRASTRUCTURE_EFFECTS",
+      "public_minimal_preview": "PASS_READ_ONLY_SERVICE_ACCESS_REQUESTED_EMPTY_RESOLVED_INCUS_PORTAINER_SOURCE_CLEAN",
+      "profile_image_plan": "PROSPECTIVE_ONLY"
     },
-    "K3": {
+    "private_driver_V3": {
+      "consultation": "TA25",
+      "code_acceptances": 4,
+      "mock_tests": "PASS_23",
+      "artifact_hash_prefixes": {
+        "driver": "d4d35f3a",
+        "test": "c27e9a6d",
+        "safety": "62872293"
+      },
+      "log_sha256": "a355bb52dcf656c985e65d68ff2b59fb5fd774bfc761d56897e9ece57590afd7",
+      "receipt_sha256": "88af7fe71df1a0092bf0fa9e05e2808ae8fe59d8c75e2afecaed46c32d92bc29"
+    },
+    "private_authentication_helper_V3": {
+      "consultation": "TA26",
+      "code_acceptances": 4,
+      "mock_tests": "PASS_30",
+      "actual_readonly_inspect": "PASS",
+      "artifact_hash_prefixes": {
+        "helper": "e93a8181",
+        "test": "cab11955",
+        "inventory": "9d066901"
+      },
+      "log_sha256": "35d24724a940b781a3ec33b745fda76c090488d55e67b92898809d6b4fad62ac",
+      "mock_receipt_sha256": "eb948a92032cb47d8d98645e6fbd7ce0aeb59d683395f67f9d88944a35096d6a",
+      "inspect_receipt_sha256": "c564f12ab530ce54ba001f6a6e0e215705670c6d9a58c828ccca41e4cb56461c"
+    },
+    "retained_failures": {
+      "TA21": "12_RUN_11_PASS_1_ERROR",
+      "TA22": "21_RUN_20_PASS_1_FAIL_EVENT_KIND_COLLISION_AND_POST_INTENT_CALLBACK_GAP",
+      "TA23_TA24": "EARLIER_AUTHENTICATION_CODE_REVIEW_GAPS_RETAINED"
+    },
+    "blocker": {
+      "command": "sudo -n ss",
+      "scope": "FIRST_COMMAND_OFFICIAL_NETWORK_DRY_RUN",
+      "exit_code": 1,
+      "reason": "INTERACTIVE_AUTHENTICATION_REQUIRED",
+      "Ubuntu_credential_mapping": "MISSING_FROM_PRIVATE_ACCESS_SOURCE",
+      "operator_question": "PENDING_REQUIRED_INFORMATION",
+      "real_password_attempt": false,
+      "authenticated_session": false
+    },
+    "infrastructure_mutations": [],
+    "native_TA19": "BOUNDED_CURRENT_COMPONENT_CASE_REQUIRED_NO_NEW_NATIVE_EFFECTS_CONSENT_FINISH_WSL_FIRST_P01_RETAINED",
+    "policy_provenance": {
+      "commit": "8c5dfb836b7c587d889e1ad6bbc4dbafe12e23db",
+      "policy_sha256": "9f75a1986717c223f0a3bbc07a588d70346f5f8f2500e3346d421c924da3e3ed",
+      "qualification": "candidate-transition"
+    },
+    "private_campaign_policy": {
       "commit": "16f5dc770a9055b4672383fe633837d745b43157",
-      "tree": "ef832a4c96bce05acc482be3f989c665c506f827",
-      "sole_parent": "a56661915fd640d5574897e86847826b5b574c45",
-      "only_changed_file": "modules/tsw_core/infra/config/incus-profile-capabilities.json",
-      "mode": "100644",
-      "capability_blob_sha256": "68e10e67fef42c573984b2ccce9b1975757388a7ee362a985fe9b6a48e91b76f",
-      "private_clean_frozen": true,
-      "real_object_promotion": "PASS",
-      "promotion_proof_sha256": "5efddcc1425b3e823ded19827dfb911ae286c3c8001f8590cdf520d652cf805d",
-      "targeted_tests": 63,
-      "full_gate": "PASS_4129_RUN_37_SKIP",
-      "full_log_sha256": "d89ecf673e9141449bca04d985c980ca952e7828324ffcbc5bcb7bebfd75157d",
-      "full_receipt_sha256": "51f80521f2f5b9c426e7286e8e4496fbae63655e4f1815b6b56998853ec68266"
+      "policy_sha256": "06510557373d1ba40fcb272eb9fd6b4d377a1ca5c148335e2f00c7c6e9045679",
+      "qualification": "qualified-transition"
     },
-    "separate_integration": {
-      "targeted_tests": 63,
-      "full_gate": "PASS_4129_RUN_37_SKIP",
-      "full_log_sha256": "ac5446f1c4c387c127271b604f4ffd104f3642ef45b2a72cbb1365bd99cf2e14",
-      "full_receipt_sha256": "55551b6066c43712f5555c041d46ba33edd20ee7fb0683679fd6f88290ba929a",
-      "public_equivalent_commit": "8e7e8b1f3735d8f7d0de814b755837f69ed45ad9",
-      "remote_verified_clean": true
-    },
-    "capability_scope": "only observed Incusclient6.0.5/server6.0.5 installation-scoped managerprofile with exactC3/runner bindings",
-    "unsupported_direct_recovery_guards": "FAIL_CLOSED_UNCHANGED",
-    "next": "OWNED_WSL_PUBLIC_CLI_PRODUCT_QUALIFICATION_PLANNING_ONLY",
-    "TA18_public_amendment": false,
-    "new_live_GO": false,
-    "full_product_health_backup_restoration": "UNVERIFIED",
-    "product_EPIC_DONE": false,
+    "public_policy_promoted": false,
+    "source_files_unchanged": 1811,
+    "full_quality_rerun": "NOT_RUN_UNCHANGED_SOURCE_EXISTING_4129_PASS_RETAINED",
+    "documentation_quality": "NOT_RUN_DOC_ONLY",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "SEPARATE_GUARDED_DOCUMENTATION_CHECKPOINT",
-    "parent_status": "INCOMPLETE"
+    "publication": "GUARDED_DOCUMENTATION_CHECKPOINT_REQUIRED",
+    "S09_DONE": false,
+    "product_EPIC_DONE": false,
+    "full_product_health_backup_restoration": "UNVERIFIED"
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -540,5 +576,52 @@
     "runner_sha256": "a90c3d0d42a055a3a7734ed82868cffbb155a5b6219d84079612336d8b6b2f1f",
     "test_sha256": "eb179e8e03b7e42ea16feffa997eb7541ef354d383c5f8307c0149502eacd2c3",
     "old_source_artifacts": "IMMUTABLE_NOT_RELABELED"
+  },
+  "TA17_accepted_capability": {
+    "id": "TA440-20261112-17",
+    "state": "S08_OBSERVED_PROFILE_CAPABILITY_ADMITTED",
+    "slice_id": "S440O-08",
+    "actual_reviews": "ALL_SIX_ACCEPT_PAIRED_EVIDENCE_AND_CAPABILITY_PROPOSAL",
+    "paired_source": "a56661915fd640d5574897e86847826b5b574c45",
+    "accepted_host_inputs": {
+      "native": "be49ec522c872d816e4810b3982dd6c5dd4b79570ff4da92b063f89a5cd7d33a/180all0",
+      "WSL": "79358dcaac141011181e39681ad8df5a138e887d6d475429eec6965b48c4e512/155all0",
+      "native_preservation": "ALL_FOUR_ORIGINALS_RESTORED_FIVE_BACKUPS_RETAINED",
+      "WSL_postcheck": "9c06875074787bdb63811ae552b2b06e334f988d5fbe9657eff887f36e15b88e/PASS",
+      "old_proof_transfer": false
+    },
+    "K3": {
+      "commit": "16f5dc770a9055b4672383fe633837d745b43157",
+      "tree": "ef832a4c96bce05acc482be3f989c665c506f827",
+      "sole_parent": "a56661915fd640d5574897e86847826b5b574c45",
+      "only_changed_file": "modules/tsw_core/infra/config/incus-profile-capabilities.json",
+      "mode": "100644",
+      "capability_blob_sha256": "68e10e67fef42c573984b2ccce9b1975757388a7ee362a985fe9b6a48e91b76f",
+      "private_clean_frozen": true,
+      "real_object_promotion": "PASS",
+      "promotion_proof_sha256": "5efddcc1425b3e823ded19827dfb911ae286c3c8001f8590cdf520d652cf805d",
+      "targeted_tests": 63,
+      "full_gate": "PASS_4129_RUN_37_SKIP",
+      "full_log_sha256": "d89ecf673e9141449bca04d985c980ca952e7828324ffcbc5bcb7bebfd75157d",
+      "full_receipt_sha256": "51f80521f2f5b9c426e7286e8e4496fbae63655e4f1815b6b56998853ec68266"
+    },
+    "separate_integration": {
+      "targeted_tests": 63,
+      "full_gate": "PASS_4129_RUN_37_SKIP",
+      "full_log_sha256": "ac5446f1c4c387c127271b604f4ffd104f3642ef45b2a72cbb1365bd99cf2e14",
+      "full_receipt_sha256": "55551b6066c43712f5555c041d46ba33edd20ee7fb0683679fd6f88290ba929a",
+      "public_equivalent_commit": "8e7e8b1f3735d8f7d0de814b755837f69ed45ad9",
+      "remote_verified_clean": true
+    },
+    "capability_scope": "only observed Incusclient6.0.5/server6.0.5 installation-scoped managerprofile with exactC3/runner bindings",
+    "unsupported_direct_recovery_guards": "FAIL_CLOSED_UNCHANGED",
+    "next": "OWNED_WSL_PUBLIC_CLI_PRODUCT_QUALIFICATION_PLANNING_ONLY",
+    "TA18_public_amendment": false,
+    "new_live_GO": false,
+    "full_product_health_backup_restoration": "UNVERIFIED",
+    "product_EPIC_DONE": false,
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "SEPARATE_GUARDED_DOCUMENTATION_CHECKPOINT",
+    "parent_status": "INCOMPLETE"
   }
 }

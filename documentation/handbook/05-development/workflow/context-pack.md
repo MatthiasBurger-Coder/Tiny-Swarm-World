@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; TA17 S08 narrow6.0.5 profile capability admitted/K3+integration gates PASS/public8e7e8b1f verified; WSL public-CLI product qualification next, no product/EPIC DONE.
+Status: EXECUTING; S09 PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION; S08 admitted capability retained; no product/EPIC DONE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -293,3 +293,23 @@ Publicequivalent8e7e8b1f remoteverified. ActualC3native180/WSL155 independently
 accepted/preservation audited, no oldtransfer. Narrow S08capability only, not
 producthealth/backuprestore/EPICPASS. WSL ordinarypublicCLI qualification next
 planning; no TA18publicamend/liveGO. Exact Root receipt/doccheckpoint required.
+
+## Current S09 preparation — TA18–TA26
+
+Actual private K3 controller/environment and protected product credentials are
+prepared; read-only minimal preview PASS: service-access/requested[]/resolved
+incus+portainer/source clean/no effects. No explicit preset for minimal setup;
+services add forbids preset and preserves existing exposure. Private driver V3
+TA25: four code acceptances/23 mock PASS; helper V3 TA26: four acceptances/30 mock
+PASS/actual read-only inspect PASS. Earlier driver failures/helper review gaps
+remain in private consultation/S09 records; no full4129 rerun for unchanged K3.
+
+Blocker: official network dry run first sudo-n ss exits1, interactive authentication
+required; Ubuntu credential mapping absent from private access file, operator
+question pending. No real password attempt/authenticated session or image/profile/
+network/node/stack effect; profiles/image plans remain prospective. Native TA19
+bounded current-component case remains later/unadmitted; historical P01 retained.
+Private qualified K3 and public candidate policy have distinct actual source/policy
+hashes in private slice-12/public-private-policy-scope.json; no public promotion.
+S09 not DONE; phase GO/preservation/independent review still required. Exact
+SSH/WSL doc receipt REQUIRED_BEFORE_CHECKPOINT, guarded publication; DOC_ONLY.

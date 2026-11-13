@@ -247,3 +247,20 @@ verified; privateK3/C3 immutable. Only observed6.0.5 scopedprofile capability.
 Next ownedWSL publicCLI product qualification needs its own actual admission/
 evidence; no TA18publicchange or producthealth/backuprestore/EPICPASS implied.
 Root exactdocreceipt and separate guarded checkpoint required.
+
+## S09 partial progress — TA18–TA26
+
+| Owner | Actual evidence | Remaining gate |
+|---|---|---|
+| Controller / DevOps | Private K3 source/environment ready, protected product credentials prepared; actual minimal preview PASS/service-access/requested[]/incus+portainer/no effects | Preview is not installation or prerequisite admission; public candidate policy remains distinct from private qualified K3 |
+| Driver / TA25 | V3 four code acceptances/23 mock PASS | Exact phase admission and actual independently reviewed product evidence; V1/V2 failures retained |
+| Authentication / TA26 | V3 four code acceptances/30 mock PASS/read-only inspect PASS | No real password attempt/session; earlier helper review gaps retained as history |
+| Operator / sudo | Network dry run first sudo-n ss exits1: interactive authentication required; no mapped Ubuntu credential in private access source | Required credential-information answer pending; no inferred mapping, bypass or authentication authority |
+| WSL / S09 | Two profiles/exact image planned; no image/profile/network/node/stack mutations | Actual prerequisites, phase GO and preservation/evidence review before effects; S09 PREPARATION_BLOCKED_REQUIRED_CREDENTIAL_INFORMATION |
+| Native / TA19 | Three-role review identifies bounded current-component case gap; historical P01 retained | Finish WSL first; no new native effects consent or acceptance |
+
+Private consultation/S09 packages retain exact inventories/receipts and failures;
+private slice-12/public-private-policy-scope.json binds distinct policy sources.
+K3/source1811/environment unchanged; full4129 gate not repeated. Exact designated
+SSH/WSL receipt REQUIRED_BEFORE_CHECKPOINT and guarded publication apply to this
+DOC_ONLY update; no product, backup-restoration or EPIC completion inferred.
