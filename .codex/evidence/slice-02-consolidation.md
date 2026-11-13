@@ -15,3 +15,19 @@ this path remains preserved in the predecessor Git commit.
 - Preservation: original worktree five repair hashes unchanged;21governing hashes match. No unrelated files, live operation, external Sonar result, PR or parent completion.
 - Documentation: only declared workflow/context and slice distribution/consolidation updated; arc42Updated=false, adrUpdated=false.
 - Final integration decision: source and local gates ACCEPT; final independent audit, staged D8, one slice checkpoint and branch push pending. Continue serially only after checkpoint succeeds.
+
+
+## TA39/TA40 failure-provenance correction — S440O-02
+
+- Existing declared fixture/test scope; sequential isolated implementation with Root integration.
+- Primary, cleanup and post-cleanup failures remain separately attributable; cancellation remains non-success.
+- Failed bounded transports retain run-owned private diagnostics; public results contain safe codes and hashes.
+- First diagnostic-directory creation is exclusive; subsequent reuse binds its device/inode.
+- No change to approval/capability authority, cleanup ownership/order, mutation guards or existing deadlines.
+- Designated SSH/WSL evidence: initial RED8, review RED16, final focused16 and nearest197 PASS; full QUALITY exit0 in377.662s,4148 tests/37 skips.
+- Architecture, security and independent Tester accepted exact source and full D8 evidence.
+- Tested1815-file manifest:42b4a69f5cdbe40de59c69886666564333315935ec2332ca671aded5d19f05f2.
+- Fixture SHA256:ba012881ad595c5afcb60cba49350f3420b64b4f287e786ef0c9c1ecb118aa7c; test SHA256:6f2229c03e8d3a76aa8073d2ad3c4eba98da857c4e53050378ac50aadf0cce55.
+- This post-gate reporting update is DOC_ONLY; executable bytes remain exactly tested.
+- Native C4 stays NONPASS; original nodes and six snapshots are independently preserved. Original native primary cause remains unknown; WSL live qualification and Epic acceptance remain open.
+- Rollback/source predecessor:e5cf773bd3a4a3feaf2d5d5cbed15fe14f815535. No private candidate refs, raw diagnostics or live approval published by this checkpoint.

@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import hashlib
+import io
 import json
 import os
 import signal
@@ -4691,6 +4693,384 @@ class WindowsInteropEnvironmentTests(_FixtureBehaviorTestCase):
             with patch.dict(os.environ, value, clear=True):
                 self.assertEqual(fixture._fixture_process_environment([self.WINDOWS[0]]), expected)
 
+
+
+class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
+    """Exercise the existing entrypoint/transport; never call an invented diagnostic API."""
+
+    _STDOUT = b'SYNTHETIC_PRIVATE_STDOUT\x00\xff'
+    _STDERR = b'SYNTHETIC_PRIVATE_STDERR ' + b'e' * 152
+
+    def _exercise(self, *, primary=None, failed_stop=True, overflow=False, fault=None,
+                  postcheck_failure=False, specialized=None):
+        transport = _FullGraphFixtureTransport(self)
+        for key in ('workflow_sha256', 'runner_sha256', 'test_sha256',
+                    'resource_admission_sha256', 'issue447_inventory_sha256'):
+            transport.go[key] = 'd' * 64
+        raw_go = _approved_test_go_raw(transport.go)
+        original_command = fixture.command
+        original_output = fixture._bounded_process_output
+        original_fixture, original_listeners = fixture._run_fixture, fixture._listeners
+        completed, injected = [False], [False]
+        original_open, original_write, original_fstat = os.open, os.write, os.fstat
+        failed_processes, opened = [], []
+
+        class FailedStopProcess(_BoundedMemoryProcess):
+            def __init__(self, status=1):
+                self.status, self.threads = status, []
+                self.stdout = self._pipe(b'x' * 65 if overflow else self_outer._STDOUT)
+                self.stderr = self._pipe(b'' if overflow else self_outer._STDERR)
+
+        self_outer = self
+        stop = ('stop', transport.instance, '--project', 'default', '--timeout', '30')
+
+        def popen(argv, **kwargs):
+            if argv[1:2] == ['--synthetic-diagnostic-probe']:
+                return FailedStopProcess(0 if specialized == 'snapshot-stderr' else 1)
+            selected = ((specialized in {'profile-create', 'profile-stderr'} and argv[1:4] == ['profile', 'create', transport.base])
+                        or (specialized == 'inventory' and argv[1:] == ['query', fixture._profile_api_path(transport.base, 'default')]))
+            if selected and not injected[0]:
+                injected[0] = True
+                original = transport.popen(argv, **kwargs)
+                original.wait(timeout=1)
+                original.stdout.close()
+                original.stderr.close()
+                return FailedStopProcess(0 if specialized == 'profile-stderr' else 1)
+            if failed_stop and tuple(argv[1:]) == stop:
+                transport._observe(argv[1:])
+                transport._before_effect(argv[1:])
+                process = FailedStopProcess()
+                failed_processes.append(process)
+                return process
+            return transport.popen(argv, **kwargs)
+
+        def command(argv):
+            if argv[0] == 'curl' and fault in {'reuse-owned', 'replace-owned'}:
+                for index in range(2):
+                    try:
+                        original_command(['/usr/bin/curl', '--synthetic-diagnostic-probe', 'PRIVATE_ARG_CANARY'])
+                    except fixture.TargetDrift:
+                        pass
+                    if index == 0 and fault == 'replace-owned':
+                        diagnostic.rename(diagnostic.with_name(diagnostic.name + '-original'))
+                        diagnostic.mkdir(mode=0o700)
+            if argv[0] == 'curl' and specialized in {'snapshot', 'snapshot-stderr'}:
+                fixture._snapshot_process(['/usr/bin/ss', '--synthetic-diagnostic-probe', 'PRIVATE_ARG_CANARY'],
+                                          5, 128, 256, 'SYNTHETIC_SNAPSHOT_FAILURE', require_empty_stderr=True)
+            if argv[0] == 'curl' and primary is not None:
+                raise primary
+            return original_command(argv)
+
+        def run_fixture(*args, **kwargs):
+            result = original_fixture(*args, **kwargs)
+            completed[0] = True
+            return result
+
+        def listeners():
+            if completed[0] and postcheck_failure:
+                raise fixture.TargetDrift('SYNTHETIC_FINAL_PRESERVATION_FAILURE')
+            return original_listeners()
+
+        def output(argv, timeout, cap, **kwargs):
+            return original_output(argv, timeout, 64 if overflow and tuple(argv[1:]) == stop else cap, **kwargs)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parent = root / fixture.PRIVATE_EVIDENCE_REL
+            parent.mkdir(parents=True, mode=0o700)
+            parent.chmod(0o700)
+            diagnostic = parent / ('listener-diagnostics-' + transport.run_id)
+            victim = root / 'unchanged-victim'
+            victim.write_bytes(b'EXISTING_PRIVATE_BYTES')
+            existing = None
+            if fault in {'directory-mode', 'directory-owner', 'existing', 'file-symlink', 'empty-existing'}:
+                diagnostic.mkdir(mode=0o700)
+            if fault == 'directory-mode':
+                diagnostic.chmod(0o755)
+            if fault == 'directory-symlink':
+                diagnostic.symlink_to(root, target_is_directory=True)
+            if fault == 'existing':
+                existing = diagnostic / 'command-0001.stdout.bin'
+                existing.write_bytes(b'EXISTING_PRIVATE_BYTES')
+                existing.chmod(0o600)
+            if fault == 'file-symlink':
+                (diagnostic / 'command-0001.stdout.bin').symlink_to(victim)
+
+            def descriptor_path(fd):
+                try:
+                    return Path(os.readlink('/proc/self/fd/' + str(fd)))
+                except OSError:
+                    return None
+
+            def fstat(fd):
+                info = original_fstat(fd)
+                if fault == 'directory-owner' and descriptor_path(fd) == diagnostic:
+                    fields = list(info)
+                    fields[4] = os.geteuid() + 1
+                    return os.stat_result(fields)
+                return info
+
+            def open_file(path, flags, mode=0o777, **kwargs):
+                opened.append((Path(path).name, flags, mode))
+                return original_open(path, flags, mode, **kwargs)
+
+            def write(fd, value):
+                if fault == 'write' and descriptor_path(fd) == diagnostic / 'command-0001.stdout.bin':
+                    raise OSError('RAW_PRIVATE_WRITE_ERROR_CANARY')
+                return original_write(fd, value)
+
+            errors = io.StringIO()
+            with (patch.object(fixture, 'ROOT', root),
+                  patch.object(fixture, 'git_preflight', return_value=(transport.go['source_commit'], b'w', b'r', b't')),
+                  patch.object(fixture, 'read_once', return_value=raw_go),
+                  patch.object(fixture, 'validate_go', return_value=transport.go),
+                  patch.object(fixture, 'command', side_effect=command),
+                  patch.object(fixture, '_run_fixture', side_effect=run_fixture),
+                  patch.object(fixture, '_listeners', side_effect=listeners),
+                  patch.dict(os.environ, {'TA40_ENV_CANARY': 'PRIVATE_ENV_CANARY'}),
+                  patch.object(fixture, '_bounded_process_output', side_effect=output),
+                  patch.object(fixture.subprocess, 'Popen', side_effect=popen),
+                  patch.object(fixture.subprocess, 'run', side_effect=transport.run),
+                  patch.object(fixture.os, 'open', side_effect=open_file),
+                  patch.object(fixture.os, 'write', side_effect=write),
+                  patch.object(fixture.os, 'fstat', side_effect=fstat),
+                  contextlib.redirect_stderr(errors)):
+                status = fixture.main(['--target-host', '192.168.178.33',
+                                       '--expected-approval-sha256', fixture.digest(raw_go)])
+            result = json.loads((root / fixture.RESULT_REL).read_bytes())
+            artifacts = {str(path.relative_to(parent)): (path.read_bytes(), stat.S_IMODE(path.stat().st_mode),
+                                                         path.stat().st_uid)
+                         for path in parent.rglob('*') if not path.is_symlink() and path.is_file()}
+            if 'listener-diagnostics-' + transport.run_id + '/command-0001.json' in artifacts:
+                raw_opens = [(flags, mode) for name, flags, mode in opened
+                             if name in {'command-0001.stdout.bin', 'command-0001.stderr.bin', 'command-0001.json'}]
+                self.assertEqual(len(raw_opens), 3)
+                for flags, mode in raw_opens:
+                    self.assertTrue(flags & os.O_EXCL and flags & os.O_NOFOLLOW)
+                    self.assertEqual(mode, 0o600)
+            self.assertEqual(victim.read_bytes(), b'EXISTING_PRIVATE_BYTES')
+            if existing is not None:
+                self.assertEqual(existing.read_bytes(), b'EXISTING_PRIVATE_BYTES')
+            self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
+            self.assertFalse(any('--force' in args for args, _ in transport.effects))
+            self.assertLessEqual(len(fixture._COMMAND_AUDIT), fixture._INVENTORY_MAX_COMMANDS)
+            self.assertLessEqual(fixture._INVENTORY_BYTES_CAPTURED, fixture._INVENTORY_TOTAL_COMMAND_MAX_BYTES)
+            public = json.dumps(result).encode() + errors.getvalue().encode()
+            for canary in (b'SYNTHETIC_PRIVATE_STDOUT', b'SYNTHETIC_PRIVATE_STDERR',
+                           base64.b64encode(self._STDOUT), base64.b64encode(self._STDERR),
+                           b'RAW_PRIVATE_WRITE_ERROR_CANARY', b'RAW_PRIVATE_CANCEL_CANARY'):
+                self.assertNotIn(canary, public)
+            return status, result, artifacts, transport, failed_processes
+
+    def _provenance(self, result):
+        value = result.get('failure_provenance')
+        self.assertIsInstance(value, dict, 'non-pass result must preserve separate failure provenance')
+        return value
+
+    def test_primary_and_cleanup_failures_remain_separately_attributable_and_nonpass(self):
+        status, result, _, transport, _ = self._exercise(primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'))
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        self.assertEqual(result['code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        provenance = self._provenance(result)
+        self.assertEqual(provenance['primary_code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+        self.assertFalse(provenance['cancelled'])
+        self.assertTrue(transport.running)
+
+    def test_cleanup_only_failure_is_nonpass_without_fabricating_primary_failure(self):
+        status, result, _, _, _ = self._exercise()
+        self.assertEqual(status, 2)
+        self.assertEqual(result['code'], 'JIT_COMMAND_FAILED')
+        provenance = self._provenance(result)
+        self.assertIsNone(provenance['primary_code'])
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+        self.assertFalse(provenance['cancelled'])
+
+    def test_cancellation_and_cleanup_failure_preserve_cancellation_and_nonpass(self):
+        status, result, _, _, _ = self._exercise(primary=KeyboardInterrupt('RAW_PRIVATE_CANCEL_CANARY'))
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        self.assertEqual(result['code'], 'FIXTURE_CANCELLED')
+        provenance = self._provenance(result)
+        self.assertTrue(provenance['cancelled'])
+        self.assertEqual(provenance['primary_code'], 'FIXTURE_CANCELLED')
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+
+    def test_failed_command_retains_private_raw_bytes_with_only_bounded_public_metadata(self):
+        status, result, artifacts, transport, _ = self._exercise()
+        self.assertEqual(status, 2)
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-0001'
+        self.assertIn(prefix + '.json', artifacts, 'failed command diagnostics were discarded')
+        metadata = json.loads(artifacts[prefix + '.json'][0])
+        for name, raw in (('stdout', self._STDOUT), ('stderr', self._STDERR)):
+            path = prefix + '.' + name + '.bin'
+            self.assertIn(path, artifacts)
+            self.assertEqual(artifacts[path], (raw, 0o600, os.geteuid()))
+            stream = metadata[name]
+            self.assertEqual(stream['bytes'], len(raw))
+            self.assertEqual(stream['retained_bytes'], len(raw))
+            self.assertEqual(stream['sha256'], fixture.digest(raw))
+            self.assertFalse(stream['truncated'])
+        self.assertEqual(metadata['run_id'], transport.run_id)
+        self.assertEqual(metadata['go_sha256'], fixture.digest(_approved_test_go_raw(transport.go)))
+        self.assertEqual(artifacts[prefix + '.json'][1:], (0o600, os.geteuid()))
+        failed = [row for row in result['commands'] if row.get('exit_status') == 1]
+        self.assertEqual(len(failed), 1)
+        summary = failed[0].get('diagnostic')
+        self.assertIsInstance(summary, dict)
+        self.assertEqual(summary['artifact_sha256'], fixture.digest(artifacts[prefix + '.json'][0]))
+        self.assertNotIn('argv', metadata)
+        self.assertNotIn('environment', metadata)
+
+    def test_overflow_keeps_only_bounded_prefix_and_marks_truncation_without_pass(self):
+        status, result, artifacts, transport, _ = self._exercise(overflow=True)
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-0001'
+        self.assertIn(prefix + '.json', artifacts, 'partial bounded output needs retained failure diagnostics')
+        stream = json.loads(artifacts[prefix + '.json'][0])['stdout']
+        self.assertEqual(artifacts[prefix + '.stdout.bin'][0], b'x' * 64)
+        self.assertEqual(stream['bytes'], 65)
+        self.assertEqual(stream['retained_bytes'], 64)
+        self.assertEqual(stream['sha256'], fixture.digest(b'x' * 64))
+        self.assertTrue(stream['truncated'])
+
+    def test_unsafe_diagnostic_directories_symlinks_and_existing_files_are_never_adopted(self):
+        for fault in ('directory-mode', 'directory-owner', 'directory-symlink', 'file-symlink', 'existing'):
+            with self.subTest(fault=fault):
+                self.setUp()
+                status, result, _, _, _ = self._exercise(fault=fault)
+                self.assertEqual(status, 2)
+                self.assertNotEqual(result['status'], 'PASS')
+                provenance = self._provenance(result)
+                self.assertTrue(provenance['diagnostics_failed'])
+                self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+
+    def test_diagnostic_write_failure_cannot_mask_primary_or_allow_success(self):
+        status, result, _, _, _ = self._exercise(
+            primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'), fault='write')
+        self.assertEqual(status, 2)
+        self.assertEqual(result['code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        provenance = self._provenance(result)
+        self.assertEqual(provenance['primary_code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+        self.assertTrue(provenance['diagnostics_failed'])
+
+    def test_success_keeps_existing_pass_shape_and_creates_no_failure_artifacts(self):
+        status, result, artifacts, transport, _ = self._exercise(failed_stop=False)
+        self.assertEqual(status, 0)
+        self.assertEqual(result['status'], 'PASS')
+        self.assertNotIn('failure_provenance', result)
+        self.assertFalse(any(name.startswith('listener-diagnostics-') for name in artifacts))
+        self.assertTrue(all(set(row) == {'command_id', 'safe_args', 'exit_status', 'stdout_bytes', 'stderr_bytes'}
+                            for row in result['commands']))
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+
+    def test_final_main_check_after_successful_cleanup_is_primary_not_cleanup_failure(self):
+        status, result, _, transport, _ = self._exercise(failed_stop=False, postcheck_failure=True)
+        self.assertEqual(status, 2)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        provenance = self._provenance(result)
+        self.assertEqual(provenance['primary_code'], 'SYNTHETIC_FINAL_PRESERVATION_FAILURE')
+        self.assertEqual(provenance['cleanup_codes'], [])
+        self.assertEqual(result['code'], 'SYNTHETIC_FINAL_PRESERVATION_FAILURE')
+
+    def test_empty_existing_private_diagnostic_directory_is_not_adopted(self):
+        status, result, artifacts, transport, _ = self._exercise(fault='empty-existing')
+        self.assertEqual(status, 2)
+        self.assertTrue(self._provenance(result)['diagnostics_failed'])
+        prefix = 'listener-diagnostics-' + transport.run_id + '/'
+        self.assertFalse(any(name.startswith(prefix) for name in artifacts))
+
+    def test_later_failure_reuses_only_the_directory_created_by_this_invocation(self):
+        status, result, artifacts, transport, _ = self._exercise(
+            failed_stop=False, primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'), fault='reuse-owned')
+        self.assertEqual(status, 2)
+        self.assertFalse(self._provenance(result)['diagnostics_failed'])
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-'
+        for sequence in ('0001', '0002'):
+            self.assertIn(prefix + sequence + '.json', artifacts)
+            self.assertEqual(artifacts[prefix + sequence + '.stdout.bin'][0], self._STDOUT)
+            self.assertEqual(artifacts[prefix + sequence + '.stderr.bin'][0], self._STDERR)
+        self.assertEqual(len([row for row in result['commands'] if row.get('diagnostic')]), 2)
+
+    def test_replaced_diagnostic_directory_cannot_reuse_prior_invocation_binding(self):
+        status, result, artifacts, transport, _ = self._exercise(
+            failed_stop=False, primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'), fault='replace-owned')
+        self.assertEqual(status, 2)
+        self.assertTrue(self._provenance(result)['diagnostics_failed'])
+        prefix = 'listener-diagnostics-' + transport.run_id
+        self.assertIn(prefix + '-original/command-0001.json', artifacts)
+        self.assertFalse(any(name.startswith(prefix + '/') for name in artifacts))
+        self.assertEqual(len([row for row in result['commands'] if row.get('diagnostic')]), 1)
+
+    def _assert_specialized_diagnostic(self, kind):
+        status, result, artifacts, transport, _ = self._exercise(failed_stop=False, specialized=kind)
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-0001'
+        self.assertIn(prefix + '.json', artifacts, kind + ' bypassed the consumed-invocation failure recorder')
+        raw_metadata, mode, owner = artifacts[prefix + '.json']
+        metadata = json.loads(raw_metadata)
+        self.assertEqual((mode, owner), (0o600, os.geteuid()))
+        self.assertEqual(metadata['go_sha256'], fixture.digest(_approved_test_go_raw(transport.go)))
+        self.assertEqual(metadata['run_id'], transport.run_id)
+        for name, raw in (('stdout', self._STDOUT), ('stderr', self._STDERR)):
+            self.assertEqual(artifacts[prefix + '.' + name + '.bin'], (raw, 0o600, os.geteuid()))
+            self.assertEqual(metadata[name]['bytes'], len(raw))
+            self.assertEqual(metadata[name]['retained_bytes'], len(raw))
+            self.assertEqual(metadata[name]['sha256'], fixture.digest(raw))
+            self.assertFalse(metadata[name]['truncated'])
+        diagnostic_rows = [row for row in result['commands'] if row.get('diagnostic')]
+        self.assertEqual(len(diagnostic_rows), 1)
+        self.assertEqual(diagnostic_rows[0]['diagnostic']['artifact_sha256'], fixture.digest(raw_metadata))
+        self.assertEqual(metadata['exit_status'], 0 if kind.endswith('-stderr') else 1)
+        for forbidden in (b'PRIVATE_ARG_CANARY', b'PRIVATE_ENV_CANARY', b'boot.autostart',
+                          b'"config"', b'"devices"', b'"stdin"', b'"argv"', b'"environment"'):
+            self.assertNotIn(forbidden, raw_metadata)
+
+    def test_failed_and_stderr_uncertain_profile_create_retain_only_bounded_output(self):
+        for kind in ('profile-create', 'profile-stderr'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                self._assert_specialized_diagnostic(kind)
+
+    def test_failed_inventory_transport_retains_bounded_private_output(self):
+        self._assert_specialized_diagnostic('inventory')
+
+    def test_failed_and_stderr_uncertain_snapshot_transport_retain_bounded_output(self):
+        for kind in ('snapshot', 'snapshot-stderr'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                self._assert_specialized_diagnostic(kind)
+
+    def test_unapproved_readonly_capture_keeps_specialized_failure_retention_unarmed(self):
+        name = 'tsw-q449-' + 'a' * 32 + '-base'
+        readers = (
+            lambda: fixture._create_profile_command(['profile', 'create', name, '--project', 'default'],
+                                                    {'config': {'boot.autostart': 'false'}, 'devices': {}}),
+            lambda: fixture._inventory_command(['incus', 'project', 'list', '--format', 'json']),
+            lambda: fixture._snapshot_process(['/usr/bin/ss'], 5, 128, 256, 'UNARMED_READ_FAILURE'),
+        )
+        for reader in readers:
+            with self.subTest(reader=reader), tempfile.TemporaryDirectory() as directory:
+                self.setUp()
+                root = Path(directory)
+                errors = io.StringIO()
+                with (patch.object(fixture, 'ROOT', root),
+                      patch.object(fixture, 'capture_project_inventory', side_effect=lambda *_args: reader()),
+                      patch.object(fixture, '_run_fixture') as qualifier,
+                      patch.object(fixture.subprocess, 'Popen', return_value=_BoundedMemoryProcess(self._STDOUT, 1)),
+                      contextlib.redirect_stderr(errors)):
+                    status = fixture.main(['--capture-project-inventory', '--target-host', '192.168.178.33',
+                                           '--output', str(fixture.PRIVATE_EVIDENCE_REL / 'readonly.json')])
+                self.assertEqual(status, 2)
+                qualifier.assert_not_called()
+                self.assertFalse((root / fixture.PRIVATE_EVIDENCE_REL).exists())
+                self.assertNotIn('SYNTHETIC_PRIVATE_STDOUT', errors.getvalue())
 
 if __name__ == '__main__':
     unittest.main()
