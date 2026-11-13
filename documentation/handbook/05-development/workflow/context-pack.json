@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_S09_CURRENT_NETWORK_PLAN_DRIFT_TA33_LOCAL_REPAIR_SCOPE_APPROVED_IMPLEMENTATION_PENDING",
+  "status": "EXECUTING_C4_SOURCE_PREPARED_TARGETED_PASS_TA35_PRIVATE_CALLER_REPAIR_PENDING_LIVE_NOT_RUN",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "388e588d8af3a75b86820b897077e27844fe2d8fbbb1c2676a8731f85004b208",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "22e8fbbe1ce7643c91dccd2bb9c68e7dd360b7cf309120b9186db43b989a5231",
+    "documentation/handbook/05-development/workflow/context-pack.md": "41088149140e4d4f0b92601f9a4e91710d4ad072afce2aac70e3b858524eaaab",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "29e04925bd6538c39ec2edb16575c4bae88418ae7c7762026f0639c087c7f0b2",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "aa1cd8d44b860cd26e441afb68810d90ace3c58ad0e020c6f6dc485170002454"
+    "documentation/handbook/05-development/workflow/workflow.md": "18d229f7ea27fd377c5230b1db89b87cc898105ae50a0fafb9a5d120928f2a07"
   },
   "slices": [
     "S440O-01",
@@ -195,7 +195,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-33",
+  "current_workflow_run": "TA440-20261113-35",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -355,47 +355,131 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-33",
-    "slice_id": "S440O-02",
-    "related_slice": "S440O-09",
-    "state": "EXPLICIT_BOUNDED_LOCAL_SOURCE_SCOPE_AMENDMENT_IMPLEMENTATION_PENDING",
-    "TA30_actual": "TWO_OFFICIAL_PROFILES_CREATED_READY_NETWORK_REPLAN_BEFORE_NETWORK_APPLY_FAILED_SNAPSHOT_MISSING_ORIGINAL_CAUSE_UNKNOWN",
-    "TA32_actual": "CURRENT_FINGERPRINT_INVARIANT_DRIFT_SAME_TWO_ACTIONS_BLOCKERS_EMPTY_WSL_BRIDGE_TRUE",
-    "TA33_proven_difference": "SOLE_NORMAL_DIGEST_BASE_FIELD_BRIDGE_LINKINFO_INFO_DATA_GC_TIMER_94_78_TO_81_6",
-    "source_changed": false,
-    "function_replaced": false,
-    "authoring_authority": "ROOT_EXPLICIT_BOUNDED_AMENDMENT_OUTSIDE_S3D_NO_BACKWARD_WORKFLOW_CREATE",
-    "metadata_delta": {
-      "slice": "S440O-02",
-      "append_paths": [
-        "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py",
-        "modules/tsw_core/tests/test_network_preparation.py"
-      ],
-      "arrays": [
-        "affected_files",
-        "file_locks",
-        "shared_files",
-        "allowed_write_scope"
-      ],
-      "append_targeted_gate": "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_network_preparation",
-      "other_metadata": "UNCHANGED_14_DAG_OWNERS_DEPENDENCIES_PLANNED_STATUSES_SERIAL_NO_LIVE_REQUIRED_FULL_GATE"
+    "id": "TA440-20261113-35",
+    "slice_id": "S440O-07",
+    "related_source_slice": "S440O-02",
+    "state": "S07_SOURCE_PREPARED_TARGETED_PASS_PRIVATE_CALLER_REPAIR_PENDING_NO_LIVE_GO",
+    "workflow_record_precedes_consultation": true,
+    "plan_reviews": "REQUIREMENT_SECURITY_TEST_READY_BOUNDED_SUCCESSOR_PLAN",
+    "TA33_public_source": {
+      "commit": "0263f402e6e10c79f0874189554b23b8b5fcaf6e",
+      "published": true,
+      "exact_files": {
+        "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py": "2d1112feb326f494174d973bce1e760904f6aa004939429629f2e6f19190a75f",
+        "modules/tsw_core/tests/test_network_preparation.py": "cfaad007838b927e5f4eaa4bf112716c0a503751e73c7610ea2e3e0297e302fc"
+      },
+      "regression_old_source": "3_TESTS_1_RELEVANT_INVARIANT_FAILURE_2_PASS",
+      "focused_fixed": "3_PASS",
+      "nearest_network_incus": "68_PASS",
+      "full_quality": "PASS_4132_TESTS_37_SKIPS_44_ARCH_7_CONTRACTS_1056_TYPECHECKED",
+      "full_quality_exit": 0,
+      "source_before_after_1815_manifest": "c9c35f6ab49611b0804d124907797eb4acc6c318a0732b74c88561111ec0fe37",
+      "independent_final_audit": "a698c5829acb4ab533a727340a7233fb2e9bfc211e200878620919d7337abdb0",
+      "scope": "PUBLIC_LOCAL_RESULT_NOT_PRIVATE_C4_OR_LIVE_QUALIFICATION"
     },
-    "planned_implementation": "NARROW_STABLE_LINKS_TRANSIENT_BRIDGE_COUNTDOWN_NORMALIZATION_WITH_STABILITY_AND_REAL_POLICY_DRIFT_REGRESSIONS",
-    "code_tests": "NOT_RUN",
-    "required_after_documentation_checkpoint": [
-      "fresh_S3_S3D",
-      "isolated_worktree_exact_two_file_ownership",
-      "nearest_tests_on_exact_source_designated_SSH_WSL",
-      "required_full_QUALITY",
-      "accepted_source_checkpoint_equivalence_and_fresh_live_admission"
+    "current_diagnosis": {
+      "TA30_original_generic_failure": "UNKNOWN_REJECTED_SNAPSHOT_NOT_RETAINED",
+      "TA32_exact_input_delta": "SOLE_BRIDGE_GC_TIMER_94_78_TO_81_6_IN_BASE_AND_FULL_FINGERPRINT",
+      "raw_sha256": "95c9b9fc131c05d37b360fb920231a5a0cf10a94e93c2d3248101e90a3ada7b5",
+      "independent_delta_audit": "6d275986d30f6b945f692e6c0bfd5ee6e431c7ec630dc3efe373e9a7b416dce2"
+    },
+    "C4": {
+      "commit": "4e525b32829e8abc59fcf9794bf2ca3b2479803d",
+      "tree": "ab13341dbca8ee18b76bbf9563e20517a0024ba2",
+      "sole_parent": "a56661915fd640d5574897e86847826b5b574c45",
+      "clean": true,
+      "private_not_pushed": true,
+      "source_file_count": 1811,
+      "byte_mode_manifest": "465ce05726f8c79f194bccf16547e05c2316080136451d26618b8ccaa8fda001",
+      "changed_files": "ONLY_TWO_APPROVED_TA33_PATHS",
+      "fixture_sha256": "a90c3d0d42a055a3a7734ed82868cffbb155a5b6219d84079612336d8b6b2f1f",
+      "empty_capability_sha256": "b2df1815b37a50dcf1dd5915d838597ba4164d8dd20f11afc5e4971f82b67e72",
+      "qualification": "NOT_RUN_NOT_QUALIFIED",
+      "old_C3_K3": "IMMUTABLE_CONTROLLERS_AND_HISTORICAL_RECEIPTS_NOT_RELABELLED"
+    },
+    "baseline_private_path": ".tiny-swarm/evidence/issue-440-open/slice-09/public-wsl/ta34-readonly-baselines/",
+    "baseline_preservation": {
+      "native": "FOUR_ORIGINALS_OBSERVED_STATES_FIVE_EXISTING_COLD_BACKUPS_INCLUDING_TA16_SETTLED_OPERATIONS_DOCKER_IDENTITY",
+      "wsl": "ZERO_INSTANCES_DEFAULT_AND_TWO_TA30_DOCKER_PROFILES_SCRIPT_ABSENT_QUARANTINE_RETAINED_UNIT_DISABLED",
+      "windows": "RUNNING_BRIDGE_OWNED_PORTPROXY_OBSERVED_RAW_CAMELCASE_CONTRACT_MUST_BE_INTERPRETED_RUNNING_ALONE_NOT_HEALTH_PROOF"
+    },
+    "native_authority": "EXISTING_SAME_MANAGER_PAUSE_BOUNDED_LISTENER_RESTORE_CONSENT_COVERS_CORRECTED_SOURCE_NO_REPEAT_PERMISSION_NO_NEW_PRODUCT_INSTALL_RESET",
+    "pending_before_effects": [
+      "private_caller_mocked_tests_designated_SSH_WSL",
+      "exact_final_caller_code_review",
+      "operational_contexts_current_deadlines_UUID_ownership",
+      "six_actual_role_admissions",
+      "checked_documentation_checkpoint",
+      "Root_fresh_GO"
     ],
+    "serial_order": "NATIVE_BOUNDED_ATTEMPT_AND_INDEPENDENT_RESTORE_ACCEPTANCE_THEN_WSL_FIXTURE_AND_OWNED_CLEANUP",
+    "new_native_backup": "PLANNED_MUST_RETAIN_NEW_SIXTH_ALONGSIDE_PRIOR_FIVE",
+    "K4": "PLANNED_CAPABILITY_ONLY_SINGLE_PARENT_CHILD_OF_C4_AFTER_NEW_ACTUAL_PAIR_REAL_VALIDATORS_TARGETED_AND_ONCE_FULL_PRIVATE_GATE",
+    "public_capability_integration": "SEPARATE_APPLICABLE_CHANGED_CONFIG_GATE",
+    "historical_cartesian_replay": "NOT_REQUIRED",
+    "runtime_source_staging_and_live": "SOURCE_PREPARED_TARGETED_PASS_LIVE_NOT_RUN_PROHIBITED",
+    "draft_finalization": "SOURCE_PREPARATION_CHECKPOINT_READY_FOR_ROOT_DESIGNATED_DOC_GATE_NOT_OPERATIONAL_ADMISSION",
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
-    "publication": "GUARDED_DOCUMENTATION_CHECKPOINT_BEFORE_SOURCE_EXECUTION_PREFLIGHT",
-    "frozen_C3_K3": "IMMUTABLE_HISTORICAL_RECEIPTS_NOT_SUCCESSOR_VERIFICATION",
-    "network_apply_image_nodes": "NOT_RUN",
-    "private_K3_public_candidate_policy_distinction": "RETAINED",
+    "canonical_metadata": "ALL_14_UNCHANGED",
+    "network_apply_image_nodes_stacks_recovery": "NOT_RUN",
+    "private_qualified_public_candidate_distinction": "RETAINED",
     "S09_DONE": false,
-    "product_EPIC_DONE": false
+    "product_EPIC_DONE": false,
+    "source_preparation_run": "TA440-20261113-34",
+    "source_preparation": {
+      "status": "SOURCE_PREPARED",
+      "root_owned_copies": "BOTH_FIXED_TARGETS_1811_BYTES_MODES_OWNERS_EXT4_VERIFIED",
+      "finite_source_budgets_seconds": [
+        240,
+        300
+      ],
+      "native_proof_sha256": "849f57e4841f87314c15796dbcc4afa7b73378a9a96a640f5c4d1c4d4c5ae5ac",
+      "wsl_proof_sha256": "76486ef9a833d205914ff7fca06b089f2817b29507a3ac733077e3000b466efe",
+      "summary_sha256": "c8be3a9e270a9e4b1aa3bbe2c8d4bbfd6464cca861c5cd7be824d81e13e553d2",
+      "runtime_byte_mode_manifest": "27727a4ab2a277805ef0b1c5e8ed4a9c70b311684be2290d26fd692b19ff7f26",
+      "ordinary_pc_environment": "OWN_PYTHON_3_12_15_31_DEPENDENCIES_EDITABLE_ORIGIN_VERIFIED",
+      "old_environment": "5355_ENTRY_DEEP_HASH_UNCHANGED",
+      "repeat_completed_source_clones": false,
+      "qualification_or_full_private_gate": false
+    },
+    "C4_targeted_tests": {
+      "status": "TARGETED_PASS",
+      "designated_SSH_WSL": true,
+      "mocked_bridge": 3,
+      "mocked_fixture": 181,
+      "skips": 0,
+      "source_before_after": "EXACT",
+      "summary_sha256": "d359402eb8483351ece3e4231d2dc57ab760baba0b76a937a88dbc3ea04eb598",
+      "independent_Test_audit": "PASS_184_MOCKED_TESTS",
+      "live_qualification": false,
+      "full_private_C4_gate": "NOT_RUN_NOT_REQUIRED_FOR_THIS_GO"
+    },
+    "packet_history": {
+      "V1": "STATIC_C3_TO_C4_REPLACEMENT_FAILURE_BEFORE_HOSTS_ARCHIVED",
+      "V2": "EXACT_BINDINGS_LITERAL_AUDIT_PASS_THREE_INDEPENDENT_READY_SOURCE_ONLY",
+      "native_window": "BBF8_UNCHANGED_LOGIC",
+      "completed_V2_source_receipts": "PRESERVED"
+    },
+    "TA35_caller_remediation": {
+      "record_matrix_before_Three_Amigos": true,
+      "finding": "PREEXISTING_WSL_OUTER_TIMEOUT_CAN_LEADER_ONLY_KILL_BYPASS_CLEANUP_AND_SOME_HELPER_CALLS_UNBOUNDED",
+      "Root_authority": "PRIVATE_CALLER_ONLY_REPAIR_ISOLATED_S07_HELPER_SCOPE",
+      "source_C4_and_runner": "UNCHANGED",
+      "new_C5_or_full_product_gate_repeat": false,
+      "implementation": "ONE_WORKER_PRIVATE_SUPERVISOR_AND_MOCKS_AUTHORING",
+      "planned_budget_seconds": {
+        "total": 1100,
+        "forward": 700,
+        "SIGINT_grace": 300,
+        "settlement": 90,
+        "evidence": 10
+      },
+      "automatic_TERM_KILL": false,
+      "uncertain_state": "TIMEOUT_INTERRUPTION_UNKNOWN_LEFTOVERS_STICKY_RECOVERY_REQUIRED",
+      "testing_code_context_expiry_admission": "PENDING",
+      "actual_fixture_effects": "NOT_RUN_PROHIBITED"
+    },
+    "single_slice_checkpoint": "S440O-07_ONLY_NO_SECOND_SOURCE_IMPLEMENTATION_COMMIT"
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -792,6 +876,49 @@
     "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
     "publication": "GUARDED_CHECKPOINT_THEN_ROOT_FRESH_GO_BEFORE_EFFECTS",
     "private_K3_public_candidate_policy_distinction": "RETAINED_NO_PUBLIC_PROMOTION",
+    "S09_DONE": false,
+    "product_EPIC_DONE": false
+  },
+  "TA33_bounded_repair_scope_history": {
+    "id": "TA440-20261113-33",
+    "slice_id": "S440O-02",
+    "related_slice": "S440O-09",
+    "state": "EXPLICIT_BOUNDED_LOCAL_SOURCE_SCOPE_AMENDMENT_IMPLEMENTATION_PENDING",
+    "TA30_actual": "TWO_OFFICIAL_PROFILES_CREATED_READY_NETWORK_REPLAN_BEFORE_NETWORK_APPLY_FAILED_SNAPSHOT_MISSING_ORIGINAL_CAUSE_UNKNOWN",
+    "TA32_actual": "CURRENT_FINGERPRINT_INVARIANT_DRIFT_SAME_TWO_ACTIONS_BLOCKERS_EMPTY_WSL_BRIDGE_TRUE",
+    "TA33_proven_difference": "SOLE_NORMAL_DIGEST_BASE_FIELD_BRIDGE_LINKINFO_INFO_DATA_GC_TIMER_94_78_TO_81_6",
+    "source_changed": false,
+    "function_replaced": false,
+    "authoring_authority": "ROOT_EXPLICIT_BOUNDED_AMENDMENT_OUTSIDE_S3D_NO_BACKWARD_WORKFLOW_CREATE",
+    "metadata_delta": {
+      "slice": "S440O-02",
+      "append_paths": [
+        "modules/tsw_core/src/infrastructure/adapters/incus_preparation/preservation.py",
+        "modules/tsw_core/tests/test_network_preparation.py"
+      ],
+      "arrays": [
+        "affected_files",
+        "file_locks",
+        "shared_files",
+        "allowed_write_scope"
+      ],
+      "append_targeted_gate": "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_network_preparation",
+      "other_metadata": "UNCHANGED_14_DAG_OWNERS_DEPENDENCIES_PLANNED_STATUSES_SERIAL_NO_LIVE_REQUIRED_FULL_GATE"
+    },
+    "planned_implementation": "NARROW_STABLE_LINKS_TRANSIENT_BRIDGE_COUNTDOWN_NORMALIZATION_WITH_STABILITY_AND_REAL_POLICY_DRIFT_REGRESSIONS",
+    "code_tests": "NOT_RUN",
+    "required_after_documentation_checkpoint": [
+      "fresh_S3_S3D",
+      "isolated_worktree_exact_two_file_ownership",
+      "nearest_tests_on_exact_source_designated_SSH_WSL",
+      "required_full_QUALITY",
+      "accepted_source_checkpoint_equivalence_and_fresh_live_admission"
+    ],
+    "documentation_gate": "EXACT_DESIGNATED_SSH_WSL_RECEIPT_REQUIRED_BEFORE_CHECKPOINT",
+    "publication": "GUARDED_DOCUMENTATION_CHECKPOINT_BEFORE_SOURCE_EXECUTION_PREFLIGHT",
+    "frozen_C3_K3": "IMMUTABLE_HISTORICAL_RECEIPTS_NOT_SUCCESSOR_VERIFICATION",
+    "network_apply_image_nodes": "NOT_RUN",
+    "private_K3_public_candidate_policy_distinction": "RETAINED",
     "S09_DONE": false,
     "product_EPIC_DONE": false
   }

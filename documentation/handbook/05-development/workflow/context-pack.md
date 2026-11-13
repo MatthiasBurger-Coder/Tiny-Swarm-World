@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; S09 current network-plan identity drift proven; TA33 LOCAL scope approved/implementation pending; no product/EPIC DONE.
+Status: EXECUTING; C4 SOURCE_PREPARED/TARGETED_PASS; TA35 private caller repair pending; live qualification NOT_RUN; no product/EPIC DONE.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -346,7 +346,7 @@ Apply NOT_RUN; TA31 imageimport EXCLUDED/prospective, no unitstart/nodes/stacks.
 Partial preparation only: endpoint/login/services/health UNVERIFIED, no S09 DONE.
 K3/publicpolicy distinction retained; sourceunchanged/full4129 not repeated; DOC_ONLY.
 
-## Current S09 repair scope — TA33
+## Historical S09 repair scope — TA33
 
 TA30 created two official profiles/READY; NETWORK_REPLAN stopped before network
 apply, original failed snapshot missing/causeunknown. TA32 normal snapshots
@@ -361,3 +361,52 @@ Exact SSH/WSL doc receipt/guarded checkpoint precede fresh S3/S3D/isolated worke
 changed product source then requires nearest tests+fullQUALITY and new accepted
 source/admission. Old C3/K3 immutable receipts do not verify new source. S09 open,
 public/private policy distinction retained, no product/EPIC PASS or bypass.
+
+## Current S07 source preparation and caller prerequisites — TA34/35
+
+Public0263f402… contains the exact two-file bridge-only gc_timer repair. Actual
+old-source regression3/1FAIL/2PASS, corrected focused3PASS/neighbors68PASS/full
+QUALITY4132tests37skips/architecture44/7contracts/typecheck1056PASS. Independent
+audit a698c582… and before/after1815byte+mode manifestc9c35f6a… match integration.
+This local source result does not qualify C4 or establish live success. TA32 exact
+BASE/full-fingerprint timer drift is proven; original TA30 missing-snapshot cause
+stays unknown. No credential question remains.
+
+Final clean private C4=4e525b32829e8abc59fcf9794bf2ca3b2479803d,
+treeab13341dbca8ee18b76bbf9563e20517a0024ba2, soleparentC3a5666191…;
+1811byte/mode manifest465ce057…, only2approvedfiles2d1112fe…/cfaad007… changed.
+Fixturea90c3d0d…/emptycapabilityb2df1815… unchanged; C4NOT_QUALIFIED/notpushed.
+OldC3/K3/controllers and historical receipts remain immutable.
+
+TA34 record/matrix preceded real Requirement/Security/Test READY successor review.
+Existing native maintenance consent covers same managerpause/listener/restore on
+corrected source; no repeated consent or new native product/install/reset scope.
+Current saved baseline:4nativeoriginals/5coldbackups inclTA16/settledoperations,
+WSL0instances/default+2legitimateprofiles/scriptabsent/unitdisabled/quarantinekept.
+Windows bridge/portproxy observations retained; rawcamelCase contract must be
+read exactly, Running alone does not prove contract health.
+
+Actual source-only staging PASS: both fixed root-owned ext4 copies match1811
+bytes/modes/owners underfinite240/300second budgets, nativeproof849f57e4…/
+WSL76486ef9…/summaryc8be3a9e…. Ordinarypc C4 own3.12.15/31deps/editableorigin
+verified; old5355-entry environment unchanged. Actual designated mocked bridge3+
+fixture181 PASS/zero skips/exactsourcebeforeafter, summaryd359402e…/independent184
+accepted; runtime-byte/mode manifest27727a4a…. SOURCE_PREPARED/TARGETED_PASS is not
+live qualification or a full private C4 gate. Completed clones are retained.
+
+V1 static c3→c4 replacement failed beforehosts and is archived; V2 exactbindings/
+literalaudit/threeREADY_SOURCE_ONLY reviews accepted, nativewindowbbf8… unchanged
+logic. TA35 record/matrix preceded caller-remediation consultation: pre-existing
+WSL outer timeout could kill onlyleader/bypasscleanup; somehelpercalls unbounded.
+Root approved PRIVATE caller-only repair, C4/runnerunchanged/noC5/fullgate repeat.
+One worker authors supervisor+mocks: planned1100=700forward+300SIGINTgrace+
+90settlement+10evidence, NOautomaticTERM/KILL; timeout/interruption/unknown/leftovers
+stay sticky RECOVERY_REQUIRED. Testing, exact finalcode/context/deadline/six-role
+admission/checkpoint/RootGO and liveeffects PENDING/NOT_RUN/PROHIBITED.
+
+Serial native actualfixture+independentrestore, thenWSLfixture+cleanup must bindC4,
+preserve2profiles and retain planned6thnativecoldbackup. K4capability-only child
+follows actualpair and requiredvalidators/gates; public changedcapability separate.
+No network/image/nodes/stacks/recovery/EPIC success.14metadataunchanged. ExactSSHWSL
+docreceipt precedes guarded S07 source-preparation checkpoint; no liveGO/context/
+expiry/qualification claim or secondsourceimplementationcommit.

@@ -294,7 +294,7 @@ unchanged source; DOC_ONLY report. No cleanup/product/backup-restoration/EPIC PA
 No product/S09/EPIC DONE or public-policy promotion. Private qualified K3/public
 candidate policy remain distinct; source1811 unchanged/full4129 not repeated.
 
-## Current S09 blocker and bounded source scope — TA33
+## Historical S09 blocker and bounded source scope — TA33
 
 | Owner | Actual evidence / authority | Required next gate |
 |---|---|---|
@@ -306,3 +306,23 @@ candidate policy remain distinct; source1811 unchanged/full4129 not repeated.
 
 No broad metadata stripping or architecture-policy change. Private qualified K3
 and public candidate policy remain distinct; no product/EPIC completion inferred.
+
+## Current S07 source preparation and operational prerequisites — TA34/35
+
+| Owner | Actual evidence / accepted boundary | Remaining gate |
+|---|---|---|
+| Root / TA33 | Public0263f402… two-file bridge gc_timer fix; RED3/1FAIL/2PASS then GREEN3/neighbors68/full4132tests37skips/architecture44/7contracts/typecheck1056PASS | Local exact1815manifestc9c35f6a…/independent a698c582… match integration; no live implication |
+| Source / C4 | Clean private4e525b32829e8abc59fcf9794bf2ca3b2479803d/treeab13341d… soleparentC3a566…;1811manifest465ce057…; only2approvedfiles; fixture/emptycap unchanged | C4 NOT_QUALIFIED/notpushed; old C3/K3 remain immutable |
+| Requirement/Security/Test | TA34 record/matrix precedes READY bounded successor-plan review | Six exact role artifact reviews, current UUID/ownership, documentation checkpoint and Root fresh GO before effects |
+| Native maintenance | Existing same-effects consent;4originals/5priorcoldbackups inclTA16/settledops/Dockeridentity observed | Serial managerpause/listener/restore only; preserve originals/five backups and retain new6th; independent actual restoration acceptance; no native product/install/reset |
+| WSL preservation |0instances/default+2legitimateTA30profiles; oldscriptabsent/quarantine52886f25… retained/unitdisabled | Fresh C4 fixture after native acceptance; full profile/default/provider/Windows preservation and ownedcleanup; no profile reset |
+| Windows boundary | Bridge Running and owned portproxy observations saved | Interpret raw camelCase state; Running alone does not prove contract health |
+| Qualification / K4 | OldC3/K3/controllers/receipts immutable; no historical Cartesian replay | New actual same-C4 paired proof, then capability-only single-parentK4 and realvalidators/targeted/once-fullprivate gate; public changedcapability separately gated |
+| Source staging / actual | Both fixed root-owned ext4 copies PASS1811bytes/modes/owners underfinite240/300second budgets, native849f57e4…/WSL76486ef9…/summaryc8be3a9e…; ordinarypc3.12.15/31deps/ownorigin; old5355-entry env unchanged | SOURCE_PREPARED only; runtime manifest27727a4a…; no repeated completed source clones |
+| Test / actual C4 | Designated mocked bridge3+fixture181 PASS zero skips/sourcebeforeafter identical, summaryd359402e…/independent184accepted | TARGETED_PASS only; not live qualification or fullprivategate |
+| Packet authoring | V1 static replacement failure archived beforehosts; V2 exactbindings/literalaudit/threeREADY_SOURCE_ONLY reviews; nativewindowbbf8… unchangedlogic | Completed source-stage receipts preserved; operationalcaller review found pre-existing supervision gaps |
+| Root / TA35 | Record/matrix beforeThreeAmigos; PRIVATEcaller-only repair approved, frozenC4/runnerunchanged/noC5 or fullproductgate repeat | Oneisolatedworker supervisor+mocks pending; planned1100=700forward+300SIGINTgrace+90settlement+10evidence; noautomaticTERM/KILL; timeout/interruption/unknown/leftovers stickyRECOVERY_REQUIRED |
+| Root / publication and effects | Source preparation/targeted gates complete; original TA30 missing-snapshot cause unknown | Exact SSH/WSL docreceipt then guarded S07 checkpoint; caller tests/finalcode/contexts/currentdeadlines/six-role admission/RootGO PENDING; liveeffects NOT_RUN/PROHIBITED, no network/image/node/stack/recovery/S09/EPIC success |
+
+All14 canonical metadata blocks and accepted safety/quality authority remain
+unchanged. This bounded S07 source-preparation checkpoint grants no live execution GO.

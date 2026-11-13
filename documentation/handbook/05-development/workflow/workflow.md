@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; S09 network-plan identity drift proven; TA33 bounded LOCAL repair scope approved, implementation pending; no product/EPIC DONE
+Status: EXECUTING; C4 SOURCE_PREPARED/TARGETED_PASS; TA35 private caller supervision repair pending; live qualification NOT_RUN; no product/EPIC DONE
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -16,8 +16,9 @@ checkpoint its exact source, close proven recipe/recovery gaps, freeze a valid
 qualification campaign, establish recoverable hosts, qualify native/WSL listeners,
 admit the precise capability, exercise Portainer/components/selection/product
 cases, observe applicable final gates and obtain independent parent acceptance.
-This new documentation-only branch does not contain the uncommitted repair.
-Slice01 must acquire and verify it; absent source is a hard STOP.
+The original documentation-only baseline excluded the uncommitted repair.
+Subsequent accepted source checkpoints are recorded below; their verification
+remains bound to each exact source, not current host or parent readiness.
 
 ## Execution run TA440-20261112-01 — started 2026-11-12
 
@@ -862,6 +863,96 @@ own accepted checkpoint/equivalence/live admission; frozen C3/K3 and old receipt
 stay immutable, and do not verify this planned successor. Current network apply,
 image and nodes remain unexecuted; S09/product/EPIC not DONE. Private qualified
 K3/public candidate policy distinction retained; no architecture-policy decision.
+
+## Execution run TA440-20261113-34 — corrected source and renewed bounded pair
+
+TA33 completed its approved two-file LOCAL repair after the separate scope
+checkpoint. Public source commit `0263f402e6e10c79f0874189554b23b8b5fcaf6e`
+was pushed and independently checked. The implementation excludes ONLY bridge
+`linkinfo.info_data.gc_timer` from stable observations, copying nested maps;
+configuration, ownership, topology, other timers and non-bridge data stay compared.
+The exact normal digest inputs differed solely by94.78→81.6 in both BASE and full
+fingerprint (raw95c9b9fc…, independent difference audit6d275986…). The original
+TA30 rejected snapshot remains unavailable; its generic failure is unattributed.
+
+Actual designated SSH/WSL evidence: regression-only old source3tests/1relevant
+invariant failure/2PASS; corrected focused3PASS, network/Incus neighbors68PASS,
+required full QUALITY exit0/4132tests/37skips, architecture44PASS,7contracts kept,
+1056typechecked. Independent final audit a698c582… accepts actual before/after
+1815-file byte/Git-mode manifest c9c35f6a… and the Root integration match. These
+are public-source local results; they do not qualify private C4 or live services.
+
+TA34 execution record/matrix preceded Requirement/Security/Test consultation.
+Their bounded successor plan is READY. Final private C4 is
+`4e525b32829e8abc59fcf9794bf2ca3b2479803d`, tree
+`ab13341dbca8ee18b76bbf9563e20517a0024ba2`, sole parent C3
+`a56661915fd640d5574897e86847826b5b574c45`. All1811actual bytes/Git modes match
+manifest465ce057…; only preservation.py2d1112fe… and network testcfaad007… differ.
+Fixturea90c3d0d… and empty capabilityb2df1815… are unchanged. C4 is clean/private,
+NOT_QUALIFIED and not pushed; transient pre-final message-only hashes are excluded.
+C3/K3, old controllers, receipts and their historical acceptance remain immutable.
+
+Saved fresh read-only baselines retain native four original nodes/observed states,
+five existing cold backups including TA16, settled operations and Docker identity;
+WSL has0instances and default plus two compatible TA30 Docker profiles. Old script
+is absent, owned quarantine52886f25… retained and forwarding unit disabled/inactive.
+Windows bridge/owned portproxy observations are retained; service Running alone
+is not a contract-health proof, and raw camelCase state must be interpreted exactly.
+
+Actual C4 source-only staging is complete on both fixed root-owned private ext4
+runtime copies:1811bytes/modes/owners matched under finite240/300-second source
+budgets, proofs native849f57e4…/WSL76486ef9…, completion summaryc8be3a9e…. Separate
+ordinary-pc C4 checkout/environment is verified Python3.12.15/31dependencies/own
+editable origin; old5355-entry environment hash is unchanged. Actual designated
+mocked bridge3 and fixture181 tests PASS/zero skips with exact source before/after
+(summaryd359402e…, independently accepted184tests). Runtime-mode/byte manifest
+27727a4a… matches each prepared copy. This is SOURCE_PREPARED/TARGETED_PASS only;
+not a live fixture, full private C4 gate or global acceptance. Completed source
+clones and accepted targeted checks need no repetition without a new reason.
+
+V1 packet generation failed its static c3→c4 hexadecimal replacement before
+host actions and is archived. V2 rebuilt exact bindings, passed literal audit and
+three independent READY_SOURCE_ONLY reviews; native windowbbf8… retains its logic.
+Operational admission still requires exact artifacts/current UUID/ownership, six
+real role reviews, checked documentation checkpoint and Root fresh GO. Execute
+serial native manager-pause→bounded listener fixture→restore, independently accept
+preservation, then WSL fixture→owned cleanup, preserving both legitimate profiles.
+Existing user maintenance consent covers these same effects on corrected source;
+no repeated permission question, native product install/reset or broader outage.
+A new native C4 cold backup must be retained in addition to the prior five.
+
+Fresh actual C4-bound native+WSL proof is required; no C3 receipt relabel. Only
+then create capability-only single-parent child K4, run its targeted and once-full
+private gate and actual Git/source/paired validators. Public capability integration
+gets its own applicable changed-config gate; pure metadata/doc checkpoints do not
+repeat full source gates. No historical Cartesian replay is required. Both
+live attempts and final operational contexts/admission remain NOT_RUN/PROHIBITED
+pending TA35 below. No network apply, image, nodes, stack, recovery or S09/product/
+EPIC success follows. Private qualified/public candidate distinction and all14
+canonical slice metadata blocks are unchanged. This S07 source-preparation
+checkpoint requires the exact designated SSH/WSL doc receipt before guarded
+publication; it grants no live GO or second source-implementation checkpoint.
+
+## Execution run TA440-20261113-35 — private caller supervision prerequisites
+
+A new execution record/matrix preceded the Three-Amigos caller-remediation
+consultation. Automation found pre-existing operational caller gaps: the WSL
+outer timeout could kill only the fixture leader and bypass cleanup, and some
+helper calls lacked finite bounds. No fixture effects were launched. Root
+approved a PRIVATE caller-only repair in the isolated S07 helper scope; frozen
+C4, unchanged runner and completed V2 source-stage receipts remain immutable.
+No C5 or repeated full product gate follows from this private supervision repair.
+
+One worker is authoring a private supervisor and meaningful cancellation mocks.
+Planned1100seconds=700forward+300SIGINTgrace+90settlement+10evidence; no automatic
+TERM/KILL fallback. Timeout, interruption, unknown outcome or leftovers must stay
+sticky RECOVERY_REQUIRED even if later observations appear settled. Exact source/
+helper identity, ownership-bound cancellation and finite cleanup/observation
+remain required. Caller tests on the designated SSH/WSL host, exact code review,
+operational contexts/current deadlines, six-role admission/checkpoint/RootGO and
+actual fixture effects are PENDING/NOT_RUN. This documentation records completed
+source preparation and outstanding caller prerequisites only; no live expiry,
+final context or qualification result is invented. Parent #440 remains open.
 
 ## Verified Baseline and Target Picture
 
