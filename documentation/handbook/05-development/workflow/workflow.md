@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA81 privileged PID observation VERIFIED_LOCAL; source checkpoint/C8/K8/live acceptance pending; EPIC incomplete
+Status: EXECUTING; TA81 checkpoint published and C8 source gate accepted; native backup/reset scope approved, backup verification and K8/live acceptance pending; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -2246,14 +2246,18 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-06/` with the six issue-com
   ],
   "affected_files": [
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "affected_modules": [
     "existing qualification/lifecycle and evidence"
   ],
   "affected_contracts": [
     "public CLI/evidence/source ownership",
-    "frozen C/K campaign provenance"
+    "frozen C/K campaign provenance",
+    "native approved three-node backup, actual stopped-import usability and separate reset GO"
   ],
   "dependencies": [
     "S440O-05"
@@ -2265,10 +2269,14 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-06/` with the six issue-com
   "file_locks": [
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
-    ".tiny-swarm/evidence/issue-440-open/slice-06/**"
+    ".tiny-swarm/evidence/issue-440-open/slice-06/**",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "contract_locks": [
-    "frozen C/K source and exact approval"
+    "frozen C/K source and exact approval",
+    "native default three-node identity-bound backup/reset campaign"
   ],
   "architecture_locks": [
     "Classic cold-kernel and scoped capability policy"
@@ -2276,7 +2284,10 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-06/` with the six issue-com
   "module_locks": [],
   "shared_files": [
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-qualification.md",
-    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md"
+    "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "shared_infrastructure": [
     "designated SSH/WSL quality host",
@@ -2290,7 +2301,10 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-06/` with the six issue-com
     "documentation/handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md",
     ".tiny-swarm/evidence/issue-440-open/slice-06/**",
     ".codex/evidence/slice-06-distribution.md",
-    ".codex/evidence/slice-06-consolidation.md"
+    ".codex/evidence/slice-06-consolidation.md",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/context-pack.json"
   ],
   "requirement_ids": [
     "P03",
@@ -2307,12 +2321,14 @@ Evidence: `.tiny-swarm/evidence/issue-440-open/slice-06/` with the six issue-com
     ]
   },
   "documentation": {
-    "arc42": "Recheck existing ownership/ADR; record N/A or actual approved delta.",
-    "adr": "No new decision planned; STOP for unapproved policy change."
+    "arc42": "Existing Classic ownership, evidence and explicit-consent boundaries checked; operational scope only, no source change.",
+    "adr": "No new ADR: existing Incus backup/restore and bounded execution; no new provider or process engine."
   },
   "stop_conditions": [
     "Missing exact source, ownership, required verification, recovery proof or approval; no guard weakening.",
-    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result."
+    "Unknown/dirty campaign source, C/K topology mismatch, unsafe pending state or unavailable required external result.",
+    "Any original delete before all three independently accepted actual usable-backup receipts and separate deletion GO",
+    "Private plan/controller differs from reviewed stop/restore order or immutable campaign/recovery budgets"
   ]
 }
 ```
@@ -3779,3 +3795,82 @@ Portainer/component outcome, external quality result or parent DONE is inferred.
 Only the three result/status documents change after this full source run;
 exact designated SSH documentation-policy/diff verification precedes the
 bounded source checkpoint. Source/test blobs remain the tested bytes.
+
+
+## Native Beta backup/reset operational amendment — 2026-11-14
+
+The actual user answer “Ja, sichern und TSW-Testinstallation zurücksetzen”
+finally authorizes backup and conditional reset of these three native `.33`
+`default` instances. Do not request that permission again. All original deletion
+remains conditional on proved usable backups; this amendment grants no step GO.
+
+| Original | Exact UUID | Initial state | Required snapshots |
+|---|---|---|---|
+| swarm-manager | bd159866-55d2-4afd-8629-5156d4445f19 | Running | all nine |
+| swarm-worker-1 | 4c3dfb1b-3535-4cb5-be77-890e47e5b2fd | Running | none |
+| swarm-worker-2 | 102b50d2-49a4-437d-ac15-492392f87664 | Running | none |
+
+Preserve the stopped incident manager UUID
+`0947fe88-8179-484e-a163-a8f704fb20c6`, other projects and shared profiles,
+networks, storage pools, images, host users and unrelated routing. Hyper-V is
+completely excluded. Older native maintenance-only restrictions are superseded
+only for the three approved originals under these backup conditions; other
+preservation and source/phase guards remain. No product source changes.
+
+NB01–NB10 in the private `native-beta-reset-20261114/requirements.md`,
+`plan.md` and `safety-and-handoff.md` map to existing S440O-06 as follows:
+
+| ID | Required actual gate |
+|---|---|
+| NB01 | Fresh exact original UUID/specification CAS before every effect. |
+| NB02 | Full foreign/shared-resource equality with only attributable owned transitions. |
+| NB03 | Prove the sole manager; stop manager first, then workers, gracefully. |
+| NB04 | Cold portable exports of all three, including all nine manager snapshots. |
+| NB05 | Exclusive private archives/configuration/provenance outside deleted nodes. |
+| NB06 | Actual stopped temporary import of each archive; metadata, rootfs/application-data witnesses and all snapshots independently verified. |
+| NB07 | All three usable-backup receipts independently PASS before any original delete; separate exact deletion GO. |
+| NB08 | Settled failure recovery restores workers before manager and proves original state/identity/readiness. |
+| NB09 | Drift, insufficient capacity, unknown operation/child or deadline exhaustion blocks conflicting actions; retain primary results. |
+| NB10 | Rebuild only through separately qualified/admitted C8/K8 public workflow. |
+
+Use one immutable 7,200-second normal campaign deadline, shared by all backup,
+verification, temporary cleanup and reset steps. Clamp each step to its remaining
+allowance; no reset, extension or automatic replay. A separate, independently
+admitted 1,800-second recovery allowance cannot be borrowed by normal work.
+Before effects, align the private plan/controller with the reviewed manager-first
+stop, workers-first restoration and these campaign budgets. Earlier draft order
+or per-step windows do not override this amendment.
+
+Checksums, export exit codes or generated receipt booleans alone never prove
+backup usability. Bind the actual archive path/identity/size/hash, source and
+import UUID/specification, command/process/exit/settlement, all snapshot records,
+protected application-data witnesses and exact temporary cleanup. Never start
+a temporary duplicate Swarm identity. No original delete until all three exact
+accepted receipts and stable retained archives are bound to a separate Root GO.
+Keep backup archives through rebuild and final acceptance. Unknown effects block
+later writers; partial deletion requires exact recovery admission, not overwrite.
+
+Serial S3D continuation: existing S440O-05 source prerequisite → S440O-06 fresh
+identity/capacity/backup admission → actual all-three stopped-import acceptance
+→ separate deletion GO/reset → new clean-default S440O-07 native fixture
+baseline → paired C8 evidence and S440O-08 cap-only K8 admission. Preserve the
+other original dependency metadata. No backward workflow-create call or parallel
+live writer. S06 retains its evidence locks and adds only these three workflow
+documents; no product file is unlocked. Old four-instance/19-service evidence
+cannot be relabeled as the post-reset baseline. Backup/import/reset remain
+NOT_RUN; authoring/review is not an effect or acceptance result.
+
+Current source facts: checkpoint `97b6ef0c05fd5451b68f5e20e644a58c01ea98ee`
+is published. Immutable C8 `c0a689c132073f370eae3ca389c44f17017107f6` has
+independently accepted source-only verification: 55 targeted tests and all seven
+quality stages; 4,162 tests run with 37 declared skips and zero failures/errors.
+Acceptance SHA-256: `63eca217669dd7b34e60bd16aeaeea3874af219751c55fe54a6e8836b21cb198`.
+Both-host C8 source copies have independent SOURCE_COPY_ONLY acceptance
+`109c619fdbaccd5990293848fffce361ce4bd7ac0288b9257e5a355782adbb97`;
+this establishes no fixture, authentication, reset or product result.
+C8 retains embedded workflow provenance `8608ca69d1e7b222f79d62599a81a9f0f510c8c961a8c37ed900bf97ca496833`
+and its then-current external authority `e82987b59d5911dddd674f81b1b2d151141677048155a3923b12c6801ebb13b5`.
+Future operational GO binds this new amendment separately; never edit or
+relabel frozen C8 source/proofs. K8, listener/product live results and parent
+acceptance remain open. Exact designated SSH documentation verification is
+required for this three-file operational amendment; no test was run by its author.

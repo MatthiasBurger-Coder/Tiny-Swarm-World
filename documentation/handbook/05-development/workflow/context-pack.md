@@ -656,3 +656,21 @@ TA81 actual local quality accepted: 55 targeted tests, full seven-stage gate,
 seven import contracts, 1,056 typechecked files. Source/environment/donor guards
 match. Final result-only documentation checks and checkpoint pending. Source
 verification grants no sudo authorization, TTY readiness or live admission.
+
+
+## Current native Beta operational scope — 2026-11-14
+
+User-approved backup/conditional reset of exactly the three native default nodes
+is final. S440O-06 maps private NB01–NB10; manager-first cold stop and workers-first
+restore, one immutable 7,200-second campaign plus independent 1,800-second
+recovery. All three actual stopped temporary imports, including all nine manager
+snapshots and protected data witnesses, require independent usable-backup PASS
+before any original delete and a separate deletion GO. Preserve the incident
+manager, other projects/shared resources and archives. No effects are recorded.
+
+Checkpoint 97b6ef0c is published; exact C8 c0a689c1 source-only gate independently
+accepted: 55 targeted; seven stages; 4,162 tests run/37 declared skips, no
+failures/errors. Embedded C8 provenance and its earlier external authority stay
+immutable; a future GO binds the new operational amendment separately. K8/live/
+parent remain open. Hyper-V fully excluded. Only these three workflow documents
+change; designated SSH documentation verification remains required.

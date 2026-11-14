@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA81_PID_SOURCE_VERIFIED_LOCAL_CHECKPOINT_C8_K8_LIVE_PENDING",
+  "status": "EXECUTING_NATIVE_BETA_BACKUP_RESET_SCOPE_APPROVED_BACKUP_PROOF_PENDING_C8_SOURCE_GATE_ONLY_ACCEPTED",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "9197a8584c2181046a63126791bccdc6ee22fed42b020ea0db96085d8d54d81c",
+    "documentation/handbook/05-development/workflow/context-pack.md": "c8358e450bada698e486f61a72fe9db3fee77f9300afc07cd6e8e3c05b14a5bc",
     "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "7d548bb8fbc40281b643a400b4881a30bfa873ea82d8f59beab89e974056ad77",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "e82987b59d5911dddd674f81b1b2d151141677048155a3923b12c6801ebb13b5"
+    "documentation/handbook/05-development/workflow/workflow.md": "e98ba49bbc1cbc8bfa3a4286b34d9eaaeb1c17a53a1ad02352fa4494cbb1f0c0"
   },
   "slices": [
     "S440O-01",
@@ -358,9 +358,11 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261114-81",
-    "slice_id": "S440O-SS-PID",
-    "state": "LOCAL_SOURCE_GATE_INDEPENDENTLY_ACCEPTED_FINAL_DOC_CHECK_PENDING"
+    "id": "NATIVE-BETA-RESET-20261114",
+    "slice_id": "S440O-06",
+    "state": "OPERATIONAL_SCOPE_APPROVED_NO_STEP_GO_BACKUP_IMPORT_RESET_NOT_RUN",
+    "private_plan": "native-beta-reset-20261114",
+    "source_changes": false
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -1794,7 +1796,7 @@
     "native_pid_gap": "CONFIRMED_18_ENDPOINTS_ZERO_ORDINARY_PIDS_ONE_ROOT_PID_EACH",
     "exact_sudo_read_authorization": "CURRENTLY_MISSING_ON_BOTH_HOSTS",
     "product_auth_policy_changes": false,
-    "C8": "HELD_PENDING_SOURCE_CORRECTION_AND_GATES",
+    "C8": "FROZEN_SOURCE_GATE_INDEPENDENTLY_ACCEPTED_K8_LIVE_PENDING",
     "hyperV": "COMPLETELY_EXCLUDED",
     "parent": "INCOMPLETE",
     "sudo_login_session": "REUSE_EXISTING_FLAG_EXACT_NONINTERACTIVE_PREFIX_ONLY_NO_AUTHORITY_GRANT",
@@ -1811,6 +1813,73 @@
       "full_test_seconds": 344.822
     },
     "quality_acceptance_sha256": "d4d9e5d851fb25bf27fdcba9380662089480deb122c4d5d16a342aa40515cf79",
-    "post_gate_doc_only": "REQUIRES_DESIGNATED_SSH_POLICY_DIFF"
+    "post_gate_doc_only": "PASS_EXACT_SSH_POLICY_DIFF_V2_21_HASHES",
+    "checkpoint": "97b6ef0c05fd5451b68f5e20e644a58c01ea98ee"
+  },
+  "TA81_consultation_history": {
+    "id": "TA440-20261114-81",
+    "slice_id": "S440O-SS-PID",
+    "state": "LOCAL_SOURCE_GATE_INDEPENDENTLY_ACCEPTED_FINAL_DOC_CHECK_PENDING"
+  },
+  "C8_source_acceptance": {
+    "commit": "c0a689c132073f370eae3ca389c44f17017107f6",
+    "tree": "4e2c59e94435e05fbc3dab909be4841d81ad9614",
+    "source_entries": 1811,
+    "mode_manifest_sha256": "ce19afe50e739afd47677228cd622cb734527849636146f4e986330653241efb",
+    "acceptance_sha256": "63eca217669dd7b34e60bd16aeaeea3874af219751c55fe54a6e8836b21cb198",
+    "decision": "PASS_C8_IMMUTABLE_SOURCE_GATE_ONLY",
+    "targeted_tests": 55,
+    "full_tests_run": 4162,
+    "declared_skips": 37,
+    "quality_stages_passed": 7,
+    "failures": 0,
+    "errors": 0,
+    "embedded_workflow_sha256": "8608ca69d1e7b222f79d62599a81a9f0f510c8c961a8c37ed900bf97ca496833",
+    "frozen_external_authority_sha256": "e82987b59d5911dddd674f81b1b2d151141677048155a3923b12c6801ebb13b5",
+    "live_K8_parent": "OPEN_NOT_INFERRED"
+  },
+  "native_beta_reset": {
+    "scope": "S440O-06_OPERATIONAL_AMENDMENT_NO_SOURCE_CHANGE",
+    "user_answer": "Ja, sichern und TSW-Testinstallation zur\u00fccksetzen",
+    "consent": "RESOLVED_NO_REPEAT_QUESTION_CONDITIONAL_ON_USABLE_BACKUPS",
+    "host": "192.168.178.33",
+    "project": "default",
+    "originals": {
+      "swarm-manager": "bd159866-55d2-4afd-8629-5156d4445f19",
+      "swarm-worker-1": "4c3dfb1b-3535-4cb5-be77-890e47e5b2fd",
+      "swarm-worker-2": "102b50d2-49a4-437d-ac15-492392f87664"
+    },
+    "initial_states": "THREE_RUNNING",
+    "manager_snapshots_required": 9,
+    "protected_incident_uuid": "0947fe88-8179-484e-a163-a8f704fb20c6",
+    "private_plan": "native-beta-reset-20261114",
+    "requirements": [
+      "NB01",
+      "NB02",
+      "NB03",
+      "NB04",
+      "NB05",
+      "NB06",
+      "NB07",
+      "NB08",
+      "NB09",
+      "NB10"
+    ],
+    "normal_campaign_seconds": 7200,
+    "normal_deadline": "ONE_IMMUTABLE_NO_RESET_EXTENSION_OR_REPLAY",
+    "separate_recovery_seconds": 1800,
+    "stop_order": "SOLE_MANAGER_PROOF_THEN_MANAGER_FIRST_THEN_WORKERS",
+    "restore_order": "WORKERS_BEFORE_MANAGER",
+    "delete_gate": "ALL_THREE_ACTUAL_STOPPED_TEMP_IMPORT_USABLE_BACKUPS_INDEPENDENT_PASS_THEN_SEPARATE_EXACT_ROOT_DELETE_GO",
+    "archive_binding": "EXACT_PATH_IDENTITY_SIZE_HASH_SOURCE_IMPORT_PROCESS_EXIT_SETTLEMENT_SNAPSHOTS_DATA_WITNESSES",
+    "backup_import_reset": "NOT_RUN",
+    "private_plan_alignment": "REQUIRED_BEFORE_ANY_EFFECT_GO",
+    "foreign_shared_resources": "PRESERVE",
+    "post_reset_baseline": "NEW_CLEAN_DEFAULT_NO_RELABELED_OLD_19_SERVICE_BASELINE",
+    "serial_s3d": "S05_TO_S06_BACKUP_ACCEPTANCE_TO_SEPARATE_DELETE_GO_TO_NEW_S07_BASELINE_TO_S08_K8",
+    "hyperV": "COMPLETELY_EXCLUDED",
+    "K8_live_parent": "OPEN",
+    "doc_verification": "REQUIRED_DESIGNATED_SSH_NOT_RUN_BY_AUTHOR",
+    "operational_workflow_sha256": "e98ba49bbc1cbc8bfa3a4286b34d9eaaeb1c17a53a1ad02352fa4494cbb1f0c0"
   }
 }
