@@ -666,7 +666,8 @@ restore, one immutable 7,200-second campaign plus independent 1,800-second
 recovery. All three actual stopped temporary imports, including all nine manager
 snapshots and protected data witnesses, require independent usable-backup PASS
 before any original delete and a separate deletion GO. Preserve the incident
-manager, other projects/shared resources and archives. No effects are recorded.
+manager, other projects/shared resources and archives. No effects were recorded
+at that checkpoint; see the actual recovery continuation below.
 
 Checkpoint 97b6ef0c is published; exact C8 c0a689c1 source-only gate independently
 accepted: 55 targeted; seven stages; 4,162 tests run/37 declared skips, no
@@ -674,3 +675,23 @@ failures/errors. Embedded C8 provenance and its earlier external authority stay
 immutable; a future GO binds the new operational amendment separately. K8/live/
 parent remain open. Hyper-V fully excluded. Only these three workflow documents
 change; designated SSH documentation verification remains required.
+
+Actual continuation: the original 7,200-second campaign expired during the
+manager export. Its timeout is retained; a stable 120,205,640,192-byte candidate
+and a 2,024,110,080-byte Worker 1 candidate remain unverified. Worker 2 was not
+exported. All three originals were independently confirmed Running/Ready with
+the original manager as leader within the separate recovery window. Recovery
+acceptance: `90f6d172dfae111a5d18426074286afecb0edb14e05723ab153d95e84683d477`.
+No original was deleted and no reset occurred.
+
+A new, separately reviewed Worker 1-only archive qualification is proposed:
+full cold-epoch archive parsing, an owned Stopped temporary import, actual
+filesystem and provider/AUX comparison, and exact temporary cleanup while the
+originals remain Running. It does not renew the old deadline or permit original
+deletion. A reviewed executor, fresh observations, finite deadline and cleanup
+reserve, and effect-specific Root GO are still required; missing actual proof
+remains NOT_VERIFIED. Archive-derived comparison does not prove source-byte
+equality; any change to that earlier witness requirement needs separate
+evidence-policy approval. All three accepted usable backups remain mandatory.
+The codec's 38 SSH/WSL synthetic tests and the real WSL sudo/read/cleanup pilot
+do not constitute actual backup, fixture, paired capability or EPIC acceptance.

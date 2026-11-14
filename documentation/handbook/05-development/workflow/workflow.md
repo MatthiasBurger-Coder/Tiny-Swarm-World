@@ -3857,8 +3857,9 @@ baseline → paired C8 evidence and S440O-08 cap-only K8 admission. Preserve the
 other original dependency metadata. No backward workflow-create call or parallel
 live writer. S06 retains its evidence locks and adds only these three workflow
 documents; no product file is unlocked. Old four-instance/19-service evidence
-cannot be relabeled as the post-reset baseline. Backup/import/reset remain
-NOT_RUN; authoring/review is not an effect or acceptance result.
+cannot be relabeled as the post-reset baseline. At the amendment checkpoint,
+backup/import/reset were NOT_RUN; the later actual results are recorded below.
+Authoring/review is not an effect or acceptance result.
 
 Current source facts: checkpoint `97b6ef0c05fd5451b68f5e20e644a58c01ea98ee`
 is published. Immutable C8 `c0a689c132073f370eae3ca389c44f17017107f6` has
@@ -3874,3 +3875,40 @@ Future operational GO binds this new amendment separately; never edit or
 relabel frozen C8 source/proofs. K8, listener/product live results and parent
 acceptance remain open. Exact designated SSH documentation verification is
 required for this three-file operational amendment; no test was run by its author.
+
+## Native recovery and proposed standalone archive qualification — 2026-11-14
+
+The original 7,200-second campaign expired. The manager export's primary result
+remains `TimeoutExpired` with no exit code; its process and provider operations
+subsequently settled, and a 120,205,640,192-byte archive candidate was retained.
+Worker 1 produced a 2,024,110,080-byte candidate; worker 2 was not exported.
+Neither candidate is an accepted usable backup. No original was deleted.
+
+Within the original separate recovery window, the original workers and manager
+were started in that order. Actual independent evidence confirms all three
+original UUIDs and Swarm IDs are Running/Ready, with the original manager as
+reachable leader; snapshot metadata, protected routes and foreign resources
+match the admitted baseline. Recovery acceptance SHA-256:
+`90f6d172dfae111a5d18426074286afecb0edb14e05723ab153d95e84683d477`.
+The original timeout, pre-effect freshness refusal and failed read probe remain
+recorded. No reset, native fixture or product-update acceptance is inferred.
+
+A separately reviewed, bounded Worker 1 archive qualification is proposed after
+that completed recovery. It would parse the retained cold-epoch archive and
+import it under a unique owned name that must stay Stopped, compare actual data
+and provider metadata, then remove only that exact temporary instance. The three
+originals remain Running. It cannot stop or delete originals, extend or replay
+the expired campaign, or authorize a reset. Actual source, independent tests,
+fresh identity/space/foreign-resource observations, effect-specific Root GO,
+settlement and a reserved cleanup window remain prerequisites. Missing provider
+or auxiliary proofs yield NOT_VERIFIED. The proposed archive-derived witness
+does not prove source-byte equality and would require a separately approved
+evidence-policy change accepting the vendor export completeness boundary before
+it could supersede any earlier witness requirement. All three independently
+accepted usable backups and a separate deletion GO remain mandatory. This
+proposal grants no effect GO.
+
+The private archive codec passed 38 synthetic tests on the designated SSH/WSL
+test host; this is not actual archive or import acceptance. The separately
+accepted WSL sudo/read/cleanup pilot proves only that mechanism; no positive
+listener attribution, paired capability, K8, product or EPIC acceptance follows.
