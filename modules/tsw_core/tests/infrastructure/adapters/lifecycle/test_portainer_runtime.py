@@ -1,11 +1,14 @@
 """Mocked integration of orchestration, cold backup, manager runtime and gateway API."""
 from modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_installation_operation_lock import FakeInstallationLock
 import json
+import asyncio
+from contextlib import contextmanager
+import threading
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from modules.tsw_core.tests.domain.lifecycle.test_update_planning import update_fixture
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
@@ -94,6 +97,63 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         payload = {} if method == 'PUT' else data[path]
         return SimpleNamespace(json=lambda: payload, status_code=200)
 
+    async def cancellation_retains_authority(self, *, worker_error):
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
+        lock = JsonInstallationOperationLock(self.root)
+        self.service.operation_lock = lock
+        leases = []
+        original_exclusive = lock.exclusive
+        @contextmanager
+        def observed(operation, *, lease=None):
+            with original_exclusive(operation, lease=lease) as admitted:
+                leases.append(admitted)
+                yield admitted
+        entered, release, finished = threading.Event(), threading.Event(), threading.Event()
+        def worker(checkpoint):
+            del checkpoint
+            entered.set()
+            try:
+                if not release.wait(5):
+                    raise AssertionError('fixture worker did not receive release')
+                if worker_error:
+                    raise ValueError('synthetic worker failure')
+            finally:
+                finished.set()
+        manifest_before = self.manifests.load().token
+        with patch.object(lock, 'exclusive', side_effect=observed), patch.object(self.runtime, '_upgrade', side_effect=worker):
+            task = asyncio.create_task(self.service.run(target=None, consent=LiveConsent(True, confirmed=True)))
+            try:
+                self.assertTrue(await asyncio.to_thread(entered.wait, 5))
+                for _ in range(2):
+                    task.cancel()
+                    await asyncio.sleep(0)
+                    self.assertFalse(task.done())
+                    self.assertFalse(finished.is_set())
+                    leases[0].require_active()
+                    with self.assertRaises(LifecycleStateError):
+                        with JsonInstallationOperationLock(self.root).exclusive('component-update'):
+                            self.fail('competing installation mutation acquired authority')
+                    with self.assertRaises(LifecycleStateError):
+                        with self.journal.exclusive():
+                            self.fail('competing gateway journal acquired authority')
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        self.assertTrue(finished.is_set())
+        with self.assertRaises(LifecycleStateError):
+            leases[0].require_active()
+        with JsonInstallationOperationLock(self.root).exclusive('component-update'):
+            pass
+        self.assertEqual(self.journal.load().stage, 'upgrading')
+        self.assertEqual(self.manifests.load().token, manifest_before)
+
+    async def test_repeated_cancellation_retains_real_installation_and_journal_locks_until_worker_settles(self):
+        await self.cancellation_retains_authority(worker_error=False)
+
+    async def test_cancelled_worker_failure_cannot_release_early_or_mask_cancellation_with_commit(self):
+        await self.cancellation_retains_authority(worker_error=True)
+
     async def test_end_to_end_mock_upgrade_and_repeat_noop(self):
         result = await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
         self.assertEqual(result['status'], 'completed')
@@ -126,6 +186,12 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any('failed-state.XXXXXX' in item and 'mv -t' in item for item in self.commands))
         self.assertFalse(any('rm -' in item for item in self.commands))
         self.assertEqual(self.journal.load().stage, 'recovered')
+        commands = len(self.commands)
+        updates = len([item for item in self.http_calls if item[0] == 'PUT'])
+        repeated = await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
+        self.assertEqual(repeated['status'], 'no_op')
+        self.assertFalse(any('tar -xpf' in item or 'docker service update' in item for item in self.commands[commands:]))
+        self.assertEqual(len([item for item in self.http_calls if item[0] == 'PUT']), updates)
 
     async def test_tampered_backup_blocks_restore_before_scale_or_images(self):
         self.fail_command = 'docker service update'
@@ -137,6 +203,89 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(LifecycleStateError):
             await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
         self.assertFalse(any('docker service scale' in item or 'docker service update' in item for item in self.commands[start:]))
+
+    async def test_owned_api_down_fault_has_up_backup_before_stop_then_public_recovery_and_repeat(self):
+        from contextlib import redirect_stdout
+        import io
+        from modules.tsw_core.tools.linux.qualification.product_upgrade_cases import api_fault_steps
+        from tiny_swarm_world.__main__ import main as public_main
+        from tiny_swarm_world.infrastructure.adapters.cli import component_updates
+        with patch.object(self.runtime, '_verify', side_effect=LifecycleStateError('retain target before commit')):
+            with self.assertRaises(LifecycleStateError):
+                await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
+        checkpoint = self.journal.load()
+        self.assertEqual(checkpoint.stage, 'upgrading')
+        self.assertEqual(self.version, '2.45.1')
+        records = []
+        def save(value):
+            self.assertEqual(self.replicas, 1)
+            self.assertTrue(value['api_up'])
+            self.assertTrue(any('state.tar ./portainer.db' in command for command in self.commands))
+            records.append(value)
+        def down():
+            self.assertEqual(self.replicas, 0)
+            self.api_unavailable = True
+            return True
+        proof = await self.runtime._stage(api_fault_steps, self.runtime, checkpoint, lambda: None, save, down)
+        self.assertEqual(proof['status'], 'UPGRADE_API_DOWN_VERIFIED')
+        self.assertEqual(len(records), 1)
+        self.assertTrue(self.api_unavailable)
+        restore_start = len(self.commands)
+        http_start = len(self.http_calls)
+        lifecycle = SimpleNamespace(manifests=self.manifests, catalog=Mock())
+        args = ['services', 'update', '--services', 'portainer', '--recover', '--live', '--approve-live', '--json']
+        async def public_recover():
+            output = io.StringIO()
+            with patch.object(component_updates, 'build_installation_lifecycle_service', return_value=lifecycle), \
+                    patch.object(component_updates, 'build_portainer_upgrade', return_value=self.service) as compose, \
+                    redirect_stdout(output):
+                self.assertIsNone(await public_main(args))
+            compose.assert_called_once()
+            self.assertIs(compose.call_args.args[0], lifecycle)
+            return json.loads(output.getvalue())
+        result = await public_recover()
+        self.assertEqual(result['status'], 'recovered')
+        self.assertEqual(self.version, '2.45.0')
+        self.assertGreater(len(self.http_calls), http_start)
+        self.assertTrue(any('failed-state.XXXXXX' in item for item in self.commands[restore_start:]))
+        restored = len(self.commands)
+        puts = len([item for item in self.http_calls if item[0] == 'PUT'])
+        repeated = await public_recover()
+        self.assertEqual(repeated['status'], 'no_op')
+        self.assertEqual(len([item for item in self.http_calls if item[0] == 'PUT']), puts)
+        self.assertFalse(any('tar -xpf' in item or 'docker service update' in item for item in self.commands[restored:]))
+
+    async def test_api_fault_bad_backup_missing_up_and_nonrefused_transport_cannot_qualify(self):
+        from modules.tsw_core.tools.linux.qualification.product_upgrade_cases import api_fault_steps, UpgradeError
+        with patch.object(self.runtime, '_verify', side_effect=LifecycleStateError('retain target')):
+            with self.assertRaises(LifecycleStateError):
+                await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
+        checkpoint = self.journal.load()
+        self.backup_digest = 'b' * 64
+        save = Mock()
+        start = len(self.commands)
+        with self.assertRaises(LifecycleStateError):
+            api_fault_steps(self.runtime, checkpoint, lambda: None, save, lambda: True)
+        save.assert_not_called()
+        self.assertFalse(any('docker service scale' in item for item in self.commands[start:]))
+        self.backup_digest = 'a' * 64
+        self.fail_command = 'state.tar ./portainer.db'
+        start = len(self.commands)
+        with self.assertRaises(LifecycleStateError):
+            api_fault_steps(self.runtime, checkpoint, lambda: None, save, lambda: True)
+        save.assert_not_called()
+        self.assertFalse(any('docker service scale' in item for item in self.commands[start:]))
+        self.fail_command = None
+        self.api_unavailable = True
+        start = len(self.commands)
+        with self.assertRaises(LifecycleStateError):
+            api_fault_steps(self.runtime, checkpoint, lambda: None, save, lambda: True)
+        save.assert_not_called()
+        self.assertFalse(any('docker service scale' in item for item in self.commands[start:]))
+        self.api_unavailable = False
+        with self.assertRaisesRegex(UpgradeError, 'API_DOWN_UNPROVEN'):
+            api_fault_steps(self.runtime, checkpoint, lambda: None, save, lambda: False)
+        self.assertEqual(save.call_count, 1)
 
     async def test_backup_failure_restarts_unchanged_source_and_never_updates_images(self):
         self.fail_command = 'tar -cpf'
@@ -198,6 +347,27 @@ class PortainerRuntimeIntegrationTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(LifecycleStateError):
             await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
         self.assertFalse(any('docker service scale' in item or 'tar -xpf' in item for item in self.commands[start:]))
+
+    async def test_recovery_decline_missing_and_other_installation_checkpoint_never_mutate_runtime(self):
+        token = self.manifests.load().token
+        refused = await self.service.run(target=None, consent=LiveConsent(False, confirmed=False), recovery=True)
+        self.assertEqual(refused['status'], 'refused')
+        self.assertFalse(self.commands or self.http_calls)
+        with self.assertRaisesRegex(LifecycleStateError, 'No Portainer operation'):
+            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
+        self.assertFalse(self.commands or self.http_calls)
+        self.fail_command = 'docker service update'
+        with self.assertRaises(LifecycleStateError):
+            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True))
+        self.fail_command = None
+        checkpoint = self.journal.load()
+        foreign = checkpoint.original.model_copy(update={'installation_id': '22222222-2222-4222-8222-222222222222'})
+        self.journal.save(checkpoint.model_copy(update={'original': foreign}))
+        count, http = len(self.commands), len(self.http_calls)
+        with self.assertRaises(LifecycleStateError):
+            await self.service.run(target=None, consent=LiveConsent(True, confirmed=True), recovery=True)
+        self.assertEqual((len(self.commands), len(self.http_calls)), (count, http))
+        self.assertEqual(self.manifests.load().token, token)
 
     async def test_unreadable_proof_definition_blocks_before_backup(self):
         original = self.request

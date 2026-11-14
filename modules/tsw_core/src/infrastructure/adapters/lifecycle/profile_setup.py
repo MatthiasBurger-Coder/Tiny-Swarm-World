@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.installation_profile import InstallationProfileService, admit, admitted_matrix
@@ -12,21 +13,19 @@ from tiny_swarm_world.domain.lifecycle.profile_lifecycle import ManagerCreateInt
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.domain.preflight.setup_manifest import default_setup_manifest
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command import AsyncLxcNodeCommandRunner
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.command_policy import SOURCE_ERROR as _ERROR
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle import IncusProfileLifecycleRuntime, _ENV
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.observations import client_versions
 from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import JsonProfileLifecycleJournal
 from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository import IncusProfileCapabilityRepository
 
-_ERROR = 'Scoped setup requires the original clean source, admitted local image and exact original profile operation.'
-_GIT_ENV = ('/usr/bin/env', '-i', 'LC_ALL=C', 'PATH=/usr/sbin:/usr/bin:/sbin:/bin',
-            'GIT_CONFIG_NOSYSTEM=1', 'GIT_CONFIG_GLOBAL=/dev/null', '/usr/bin/git')
-
-
 async def prepare_profile_operation(state, config, setup_manifest, consent, lease, *, recovery=False, listen_address='0.0.0.0'):
     lease.require_active()
     root = state.root
-    service = InstallationProfileService(IncusProfileCapabilityRepository(root),
-        IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner()).for_preparation(lease), JsonProfileLifecycleJournal(root),
+    capabilities = IncusProfileCapabilityRepository(root)
+    service = InstallationProfileService(capabilities,
+        IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner(), capabilities=capabilities).for_preparation(lease),
+        JsonProfileLifecycleJournal(root),
         state.lifecycle.manifests, state.lifecycle.operation_lock)
     matrix = admitted_matrix(service.capabilities, consent)
     retained = service.journal.load()
@@ -107,26 +106,8 @@ async def local_image(runtime, alias):
     return row['target']
 
 
-async def clean_source_revision(runtime, root):
-    prefix = (*_GIT_ENV, '-C', str(root), '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null')
-    raw = await runtime.run((*prefix, 'config', '--list', '--null', '--includes'))
-    suppress = []
-    for record in raw.split('\0'):
-        key = record.partition('\n')[0]
-        if key.startswith('filter.'):
-            if re.fullmatch(r'filter\.[A-Za-z0-9_.-]{1,128}\.(clean|smudge|process|required)', key) is None:
-                raise LifecycleStateError(_ERROR)
-            suppress.extend(('-c', key + ('=false' if key.endswith('.required') else '=')))
-    top = (await runtime.run((*prefix, 'rev-parse', '--show-toplevel'))).strip()
-    tracked = await runtime.run((*prefix, 'ls-files', '-v', '-z'))
-    if top != str(root) or not tracked or any(record and not record.startswith('H ') for record in tracked.split('\0')):
-        raise LifecycleStateError(_ERROR)
-    revision = (await runtime.run((*prefix, 'rev-parse', '--verify', 'HEAD'))).strip()
-    if re.fullmatch('[0-9a-f]{40}', revision) is None:
-        raise LifecycleStateError(_ERROR)
-    if await runtime.run((*prefix, *suppress, 'status', '--porcelain=v1', '--untracked-files=normal')):
-        raise LifecycleStateError(_ERROR)
-    return revision
+async def clean_source_revision(runtime: IncusProfileLifecycleRuntime, root: Path) -> str:
+    return await runtime.clean_source_revision(root)
 
 
 
@@ -136,7 +117,8 @@ async def for_runtime(root, lifecycle, lease, kind, consent):
     from tiny_swarm_world.domain.lifecycle.profile_lifecycle import ProfileRuntimeIntent
 
     lease.require_active()
-    admitted_matrix(IncusProfileCapabilityRepository(root), consent)
+    capabilities = IncusProfileCapabilityRepository(root)
+    admitted_matrix(capabilities, consent)
     if kind not in {'component-update', 'product-upgrade', 'portainer-upgrade', 'recovery'}:
         raise LifecycleStateError(_ERROR)
     snapshot = lifecycle.manifests.load()
@@ -148,7 +130,7 @@ async def for_runtime(root, lifecycle, lease, kind, consent):
         raise LifecycleStateError(_ERROR)
     from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_change import current_evidence
     template, _, _ = current_evidence(root, manifest)
-    runtime = IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner()).for_preparation(lease)
+    runtime = IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner(), capabilities=capabilities).for_preparation(lease)
     revision = await clean_source_revision(runtime, root)
     profile = InstallationProfileIntent(operation_id=lease.operation_id, operation_kind=kind,
         installation_id=manifest.installation_id, controller_revision=revision,
@@ -159,7 +141,7 @@ async def for_runtime(root, lifecycle, lease, kind, consent):
         profile=manifest.installation_profile, stage='completed')
     intent = ProfileRuntimeIntent(profile=profile, original=template,
         planned_stack_owners={name: owner.owner for name, owner in manifest.effective_stack_ownership().items()})
-    service = InstallationProfileService(IncusProfileCapabilityRepository(root),
+    service = InstallationProfileService(capabilities,
         runtime.for_operation(lease, template), journal, lifecycle.manifests, lifecycle.operation_lock)
     operation = ProfileRuntimeOperation(service, intent, lease, snapshot.token, consent)
     await operation.admit_runtime()

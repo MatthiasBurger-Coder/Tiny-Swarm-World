@@ -46,6 +46,22 @@ class ProfileIntentTests(unittest.TestCase):
         self.assertTrue(admitted_fixture().admits('6.0.5', '6.0.5'))
         self.assertFalse(admitted_fixture().admits('6.0.5', '6.0.6'))
 
+    def test_empty_c_and_explicit_k_keep_exact_client_server_and_source_contracts(self):
+        empty = ProfileCapabilityMatrix(schema_version=1, admitted_versions=())
+        admitted = admitted_fixture()
+        versions = ('6.0.5', '6.0.4', '6.0.6', '6.0', '6.0.5-8', 'Client version: 6.0.5', 'unknown')
+        for client in versions:
+            for server in versions:
+                with self.subTest(client=client, server=server):
+                    self.assertFalse(empty.admits(client, server))
+                    self.assertEqual(admitted.admits(client, server), (client, server) == ('6.0.5', '6.0.5'))
+        entry = admitted.admitted_versions[0]
+        self.assertEqual((entry.fixture_source_revision, entry.fixture_sha256), ('c' * 40, 'd' * 64))
+        raw = admitted.model_dump(mode='json')
+        raw['admitted_versions'].append(dict(raw['admitted_versions'][0]))
+        with self.assertRaises(ValueError):
+            ProfileCapabilityMatrix.model_validate_json(json.dumps(raw))
+
     def test_shared_profile_unknown_fields_bad_routes_and_coerced_resources_refuse(self):
         original = intent_fixture().model_dump(mode='json')
         mutations: tuple[dict[str, object], ...] = (

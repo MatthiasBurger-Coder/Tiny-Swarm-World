@@ -26,6 +26,8 @@ from tiny_swarm_world.domain.lifecycle.models import InstallationProfileBinding,
 from tiny_swarm_world.domain.lifecycle.profile_lifecycle import ManagerCreateIntent
 from tiny_swarm_world.domain.lifecycle.selection import plan_selection
 from tiny_swarm_world.domain.preflight import LiveConsent, default_setup_manifest
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command import LxcNodeCommandResult
+from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle import IncusProfileLifecycleRuntime
 from tiny_swarm_world.infrastructure.adapters.clients.portainer_http_client import PortainerHttpClient
 from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
 from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
@@ -345,17 +347,19 @@ class ManagedStackDeliveryTests(unittest.IsolatedAsyncioTestCase):
         intent = checkpoint.intent
         root = self.root
         class GitTransport:
-            async def run(self, args):
+            async def run(self, args, timeout_seconds):
                 if '/usr/bin/git' not in args:
                     raise AssertionError('Unexpected source transport.')
                 if '--show-toplevel' in args:
-                    return str(root) + '\n'
+                    return LxcNodeCommandResult(0, str(root) + '\n')
                 if 'ls-files' in args:
-                    return 'H src/tracked.py\0'
+                    if '--stage' not in args:
+                        raise AssertionError('Expected staged Git file metadata.')
+                    return LxcNodeCommandResult(0, f'H 100644 {"a" * 40} 0\tsrc/tracked.py\0')
                 if '--verify' in args:
-                    return intent.profile.controller_revision + '\n'
-                return ''
-        runtime = SimpleNamespace(for_preparation=lambda lease: GitTransport(),
+                    return LxcNodeCommandResult(0, intent.profile.controller_revision + '\n')
+                return LxcNodeCommandResult(0, '')
+        runtime = SimpleNamespace(for_preparation=IncusProfileLifecycleRuntime(GitTransport()).for_preparation,
                                   for_operation=self.runtime.for_operation)
         args = parse_args(['setup', 'run', '--recover', '--live', '--approve-live', '--json'])
         with patch.dict(os.environ, {'TSW_REPOSITORY_ROOT': str(self.root),

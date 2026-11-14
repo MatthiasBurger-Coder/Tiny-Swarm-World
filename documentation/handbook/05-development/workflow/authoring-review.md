@@ -1,60 +1,41 @@
-# ARCH-03.12 authoring review
+# Four-role authoring gate
 
-## Four-role requirement gate
+Decision: READY_FOR_WORKFLOW; confidence95percent; FULL_PATH.
+Process: workflow create. Branch: docs/workflow-issue440-open-20261111. Baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
+Original request: create a workflow for the remaining #440 points.
 
-- Senior Requirement Engineer: READY_FOR_WORKFLOW; issue #355 and parent #313 verified; fifteen requirements and all lifecycle families represented; #356 owns new resilience behavior.
-- Senior System Architect: ready for authoring; shared port contract avoids ports-to-services imports; proposed ADR requires acceptance before product implementation.
-- Senior Python Automation Developer: feasible at verified seams; preserve adapter failure classification, update recovery convergence and existing result/exit contracts.
-- Senior Tester: ready for authoring; mocked failure mapping, partial/recovery, cancellation and compatibility tests required.
-- Console/status UI reviewer: human-readable default and explicit JSON opt-in; preserve statuses, safe guidance, installer child/124/130 exits and setup summary data.
+Four real read-only Codex subagents contributed; no same-author role fiction:
 
-Dependency/deadlock review: linear seven-slice chain, no cycle. Shared contracts and
-aggregate evidence make default implementation serial. No write agents were used.
+| Role | Agent | Decision / required refinement |
+|---|---|---|
+| Senior Requirement Engineer | open_requirements | READY; preserve47LCM/15parent/45childAC/late/global and historicalP01; source acquisition first; no live consent inferred |
+| Senior System Architect | open_architecture | READY; no new ADR under existing policy; all helper/policy edits before C/preparation; only capability-only childK; real restoration before downtime |
+| Senior Python Automation Developer | open_python | READY; add explicit product and SIGINT/API-down producer/reporter implementation locks; canonical core source, native wrappers only |
+| Senior Tester | open_testing | READY; historical18/4058not a new-branch/live PASS; designated SSH/WSL, exact source; PR authorization before actual Sonar |
 
-## Baseline verification
+Root integrated those constraints in14 ordered slices. No product code,
+configuration, CI, ADR or live state changes occur during authoring. Original
+uncommitted repair and its evidence stay in the original workspace. The clean
+new branch publishes only the regenerated planning files, not runtime fixes.
 
-Senior Tester executed:
-`PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.test_classic_update_cli modules.tsw_core.tests.infrastructure.adapters.ui.test_command_runner_ui_failure_semantics modules.tsw_core.tests.application.services.platform.test_classic_update_workflow`
-Result: PASS, 47 tests. Expected negative-fixture errors/logs were emitted.
-These tests establish baseline compatibility only, not #355 implementation.
+arc42 checked: existing building blocks, runtime/deployment and accepted Classic
+lifecycle/scoped profile ADRs. No decision change; actual implementation deltas
+reopen appropriate review. Console review only if future CLI output changes;
+no browser frontend scope. Same-host writes/effects serialize, independent
+read-only role reviews may run concurrently.
 
-## Authoring validation
+Authoring checks: complete metadata/DAG/locks, paths, all requirement IDs, source
+hashes, catalogue links and git diff --check. Full Python quality NOT_RUN_DOC_ONLY
+for this plan. Historical repair evidence is explicitly bounded. Published
+commit/push identity is recorded after reviewed authoring publication; no PR,
+merge, issue mutation or cleanup is authorized.
 
-Final draft review: PASS from all four required roles. Review corrections applied:
+Final specialist corrections incorporated: late/global owner remapping and
+historical Sonar wording;05/12 policy-contract test locks preserving fixed
+candidate-denial assertions;02 explicit tested fixture-restored→product-window
+re-entry before freeze;09 admitted K rather than structurally accepted C.
 
-- A legacy blocked result may follow mutation; preserve confirmed and uncertain effects.
-- Slice 01 requires static inventory evidence, not out-of-scope new tests.
-- Configuration adapter/port and platform preflight seams are explicitly scoped.
-- Adapter migration preserves old exception catches at every intermediate checkpoint.
-- Cancellation propagation retains existing entrypoint exit mappings.
-
-Metadata validation: PASS for seven complete slice schemas, acyclic dependencies,
-all existing/proposed paths, targeted test module paths and local document links.
-`git diff --check`: PASS. Full local quality rerun: PASS (exit 0).
-
-The first `python3 tools/quality_gate.py quality` attempt exited 120 while writing
-its log because `/tmp` was full (100 percent). Classified BUILD_FAILURE due to
-host temporary storage, not an observed product assertion failure. Retry 1 uses
-`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality` on an
-available filesystem; no product, test or quality-policy changes were made.
-
-The completed #352 arc42 matrix link is pinned to the baseline commit to preserve
-historical traceability after full active-workflow regeneration.
-
-Product implementation NOT STARTED. Live installation, browser and external
-results are not claimed. Publication is the workflow-authoring commit and branch
-push only, as authorized by root AGENTS.md and workflow-authoring.
-
-## Final local quality result
-
-`TMPDIR=/home/micro/.cache/issue355-tmp python3 tools/quality_gate.py quality`: PASS.
-Verification-policy, lint, arch-lint, 26 architecture tests, typecheck (693 source
-files) and full test suite all passed. Full suite: 2179 tests in 247.407 seconds,
-18 skipped. Skipped cases are not claimed as verified. The local log is
-`/home/micro/.cache/issue355-quality.log` (not committed). Installer completion
-messages in this log are synthetic test fixtures, not live installation evidence.
-
-Commit scope review: only regenerated workflow documents, proposed ADR, planned
-arc42 analysis and historical #352 link correction. No product/test/config change.
-Publication target: `origin/architecture/workflow-355-operation-results-20260926`.
-The final response records the actual publication SHA and remote-ref verification.
+Final read-back: open_requirements ACCEPT (47LCM/15parent/45child plus late/global
+owners); open_architecture ACCEPT (re-entry/C-preparation/K-admission sequence);
+open_python ACCEPT (policy/capability test scope and canonical source paths).
+These verdicts accept authoring only, not execution or Epic completion.

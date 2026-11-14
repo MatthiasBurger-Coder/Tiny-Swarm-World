@@ -15,11 +15,19 @@ def normalized(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def stable_links(links: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """DHCP/SLAAC lifetimes count down without changing the approved topology."""
-    return [{**link, "addr_info": [{key: value for key, value in address.items()
-                                    if key not in {"valid_life_time", "preferred_life_time"}}
-                                   for address in link.get("addr_info", [])]}
-            for link in links]
+    """Address lifetimes and bridge GC countdowns do not change approved topology."""
+    observed = [{**link, "addr_info": [{key: value for key, value in address.items()
+                                      if key not in {"valid_life_time", "preferred_life_time"}}
+                                     for address in link.get("addr_info", [])]}
+                for link in links]
+    for link in observed:
+        info = link.get("linkinfo")
+        if isinstance(info, dict) and info.get("info_kind") == "bridge":
+            data = info.get("info_data")
+            if isinstance(data, dict):
+                link["linkinfo"] = {**info, "info_data": {key: value for key, value in data.items()
+                                                       if key != "gc_timer"}}
+    return observed
 
 
 async def preserved_inventory(before: dict[str, Any], action: IncusAction) -> dict[str, Any]:

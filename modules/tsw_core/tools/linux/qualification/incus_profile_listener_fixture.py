@@ -21,6 +21,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[5]
+ACTIVE_WORKFLOW = 'documentation/handbook/05-development/workflow/workflow.md'
 TRUSTED_BIN = {'incus': '/usr/bin/incus', 'ip': '/usr/sbin/ip', 'ss': '/usr/bin/ss', 'uname': '/usr/bin/uname', 'free': '/usr/bin/free', 'df': '/usr/bin/df', 'curl': '/usr/bin/curl', 'git': '/usr/bin/git'}
 TRUSTED_PATH = '/usr/sbin:/usr/bin:/sbin:/bin'
 PRIVATE_EVIDENCE_REL = Path('.tiny-swarm/evidence/issue-449/s449-private-20261027')
@@ -58,7 +59,7 @@ _INVENTORY_TARGET_HOST = '192.168.178.33'
 _INVENTORY_CLEANUP_COMMAND_RESERVE = 110
 _INVENTORY_CLEANUP_BYTE_RESERVE = 8 * 1024 * 1024
 _INVENTORY_CLEANUP_ENTITY_RESERVE = 5_000
-_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 60
+_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 120
 _INVENTORY_BYTES_CAPTURED = 0
 _INVENTORY_ENTITIES_CAPTURED = 0
 _JSON_SLOT_PATH = tuple[tuple[str, str | int], ...]
@@ -72,6 +73,7 @@ _PROJECT_BOOLEAN_KEYS = {
 
 _COMMAND_AUDIT: list[dict[str, Any]] = []
 _WINDOWS_SNAPSHOT_METADATA: dict[str, Any] = {}
+_FAILURE_CONTEXT: dict[str, Any] | None = None
 
 
 def _inventory_budgets() -> tuple[int, int, int, float]:
@@ -94,12 +96,15 @@ class TargetDrift(FixtureError):
 
 
 class _BoundedCommandFailure(TargetDrift):
-    """Retain only output lengths when a bounded transport cannot complete."""
+    """Keep bounded private prefixes; exception arguments contain only a safe code."""
 
-    def __init__(self, code: str, stdout_bytes: int, stderr_bytes: int) -> None:
+    def __init__(self, code: str, stdout_bytes: int, stderr_bytes: int,
+                 *, stdout: bytes = b'', stderr: bytes = b'') -> None:
         super().__init__(code)
         self.stdout_bytes = stdout_bytes
         self.stderr_bytes = stderr_bytes
+        self.stdout_prefix = stdout
+        self.stderr_prefix = stderr
 
 
 def _inventory_budget_profile() -> dict[str, Any]:
@@ -624,6 +629,128 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
     return go
 
 
+def _safe_failure_code(error: BaseException, fallback: str = 'FIXTURE_FAILED') -> str:
+    if isinstance(error, KeyboardInterrupt):
+        return 'FIXTURE_CANCELLED'
+    if (isinstance(error, FixtureError) and error.args and isinstance(error.args[0], str)
+            and re.fullmatch(r'[A-Z][A-Z0-9_]{0,95}', error.args[0])):
+        return error.args[0]
+    return fallback
+
+
+def _write_diagnostic_file(directory: int, name: str, raw: bytes) -> None:
+    _, _, _, total_timeout = _inventory_budgets()
+    if _INVENTORY_STARTED_AT is None or time.monotonic() - _INVENTORY_STARTED_AT >= total_timeout:
+        raise FixtureError('DIAGNOSTIC_BUDGET_EXHAUSTED')
+    descriptor = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=directory)
+    try:
+        info = os.fstat(descriptor)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1):
+            raise FixtureError('DIAGNOSTIC_FILE_UNSAFE')
+        view = memoryview(raw)
+        while view:
+            if time.monotonic() - _INVENTORY_STARTED_AT >= total_timeout:
+                raise FixtureError('DIAGNOSTIC_BUDGET_EXHAUSTED')
+            written = os.write(descriptor, view)
+            if written <= 0:
+                raise FixtureError('DIAGNOSTIC_WRITE_UNCERTAIN')
+            view = view[written:]
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _private_command_diagnostic(context: dict[str, Any], record: dict[str, Any],
+                                stdout: bytes, stderr: bytes) -> str:
+    go = context['go']
+    run_id = go['target']['run_id']
+    if (not isinstance(run_id, str) or RUN_ID.fullmatch(run_id) is None
+            or HASH64.fullmatch(context['go_sha256']) is None):
+        raise FixtureError('DIAGNOSTIC_BINDING_INVALID')
+    path = ROOT / PRIVATE_EVIDENCE_REL / ('listener-diagnostics-' + run_id)
+    _require_private_evidence_dir(path)
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+    parent = os.open(path.parent, flags)
+    try:
+        info = os.fstat(parent)
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            raise FixtureError('DIAGNOSTIC_PARENT_UNSAFE')
+        birth = context.get('diagnostic_birth')
+        if birth is None:
+            # A same-UID preexisting directory is not proof of this invocation.
+            os.mkdir(path.name, mode=0o700, dir_fd=parent)
+        directory = os.open(path.name, flags, dir_fd=parent)
+        try:
+            info = os.fstat(directory)
+            if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+                raise FixtureError('DIAGNOSTIC_DIRECTORY_UNSAFE')
+            observed_birth = (info.st_dev, info.st_ino)
+            if birth is None:
+                context['diagnostic_birth'] = observed_birth
+            elif birth != observed_birth:
+                raise FixtureError('DIAGNOSTIC_DIRECTORY_REPLACED')
+            prefix = 'command-' + str(context['sequence']).zfill(4)
+            metadata = {'run_id': run_id, 'go_sha256': context['go_sha256'],
+                        'source_commit': go['source_commit'], 'command_id': record['command_id'],
+                        'exit_status': record['exit_status']}
+            for name, raw in (('stdout', stdout), ('stderr', stderr)):
+                _write_diagnostic_file(directory, prefix + '.' + name + '.bin', raw)
+                metadata[name] = {'bytes': record[name + '_bytes'], 'retained_bytes': len(raw),
+                                  'sha256': digest(raw), 'truncated': record['exit_status'] is None
+                                  or record[name + '_bytes'] > len(raw)}
+            raw_metadata = json.dumps(metadata, sort_keys=True, separators=(',', ':'),
+                                      ensure_ascii=True).encode('ascii')
+            _write_diagnostic_file(directory, prefix + '.json', raw_metadata)
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+        os.fsync(parent)
+    finally:
+        os.close(parent)
+    return digest(raw_metadata)
+
+
+def _record_command_diagnostic(record: dict[str, Any], stdout: bytes | bytearray,
+                               stderr: bytes | bytearray, *, stdout_limit: int | None = None,
+                               stderr_limit: int | None = None) -> None:
+    # Only a validated, consumed fixture invocation can retain private raw data.
+    context = _FAILURE_CONTEXT
+    if context is None:
+        return
+    context['sequence'] += 1
+    try:
+        stdout_prefix, stderr_prefix = bytes(stdout[:stdout_limit]), bytes(stderr[:stderr_limit])
+        # Charge retained prefixes even if a later write fails; cleanup never
+        # reclaims active retention capacity. Transport accounting is unchanged.
+        context['diagnostic_bytes'] += len(stdout_prefix) + len(stderr_prefix)
+        if context['diagnostic_bytes'] > _inventory_budgets()[1]:
+            raise FixtureError('DIAGNOSTIC_OUTPUT_BUDGET_EXHAUSTED')
+        record['diagnostic'] = {'artifact_sha256': _private_command_diagnostic(
+            context, record, stdout_prefix, stderr_prefix)}
+    except (Exception, KeyboardInterrupt) as error:
+        context['diagnostics_failed'] = True
+        context['cancelled'] |= isinstance(error, KeyboardInterrupt)
+        # Keep the original command error, never an exception's raw text.
+
+
+def _failure_provenance(error: BaseException) -> dict[str, Any]:
+    context = _FAILURE_CONTEXT
+    primary: BaseException | None = error
+    cleanup_codes: list[str] = []
+    if context is not None and context['cleanup_started']:
+        primary = context['primary_error']
+        cleanup_codes.extend(context['cleanup_codes'])
+        if error is not primary:
+            cleanup_codes.append(_safe_failure_code(error))
+    return {'primary_code': _safe_failure_code(primary) if primary is not None else None,
+            'cleanup_codes': list(dict.fromkeys(cleanup_codes)),
+            'cancelled': isinstance(error, KeyboardInterrupt) or isinstance(primary, KeyboardInterrupt)
+                         or bool(context and context['cancelled']),
+            'diagnostics_failed': bool(context and context['diagnostics_failed'])}
+
+
 def command(argv: list[str]) -> bytes:
     global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
     argv = list(argv)
@@ -658,17 +785,27 @@ def command(argv: list[str]) -> bytes:
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
     if byte_limit - _INVENTORY_BYTES_CAPTURED < 2:
         raise TargetDrift('INCUS_INVENTORY_OUTPUT_TOO_LARGE')
+    graceful_fixture_stop = (len(argv) == 7 and argv[:2] == ['/usr/bin/incus', 'stop']
+        and argv[3:] == ['--project', 'default', '--timeout', '30']
+        and re.fullmatch(r'tsw-q449-[0-9a-f]{32}-fixture', argv[2]) is not None)
+    command_timeout = 45 if graceful_fixture_stop else 20
     try:
-        stdout, stderr, status = _bounded_process_output(argv, min(20, remaining),
+        stdout, stderr, status = _bounded_process_output(argv, min(command_timeout, remaining),
             min(_INVENTORY_COMMAND_MAX_BYTES, (byte_limit - _INVENTORY_BYTES_CAPTURED) // 2),
             error_code='JIT_COMMAND_FAILED')
     except _BoundedCommandFailure as exc:
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, exc.stdout_bytes, exc.stderr_bytes))
+        record = _safe_command_record(argv, None, exc.stdout_bytes, exc.stderr_bytes)
+        _COMMAND_AUDIT.append(record)
         _INVENTORY_BYTES_CAPTURED += exc.stdout_bytes + exc.stderr_bytes
+        _record_command_diagnostic(record, exc.stdout_prefix, exc.stderr_prefix)
         raise
-    _COMMAND_AUDIT.append(_safe_command_record(argv, status, len(stdout), len(stderr)))
+    record = _safe_command_record(argv, status, len(stdout), len(stderr))
+    _COMMAND_AUDIT.append(record)
     _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
-    if time.monotonic() - _INVENTORY_STARTED_AT > total_timeout:
+    elapsed = time.monotonic() - _INVENTORY_STARTED_AT
+    if status:
+        _record_command_diagnostic(record, stdout, stderr)
+    if elapsed > total_timeout:
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
     if status:
         raise TargetDrift('JIT_COMMAND_FAILED')
@@ -817,31 +954,51 @@ def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int
     except (TimeoutError, subprocess.TimeoutExpired) as exc:
         total_timeout_exceeded = (aggregate_deadline <= process_deadline
                                   and time.monotonic() > aggregate_deadline)
-        if process is not None:
-            _kill_and_reap(process, failure_code)
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        try:
+            if process is not None:
+                _kill_and_reap(process, failure_code)
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
         if total_timeout_exceeded:
             raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT') from exc
         raise TargetDrift('WINDOWS_SNAPSHOT_TIMEOUT') from exc
     except OverflowError as exc:
-        if process is not None:
-            _kill_and_reap(process, failure_code)
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        try:
+            if process is not None:
+                _kill_and_reap(process, failure_code)
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
         raise TargetDrift('WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE') from exc
     except OSError as exc:
-        if process is not None:
-            _kill_and_reap(process, failure_code)
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        try:
+            if process is not None:
+                _kill_and_reap(process, failure_code)
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
         raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED') from exc
     except Exception as exc:
-        if process is not None:
-            _kill_and_reap(process, failure_code)
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        try:
+            if process is not None:
+                _kill_and_reap(process, failure_code)
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
         raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED') from exc
     except BaseException:
-        if process is not None:
-            _kill_and_reap(process, failure_code)
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        try:
+            if process is not None:
+                _kill_and_reap(process, failure_code)
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
         raise
     finally:
         if selector is not None:
@@ -855,8 +1012,12 @@ def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int
                           {'duration_ms': duration_ms})
     _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
     if exit_status or require_empty_stderr and stderr:
+        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                   stdout_limit=stdout_limit, stderr_limit=stderr_limit)
         raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED')
     if time.monotonic() - _INVENTORY_STARTED_AT > total_timeout:
+        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                   stdout_limit=stdout_limit, stderr_limit=stderr_limit)
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
     return bytes(stdout)
 
@@ -884,7 +1045,7 @@ def _kill_and_reap(process: subprocess.Popen[bytes], error_code: str) -> None:
 def git_preflight() -> tuple[str, bytes, bytes, bytes]:
     def git(*args: str) -> bytes:
         try:
-            r = subprocess.run([TRUSTED_BIN['git'], *args], cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}, check=False, stdout=subprocess.PIPE,
+            r = subprocess.run([TRUSTED_BIN['git'], '--no-optional-locks', *args], cwd=ROOT, env={'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}, check=False, stdout=subprocess.PIPE,
                                stderr=subprocess.DEVNULL, timeout=10)
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise FixtureError('GIT_INSPECTION_FAILED') from exc
@@ -894,9 +1055,11 @@ def git_preflight() -> tuple[str, bytes, bytes, bytes]:
     head = git('rev-parse', '--verify', 'HEAD').decode('ascii').strip()
     if not HASH40.fullmatch(head) or git('status', '--porcelain', '--untracked-files=all'):
         raise FixtureError('CHECKOUT_NOT_CLEAN')
-    wf = git('show', 'HEAD:documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
-    runner = git('show', 'HEAD:modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
-    tests = git('show', 'HEAD:modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
+    wf = git('show', head + ':' + ACTIVE_WORKFLOW)
+    runner = git('show', head + ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
+    tests = git('show', head + ':modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
+    if git('rev-parse', '--verify', 'HEAD').decode('ascii').strip() != head or git('status', '--porcelain', '--untracked-files=all'):
+        raise FixtureError('CHECKOUT_NOT_CLEAN')
     return head, wf, runner, tests
 
 
@@ -1080,7 +1243,9 @@ def _bounded_process_output(command_argv: list[str], timeout_seconds: float,
                 process.wait(timeout=0.5)
             except (subprocess.TimeoutExpired, OSError):
                 _kill_and_reap(process, error_code)
-        raise _BoundedCommandFailure(error_code, len(stdout), len(stderr)) from exc
+        raise _BoundedCommandFailure(error_code, len(stdout), len(stderr),
+                                     stdout=bytes(stdout[:max_stream_bytes]),
+                                     stderr=bytes(stderr[:max_stream_bytes])) from exc
     finally:
         if selector is not None:
             selector.close()
@@ -1234,6 +1399,11 @@ def _is_incus_query_argv(argv: list[str]) -> bool:
     if '#' in path:
         return False
     endpoint, separator, query = path.partition('?')
+    if endpoint == '/1.0/instances':
+        if not separator or not query.startswith('project=') or not query.endswith('&recursion=1'):
+            return False
+        encoded_project = query[len('project='):-len('&recursion=1')]
+        return _canonical_incus_name(encoded_project) is not None
     parts = endpoint.split('/')
     if len(parts) != 4 or parts[1] != '1.0':
         return False
@@ -1255,6 +1425,12 @@ def _is_incus_query_argv(argv: list[str]) -> bool:
 
 def _project_api_path(project: str) -> str:
     return '/1.0/projects/' + quote(project, safe='')
+
+
+def _instances_api_path(project: str) -> str:
+    if not isinstance(project, str) or _canonical_incus_name(quote(project, safe='')) is None:
+        raise FixtureError('INVENTORY_COMMAND_NOT_ALLOWLISTED')
+    return '/1.0/instances?project=' + quote(project, safe='') + '&recursion=1'
 
 
 def _profile_api_path(profile: str, project: str) -> str:
@@ -1324,19 +1500,34 @@ def _inventory_command(argv: list[str]) -> bytes:
             raise TimeoutError
         exit_status = process.wait(timeout=remaining)
     except (TimeoutError, subprocess.TimeoutExpired) as exc:
-        if process is not None:
-            _kill_and_reap(process, 'INCUS_INVENTORY_COMMAND_FAILED')
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        try:
+            if process is not None:
+                _kill_and_reap(process, 'INCUS_INVENTORY_COMMAND_FAILED')
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=_INVENTORY_COMMAND_MAX_BYTES,
+                                       stderr_limit=_INVENTORY_COMMAND_MAX_BYTES)
         raise TargetDrift('INCUS_INVENTORY_COMMAND_FAILED') from exc
     except OverflowError as exc:
-        if process is not None:
-            _kill_and_reap(process, 'INCUS_INVENTORY_OUTPUT_TOO_LARGE')
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+        try:
+            if process is not None:
+                _kill_and_reap(process, 'INCUS_INVENTORY_OUTPUT_TOO_LARGE')
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=_INVENTORY_COMMAND_MAX_BYTES,
+                                       stderr_limit=_INVENTORY_COMMAND_MAX_BYTES)
         raise TargetDrift('INCUS_INVENTORY_OUTPUT_TOO_LARGE') from exc
     except OSError as exc:
-        if process is not None:
-            _kill_and_reap(process, 'INCUS_INVENTORY_COMMAND_FAILED')
-        _COMMAND_AUDIT.append(_safe_command_record(argv, None, 0, 0))
+        try:
+            if process is not None:
+                _kill_and_reap(process, 'INCUS_INVENTORY_COMMAND_FAILED')
+        finally:
+            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
+            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
+                                       stdout_limit=_INVENTORY_COMMAND_MAX_BYTES,
+                                       stderr_limit=_INVENTORY_COMMAND_MAX_BYTES)
         raise TargetDrift('INCUS_INVENTORY_COMMAND_FAILED') from exc
     finally:
         if selector is not None:
@@ -1349,9 +1540,11 @@ def _inventory_command(argv: list[str]) -> bytes:
     _COMMAND_AUDIT.append(_safe_command_record(argv, exit_status, len(stdout), len(stderr)))
     _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
     if exit_status:
+        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr)
         raise TargetDrift('INCUS_INVENTORY_COMMAND_FAILED')
     if (_INVENTORY_STARTED_AT is not None
             and time.monotonic() - _INVENTORY_STARTED_AT > total_timeout):
+        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr)
         raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
     raw = bytes(stdout)
     if argv != ['incus', 'remote', 'get-default']:
@@ -1531,7 +1724,7 @@ def _capture_project_inventory(host: str) -> dict[str, Any]:
                 raise TargetDrift('INCUS_PROFILE_INVENTORY_UNREADABLE')
             profiles.append({'name': profile_name, 'used_by': sorted(pused),
                              'devices': _inventory_devices(pdata2.get('devices'), 'INCUS_PROFILE_INVENTORY_UNREADABLE')})
-        instances_raw = strict_json(_inventory_command(['incus', 'list', '--project', project, '--format', 'json']))
+        instances_raw = strict_json(_inventory_command(['incus', 'query', _instances_api_path(project)]))
         if not isinstance(instances_raw, list) or len(instances_raw) > _INVENTORY_MAX_ENTITIES:
             raise TargetDrift('INCUS_INSTANCE_INVENTORY_UNREADABLE')
         _account_inventory_entities(len(instances_raw), 'INCUS_INSTANCE_INVENTORY_UNREADABLE')
@@ -1769,7 +1962,7 @@ def _incus_route_inventory() -> tuple[list[str], list[dict[str, Any]]]:
                 if device.get('type') == 'proxy' and _is_approved_10001_proxy(device['listen']):
                     routes.append(_safe_route_row(project, 'profile', name, device_name,
                                                   device, [name]))
-        instances = strict_json(command(['incus', 'list', '--project', project, '--format', 'json']))
+        instances = strict_json(command(['incus', 'query', _instances_api_path(project)]))
         if (not isinstance(instances, list)
                 or any(not isinstance(row, dict) or not isinstance(row.get('name'), str) or not row['name']
                        for row in instances)
@@ -2180,7 +2373,7 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
     listener_rows = _listener_rows(command(['ss', '-H', '-ltnp']), 10001)
     if any(_listener_rows(ss, port) for port in (80, 443, 16080, 16081)):
         raise TargetDrift('FORBIDDEN_LISTENER_PRESENT')
-    if go['target']['instance'] in str(strict_json(command(['incus', 'list', '--project', 'default', '--format', 'json']))):
+    if go['target']['instance'] in str(strict_json(command(['incus', 'query', _instances_api_path('default')]))):
         raise TargetDrift('INSTANCE_NAME_COLLISION')
     profile_rows = strict_json(command(['incus', 'profile', 'list', '--project', 'default', '--format', 'json']))
     if any(row.get('name') in {go['target']['profile'], go['target']['base_profile']}
@@ -2269,6 +2462,7 @@ def _create_profile_command(args: list[str], profile_data: Any) -> bytes:
     except _BoundedCommandFailure as exc:
         _COMMAND_AUDIT.append(_safe_command_record(argv, None, exc.stdout_bytes, exc.stderr_bytes))
         _INVENTORY_BYTES_CAPTURED += exc.stdout_bytes + exc.stderr_bytes
+        _record_command_diagnostic(_COMMAND_AUDIT[-1], exc.stdout_prefix, exc.stderr_prefix)
         raise
     except OSError as exc:
         raise TargetDrift('PROFILE_CREATE_UNCERTAIN') from exc
@@ -2278,8 +2472,10 @@ def _create_profile_command(args: list[str], profile_data: Any) -> bytes:
     _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
     if (_INVENTORY_STARTED_AT is not None
             and time.monotonic() - _INVENTORY_STARTED_AT > total_timeout):
+        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr)
         raise TargetDrift('PROFILE_CREATE_UNCERTAIN')
     if status or stderr:
+        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr)
         raise TargetDrift('PROFILE_CREATE_UNCERTAIN')
     return stdout
 
@@ -2310,10 +2506,26 @@ def _fixture_responder_script(run_id: str) -> str:
 (printf 'HTTP/1.1 200 OK\r\nContent-Length: 32\r\nConnection: close\r\nContent-Type: text/plain\r\n\r\n%s' 'RUN_NONCE' |
  busybox nc -l -s 127.0.0.1 -p 8080 -w 15) </dev/null >/dev/null 2>&1 &
 responder=$!
+# Signal permission is not process existence; bind the child without signalling it.
+responder_identity() {
+  IFS= read -r process_stat 2>/dev/null < "/proc/$responder/stat" || return 1
+  case "$process_stat" in "$responder ("*") "*) ;; *) return 1 ;; esac
+  process_fields=${process_stat##*) }
+  set -f
+  set -- $process_fields
+  [ "$#" -ge 20 ] || return 1
+  case "$1" in R|S|D|T|t|I|P|W) ;; *) return 1 ;; esac
+  [ "$2" = "$$" ] || return 1
+  shift 19
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  printf '%s\n' "$1"
+}
+responder_start=$(responder_identity) || exit 1
 attempt=0
 while [ "$attempt" -lt 25 ]; do
-  kill -0 "$responder" 2>/dev/null || exit 1
+  [ "$(responder_identity)" = "$responder_start" ] || exit 1
   if busybox netstat -ltn 2>/dev/null | busybox awk '$1 == "tcp" && $4 == "127.0.0.1:8080" && $6 == "LISTEN" { ready=1 } END { exit !ready }'; then
+    [ "$(responder_identity)" = "$responder_start" ] || exit 1
     exit 0
   fi
   attempt=$((attempt + 1))
@@ -2432,7 +2644,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
             if any(row['name'] == args[2] for row in names):
                 raise TargetDrift('PROFILE_NAME_COLLISION')
         elif args[:1] == ('init',):
-            names = strict_json(_incus('list', '--project', 'default', '--format', 'json'))
+            names = strict_json(_incus('query', _instances_api_path('default')))
             if (not isinstance(names, list)
                     or any(not isinstance(row, dict) or not isinstance(row.get('name'), str) for row in names)):
                 raise TargetDrift('INSTANCE_NAME_INVENTORY_UNREADABLE')
@@ -2601,6 +2813,9 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
         # Cleanup is restricted to the exact approved names, in GO order.
         _INVENTORY_CLEANUP_MODE = True
         active_error = sys.exc_info()[1]
+        if _FAILURE_CONTEXT is not None:
+            _FAILURE_CONTEXT['cleanup_started'] = True
+            _FAILURE_CONTEXT['primary_error'] = active_error
         cleanup_route_errors: list[FixtureError] = []
 
         def cleanup_checkpoint() -> None:
@@ -2608,6 +2823,8 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
                 checkpoint()
             except FixtureError as exc:
                 cleanup_route_errors.append(exc)
+                if _FAILURE_CONTEXT is not None:
+                    _FAILURE_CONTEXT['cleanup_codes'].append(_safe_failure_code(exc))
 
         def cleanup_write(*args: str) -> bytes:
             nonlocal instance_phase
@@ -2680,7 +2897,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
         if created_base:
             owned_base_profile([])
             cleanup_write('profile', 'delete', base_profile, '--project', 'default')
-        remaining_instances = strict_json(_incus('list', '--project', 'default', '--format', 'json'))
+        remaining_instances = strict_json(_incus('query', _instances_api_path('default')))
         remaining_profiles = strict_json(_incus('profile', 'list', '--project', 'default', '--format', 'json'))
         if (created_instance and
                 (not isinstance(remaining_instances, list)
@@ -2701,7 +2918,8 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
 
 
 def main(argv: list[str] | None = None) -> int:
-    global _INVENTORY_CLEANUP_MODE
+    global _INVENTORY_CLEANUP_MODE, _FAILURE_CONTEXT
+    _FAILURE_CONTEXT = None
     parser = argparse.ArgumentParser()
     parser.add_argument('--expected-approval-sha256')
     parser.add_argument('--target-host', required=True, choices=['192.168.178.33', '192.168.178.58'])
@@ -2748,8 +2966,13 @@ def main(argv: list[str] | None = None) -> int:
             code = exc.args[0] if isinstance(exc, FixtureError) else 'JIT_UNREADABLE'
             write_result(evidence_fd, {'status': 'BLOCKED_TARGET_DRIFT', 'code': str(code), 'commands': _COMMAND_AUDIT, 'go_sha256': digest(raw), 'source_commit': head})
             return 2
+        _FAILURE_CONTEXT = {'go': go, 'go_sha256': digest(raw), 'sequence': 0,
+                            'diagnostics_failed': False, 'cancelled': False,
+                            'cleanup_started': False, 'primary_error': None, 'cleanup_codes': [],
+                            'diagnostic_birth': None, 'diagnostic_bytes': 0}
         try:
             result = _run_fixture(go, baseline, approved_go_sha256=digest(raw))
+            _FAILURE_CONTEXT['cleanup_started'] = False  # Only a normal return ends cleanup attribution.
             _INVENTORY_CLEANUP_MODE = True
             port = go['proxy']['listen'].rsplit(':', 1)[1]
             final_listeners = _listeners()
@@ -2767,10 +2990,13 @@ def main(argv: list[str] | None = None) -> int:
                 final_listeners, int(port))[1]
             result['commands'] = _COMMAND_AUDIT
             _INVENTORY_CLEANUP_MODE = False
-        except Exception as exc:
+        except (Exception, KeyboardInterrupt) as exc:
             _INVENTORY_CLEANUP_MODE = False
-            code = exc.args[0] if isinstance(exc, FixtureError) else 'FIXTURE_FAILED'
-            write_result(evidence_fd, {'status': 'BLOCKED_TARGET_DRIFT', 'code': str(code), 'commands': _COMMAND_AUDIT, 'go_sha256': digest(raw), 'source_commit': head})
+            provenance = _failure_provenance(exc)
+            code = provenance['primary_code'] or _safe_failure_code(exc)
+            write_result(evidence_fd, {'status': 'BLOCKED_TARGET_DRIFT', 'code': code,
+                         'failure_provenance': provenance, 'commands': _COMMAND_AUDIT,
+                         'go_sha256': digest(raw), 'source_commit': head})
             return 2
         result.update({'inventory_budget': _inventory_budget_profile(), 'windows_certificate_sha256': go['windows_certificate_sha256'], 'go_sha256': digest(raw), 'workflow_sha256': go['workflow_sha256'], 'runner_sha256': go['runner_sha256'], 'test_sha256': go['test_sha256'], 'source_commit': head, 'issue447_inventory_sha256': go['issue447_inventory_sha256'], 'resource_admission_sha256': go['resource_admission_sha256']})
         write_result(evidence_fd, result)
@@ -2779,6 +3005,7 @@ def main(argv: list[str] | None = None) -> int:
         print(str(exc), file=sys.stderr)
         return 2
     finally:
+        _FAILURE_CONTEXT = None
         if evidence_fd is not None:
             os.close(evidence_fd)
 

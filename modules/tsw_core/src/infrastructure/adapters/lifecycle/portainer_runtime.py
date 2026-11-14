@@ -1,9 +1,9 @@
 """Async gateway lifecycle facade composed from manager, backup and API adapters."""
-import asyncio
 import time
 
 import requests
 
+from tiny_swarm_world.application.services.shared.settled_blocking import settled_blocking
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.ports.operation_result import OperationError
 from tiny_swarm_world.domain.lifecycle.portainer_upgrade import SOURCE_VERSION, TARGET_VERSION
@@ -22,7 +22,7 @@ class ClassicPortainerUpgradeRuntime:
 
     async def _stage(self, operation, *args):
         try:
-            return await asyncio.to_thread(operation, *args)
+            return await settled_blocking(operation, *args)
         except LifecycleStateError:
             raise
         except (OperationError, OSError, ValueError, KeyError, TypeError, IndexError, requests.RequestException):

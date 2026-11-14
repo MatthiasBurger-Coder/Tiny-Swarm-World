@@ -9,6 +9,7 @@ from pathlib import Path
 import signal
 import shlex
 import stat
+import subprocess
 import sys
 import tempfile
 import time
@@ -19,12 +20,30 @@ from unittest.mock import AsyncMock, Mock, patch
 
 from modules.tsw_native_linux.tools.qualification import native_lxd_maintenance as native
 from modules.tsw_native_linux.tools.qualification import preserving_product_acceptance as suite
+from modules.tsw_core.tools.linux.qualification import preserving_product_acceptance as provenance
 from modules.tsw_native_linux.tests.tools.test_native_lxd_maintenance import FakePort, Events, baseline
 from modules.tsw_native_linux.tests.tools.test_owned_case_disposal import case, Port
 
 
 def intent() -> suite.SuiteIntent:
     return suite.SuiteIntent('a' * 32, 'b' * 40, 'minimal', 'c' * 64, 'd' * 64, 'e' * 64, 'f' * 64, '1' * 64)
+
+
+def fault_journal(directory: Path) -> tuple[str, dict[str, Any]]:
+    key = 'child-' + 'a' * 32
+    child = {'pid': 4242, 'start_time': 1234}
+    rows = {key + '-intent.json': {'argv_sha256': 'b' * 64, 'timeout': 10, 'public': True},
+        key + '-pid.json': child,
+        key + '-cli-start.json': {'case': 'recover-portainer', 'run_id': 'a' * 32, 'source_commit': 'b' * 40,
+            'child': child, 'args': suite.upgrades.recipe('recover-portainer').update(), 'effect': True},
+        key + '-cli-fault-intent.json': {'checkpoint_sha256': 'b' * 64, 'predicate': 'CHECKED_BACKUP',
+            'process_group': 4242, 'signal': 15, 'process': child, 'prepared_at': '2026-11-11T00:00:00+00:00',
+            'prepared_monotonic_ns': 10},
+        key + '-settled.json': {'pid': 4242, 'released': True, 'group_absent': True},
+        key + '-cli-settled.json': {'pid': 4242, 'released': True, 'group_absent': True}}
+    for name, row in rows.items():
+        (directory / name).write_bytes(native.canonical(row))
+    return key, rows
 
 
 def proposal() -> dict[str, Any]:
@@ -52,6 +71,95 @@ def capability_pair(capability_sha: str = '1' * 64) -> tuple[dict[str, Any], dic
         artifacts[host] = native.canonical(row)
         receipts[host] = {'decision': 'PASS', 'artifact_sha256': native.digest(artifacts[host]), 'source_commit': 'b' * 40}
     return {'capability_sha256': capability_sha, 'client': '6.0.5', 'server': '6.0.5', 'hosts': receipts}, artifacts, code
+
+
+class QualificationRepository:
+    """Actual isolated Git objects; never a host checkout or transport transcript."""
+    capability = 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+
+    def __init__(self, root: Path, kind: str = 'valid') -> None:
+        from modules.tsw_core.tests.domain.lifecycle.test_profile_lifecycle import admitted_fixture
+        self.root = root
+        self.env = {'PATH': '/usr/bin:/bin', 'LC_ALL': 'C', 'GIT_CONFIG_GLOBAL': '/dev/null',
+            'GIT_CONFIG_SYSTEM': '/dev/null', 'GIT_TERMINAL_PROMPT': '0',
+            'GIT_AUTHOR_DATE': '2026-11-12T00:00:00+00:00', 'GIT_COMMITTER_DATE': '2026-11-12T00:00:00+00:00'}
+        self.git('init', '--quiet', '--initial-branch=fixture-main')
+        self.code = capability_pair()[2]
+        self.cap = root / self.capability
+        self.cap.parent.mkdir(parents=True)
+        self.cap.write_bytes(native.canonical({'schema_version': 1,
+            'capability': 'installation-scoped-incus-manager-profile', 'admitted_versions': []}))
+        listener = root / native.FILES[4]
+        listener.parent.mkdir(parents=True, exist_ok=True)
+        listener.write_bytes(self.code)
+        (root / 'unchanged.py').write_text('# fixed source\n')
+        self.commit('candidate C')
+        self.c = self.git('rev-parse', 'HEAD').decode().strip()
+        matrix = admitted_fixture().model_dump(mode='json')
+        matrix['admitted_versions'][0].update(fixture_source_revision=self.c, fixture_sha256=native.digest(self.code))
+        if kind == 'substitution':
+            tree = self.git('rev-parse', 'HEAD^{tree}').decode().strip()
+            substitute = self.git('commit-tree', tree, '-p', self.c, input=b'same fixture, different source\n').decode().strip()
+            matrix['admitted_versions'][0]['fixture_source_revision'] = substitute
+        self.fixture_source = matrix['admitted_versions'][0]['fixture_source_revision']
+        self.cap.write_bytes(native.canonical(matrix))
+        self.commit('capability K')
+        self.k = self.git('rev-parse', 'HEAD').decode().strip()
+        if kind in {'extra', 'mode', 'cap-mode', 'wrong-path'}:
+            if kind == 'extra':
+                (root / 'unchanged.py').write_text('# changed source\n')
+            elif kind == 'mode':
+                (root / 'unchanged.py').chmod(0o755)
+            elif kind == 'cap-mode':
+                self.cap.chmod(0o755)
+            else:
+                self.cap.rename(self.cap.with_name('incus-profile-capabilitiesXjson'))
+            self.git('add', '-A')
+            self.git('commit', '--amend', '--no-edit', '--quiet')
+        elif kind in {'intervening', 'replace'}:
+            good = self.k
+            self.git('commit', '--allow-empty', '--quiet', '-m', 'intervening metadata')
+            if kind == 'replace':
+                self.git('replace', self.git('rev-parse', 'HEAD').decode().strip(), good)
+        elif kind == 'merge':
+            tree = self.git('rev-parse', 'HEAD^{tree}').decode().strip()
+            side = self.git('commit-tree', tree, '-p', self.c, input=b'side parent\n').decode().strip()
+            merged = self.git('commit-tree', tree, '-p', self.c, '-p', side, input=b'merge K\n').decode().strip()
+            self.git('checkout', '--quiet', '--detach', merged)
+        self.k = self.git('rev-parse', 'HEAD').decode().strip()
+        if kind == 'dirty':
+            (root / 'unchanged.py').write_text('# dirty source\n')
+        elif kind == 'untracked':
+            (root / 'unexpected.py').write_text('# untracked source\n')
+        elif kind == 'assume':
+            self.git('update-index', '--assume-unchanged', 'unchanged.py')
+        elif kind == 'mode-dirty':
+            self.git('config', 'core.fileMode', 'false')
+            (root / 'unchanged.py').chmod(0o755)
+        self.cap_sha = native.digest(native.canonical(matrix))
+
+    def read(self, argv: list[str], timeout: int = 10) -> bytes:
+        return subprocess.run(argv, cwd=self.root, env=self.env, input=None, capture_output=True,
+            check=True, timeout=timeout).stdout
+
+    def git(self, *args: str, input: bytes | None = None) -> bytes:
+        return subprocess.run(['/usr/bin/git', '--no-replace-objects', '-c', 'user.name=Qualification Fixture',
+            '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgSign=false',
+            '-c', 'core.hooksPath=/dev/null', '-c', 'core.autocrlf=false', '-c', 'core.fileMode=true', *args],
+            cwd=self.root, env=self.env, input=input, capture_output=True, check=True, timeout=10).stdout
+
+    def commit(self, message: str) -> None:
+        self.git('add', '-A')
+        self.git('commit', '--quiet', '-m', message)
+
+    def pair(self, source: str | None = None) -> tuple[dict[str, Any], dict[str, bytes]]:
+        proof, artifacts, _ = capability_pair(self.cap_sha)
+        for host, raw in artifacts.items():
+            row = json.loads(raw)
+            row['source_commit'] = self.c if source is None else source
+            artifacts[host] = native.canonical(row)
+            proof['hosts'][host].update(source_commit=row['source_commit'], artifact_sha256=native.digest(artifacts[host]))
+        return proof, artifacts
 
 
 def altered_capability(kind: str, capability_sha: str) -> tuple[dict[str, Any], dict[str, bytes], bytes]:
@@ -198,36 +306,60 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
             with self.subTest(kind=kind), self.assertRaises(ValueError):
                 suite.validate_host_artifacts(proof, '1' * 64, native.digest(code), artifacts)
 
-    def test_actual_native_prerequisite_path_rejects_host_and_admission_source_mismatch(self) -> None:
-        for kind in ('valid', 'copied-native', 'wrong-host', 'missing-host', 'source', 'fixture', 'entry-code', 'artifact-code'):
-            current = replace(intent(), capability_sha256=native.digest(b'cap'), operator_config_sha256=native.digest(b'op'))
-            proof, artifacts, code = altered_capability(kind, current.capability_sha256)
-            entry = SimpleNamespace(fixture_sha256=native.digest(code), fixture_source_revision='e' * 40,
-                                    client_version='6.0.5', server_version='6.0.5')
-            admission = SimpleNamespace(admits=lambda *_: True, admitted_versions=(entry,))
-            repository = SimpleNamespace(IncusProfileCapabilityRepository=lambda _: SimpleNamespace(load=lambda: admission))
-            resources = SimpleNamespace(selection=Mock(), read_config=Mock(return_value=b'config'))
-            cap = Mock()
-            cap.lstat.return_value = SimpleNamespace(st_uid=0, st_mode=stat.S_IFREG | 0o600, st_size=3)
-            cap.is_file.return_value = True
-            cap.is_symlink.return_value = False
-            cap.read_bytes.return_value = b'cap'
-            def read(path: Path) -> bytes:
-                if path.name == 'both-host-profile-capability.json':
-                    return native.canonical(proof)
-                if path.name.startswith('profile-capability-'):
-                    return artifacts[path.name.removeprefix('profile-capability-').removesuffix('.json')]
-                return b'op'
-            def blob(argv: list[str], _timeout: int) -> bytes:
-                revision = argv[-1].split(':')[0]
-                return b'wrong' if kind == 'entry-code' and revision == 'e' * 40 or kind == 'artifact-code' and revision == 'b' * 40 else code
-            with self.subTest(kind=kind), patch.object(suite, 'CAPABILITY', cap), patch.object(native, 'read_private', side_effect=read), patch.object(suite.importlib, 'import_module', side_effect=lambda name: repository if name.endswith('incus_profile_capability_repository') else resources), patch.object(native, 'bounded', side_effect=blob), patch.object(suite, 'tree_digest', return_value=current.infra_sha256), patch.object(suite, 'operator_values', return_value={}):
-                if kind == 'valid':
-                    suite.check_prerequisites(current)
-                    resources.selection.assert_called_once()
-                else:
-                    with self.assertRaises(native.MaintenanceError):
+    def test_actual_native_prerequisites_use_real_git_paired_sources_and_matrix(self) -> None:
+        from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository import IncusProfileCapabilityRepository
+        for kind in ('valid', 'extra', 'mode', 'cap-mode', 'mode-dirty', 'intervening', 'merge', 'replace', 'dirty', 'untracked', 'assume', 'substitution', 'receipt-source', 'wrong-host'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                fixture = QualificationRepository(root, kind)
+                current = replace(intent(), source_commit=fixture.k, capability_sha256=fixture.cap_sha,
+                    operator_config_sha256=native.digest(b'op'))
+                proof, artifacts = fixture.pair(fixture.fixture_source)
+                if kind in {'receipt-source', 'wrong-host'}:
+                    row = json.loads(artifacts['wsl2'])
+                    if kind == 'receipt-source':
+                        row['source_commit'] = fixture.k
+                        proof['hosts']['wsl2']['source_commit'] = fixture.k
+                    else:
+                        row['target_host'] = suite.CAPABILITY_HOSTS['native_linux']
+                    artifacts['wsl2'] = native.canonical(row)
+                    proof['hosts']['wsl2']['artifact_sha256'] = native.digest(artifacts['wsl2'])
+                repository = SimpleNamespace(IncusProfileCapabilityRepository=IncusProfileCapabilityRepository)
+                resources = SimpleNamespace(selection=Mock(), read_config=Mock(return_value=b'config'))
+                cap = Mock()
+                cap.lstat.return_value = SimpleNamespace(st_uid=0, st_mode=stat.S_IFREG | 0o600, st_size=len(fixture.cap.read_bytes()))
+                cap.is_file.return_value = True
+                cap.is_symlink.return_value = False
+                cap.read_bytes.side_effect = fixture.cap.read_bytes
+                def read(path: Path) -> bytes:
+                    if path.name == 'both-host-profile-capability.json':
+                        return native.canonical(proof)
+                    if path.name.startswith('profile-capability-'):
+                        return artifacts[path.name.removeprefix('profile-capability-').removesuffix('.json')]
+                    return b'op'
+                with patch.object(suite, 'ROOT', root), patch.object(suite, 'CAPABILITY', cap), \
+                        patch.object(native, 'read_private', side_effect=read), \
+                        patch.object(suite.importlib, 'import_module', side_effect=lambda name: repository if name.endswith('incus_profile_capability_repository') else resources), \
+                        patch.object(native, 'bounded', side_effect=fixture.read), \
+                        patch.object(suite, 'tree_digest', return_value=current.infra_sha256), \
+                        patch.object(suite, 'operator_values', return_value={}):
+                    if kind == 'valid':
                         suite.check_prerequisites(current)
+                        resources.selection.assert_called_once()
+                    else:
+                        with self.assertRaises(native.MaintenanceError):
+                            suite.check_prerequisites(current)
+                        resources.selection.assert_not_called()
+
+    def test_equal_source_is_clean_context_only_and_never_capability_promotion(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = QualificationRepository(Path(temp))
+            provenance.clean_qualification_source(fixture.root, fixture.k, fixture.read)
+            with self.assertRaises(ValueError):
+                provenance.qualification_promotion(fixture.root, fixture.k, fixture.k, fixture.cap_sha, fixture.read)
+            (fixture.root / 'untracked').write_text('context must remain clean')
+            with self.assertRaises(ValueError):
+                provenance.clean_qualification_source(fixture.root, fixture.k, fixture.read)
 
     def test_actual_maintenance_transaction_recovers_originals_after_pass_and_failed_case(self) -> None:
         for failure in (False, True):
@@ -490,6 +622,26 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
                 self.assertFalse(suite.previous_children_settled(journal))
                 probe.assert_called_once_with(4242, 0)
 
+    def test_fault_intent_is_not_a_phantom_child_and_unknown_or_substituted_intents_refuse(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with patch.object(native, 'private_directory'):
+                journal = native.Journal(root)
+            key, rows = fault_journal(root)
+            with patch.object(suite.upgrades, 'private_json', side_effect=lambda path: rows[path.name]), \
+                    patch.object(native, 'read_private', side_effect=lambda path: path.read_bytes()), \
+                    patch.object(suite.os, 'killpg', side_effect=ProcessLookupError) as probe:
+                self.assertTrue(suite.previous_children_settled(journal))
+                probe.assert_called_once_with(4242, 0)
+                probe.reset_mock()
+                rows[key + '-cli-fault-intent.json']['process'] = {'pid': 4243, 'start_time': 1234}
+                with self.assertRaises(suite.upgrades.UpgradeError):
+                    suite.previous_children_settled(journal)
+                probe.assert_not_called()
+                (root / 'child-unknown-intent.json').write_text('{}')
+                with self.assertRaises(suite.upgrades.UpgradeError):
+                    suite.previous_children_settled(journal)
+
     def test_disposal_intent_json_cannot_inject_names_or_change_checkpoint_schema(self) -> None:
         original, _graph = case()
         raw = json.loads(native.canonical(asdict(original)))
@@ -563,6 +715,171 @@ class PreservingProductAcceptanceTests(unittest.TestCase):
             with self.subTest(change=change):
                 self.assertFalse(suite.preserved_case(before, bad, bad_details, case()[0]))
         self.assertFalse(before['preserve']['incus_projects'][0]['pools'][0]['image_cache'])
+
+
+
+
+
+class ActualProductRefusalEntryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_real_public_consent_stops_before_composition_for_eof_and_literal_n(self):
+        from contextlib import redirect_stdout
+        import io
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        for name, spec in suite.upgrades.REFUSALS.items():
+            if spec.cause != 'CONSENT':
+                continue
+            output = io.StringIO()
+            def decline(prompt):
+                print(prompt, end='')
+                if spec.stdin_mode == 'EOF':
+                    raise EOFError
+                return 'n'
+            with self.subTest(case=name), redirect_stdout(output), patch('builtins.input', side_effect=decline), \
+                    patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade') as build:
+                with self.assertRaises(SystemExit) as stopped:
+                    await main(list(spec.args))
+                self.assertEqual(stopped.exception.code, 2)
+                build.assert_not_called()
+            actual = suite.upgrades.validate_refusal(name, list(spec.args), 2, output.getvalue().encode(), b'')
+            self.assertEqual(actual['cause'], 'CONSENT_EOF' if spec.stdin_mode == 'EOF' else 'CONSENT_DECLINED_N')
+
+    async def test_real_preview_checkpoint_guard_does_not_call_source_plan_or_recover(self):
+        from contextlib import redirect_stdout
+        import io
+        from tiny_swarm_world.application.services.product_upgrade_preview import preview_product_upgrade
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        journal = Mock()
+        journal.load.return_value = None
+        installation = Mock()
+        service = SimpleNamespace(journal=journal,
+            preview=lambda target, recovery=False: preview_product_upgrade(installation, journal, target, recovery=recovery))
+        spec = suite.upgrades.REFUSALS['refuse-product-checkpoint']
+        output = io.StringIO()
+        with redirect_stdout(output), patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade', return_value=service):
+            with self.assertRaises(SystemExit) as stopped:
+                await main(list(spec.args))
+        self.assertEqual(stopped.exception.code, 1)
+        installation.plan.assert_not_called()
+        result = suite.upgrades.validate_refusal('refuse-product-checkpoint', list(spec.args), 1, output.getvalue().encode(), b'')
+        self.assertEqual(result, {'status': 'blocked', 'cause': 'CHECKPOINT_ABSENT'})
+        # A completed/matching checkpoint is preview metadata, never a proof of
+        # recovery execution, runtime drift checks or a no-op.
+        journal.load.return_value = SimpleNamespace(stage='completed', plan=SimpleNamespace(
+            target=SimpleNamespace(product=SimpleNamespace(release='0.5.0')), preview=lambda: {'status': 'preview'}))
+        self.assertEqual((await preview_product_upgrade(installation, journal, '0.5.0'))['status'], 'verification_required')
+        with self.assertRaises(suite.upgrades.UpgradeError):
+            suite.upgrades.validate_refusal('refuse-product-checkpoint', list(spec.args), 0,
+                b'{"status":"verification_required"}\n', b'')
+
+    async def test_real_source_guards_preserve_distinct_dirty_origin_and_root_causes(self):
+        from contextlib import redirect_stdout
+        import io
+        from tiny_swarm_world.application.services.product_upgrade_preview import preview_product_upgrade
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_admission import _clean_source
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_source import OFFICIAL_REPOSITORY
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        name = 'refuse-product-source'
+        args = list(suite.upgrades.REFUSALS[name].args)
+        for fault, expected in (('dirty', 'SOURCE_DIRTY'), ('origin', 'SOURCE_ORIGIN'), ('root', 'SOURCE_ROOT')):
+            root = Path('/synthetic-owned-source')
+            def command(command):
+                if command[:2] == ('git', 'status'):
+                    return ' M changed.py' if fault == 'dirty' else ''
+                if command[:3] == ('git', 'rev-parse', '--show-toplevel'):
+                    return '/different-root' if fault == 'root' else str(root)
+                return 'https://unofficial.invalid/repository' if fault == 'origin' else OFFICIAL_REPOSITORY
+            installation = SimpleNamespace(root=root, _command=command)
+            installation.plan = lambda target: _clean_source(installation, allow_external=True)
+            journal = Mock()
+            journal.load.return_value = None
+            service = SimpleNamespace(journal=journal,
+                preview=lambda target, recovery=False: preview_product_upgrade(installation, journal, target, recovery=recovery))
+            output = io.StringIO()
+            with self.subTest(fault=fault), redirect_stdout(output), \
+                    patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade', return_value=service):
+                with self.assertRaises(SystemExit) as stopped:
+                    await main(args)
+            self.assertEqual(stopped.exception.code, 1)
+            self.assertEqual(suite.upgrades.validate_refusal(name, args, 1, output.getvalue().encode(), b'')['cause'], expected)
+
+    async def test_actual_config_refusal_precedes_source_until_fixed_official_preview_mode(self):
+        from contextlib import redirect_stdout
+        import hashlib
+        import io
+        import os
+        from tiny_swarm_world.application.services.product_upgrade import ProductUpgradeService
+        from tiny_swarm_world.infrastructure.adapters.cli.dispatcher import main
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_installation import PreparedProductInstallation
+        from tiny_swarm_world.infrastructure.adapters.lifecycle import product_configuration_source as configuration
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import validate_policy
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_source import OFFICIAL_REPOSITORY
+        from modules.tsw_core.tests.domain.lifecycle.test_models import manifest_fixture
+        from tiny_swarm_world.domain.lifecycle.models import ProductIdentity, migrate_manifest_v1
+        name = 'refuse-product-source'
+        args = list(suite.upgrades.REFUSALS[name].args)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'pyproject.toml').write_text('[project]\nversion="0.2.0"\n')
+            (root / 'requirements.lock').write_bytes(b'synthetic-source-lock')
+            infra = root.parent / (root.name + '-private-infra')
+            operator = infra / 'operator.env'
+            manifest = migrate_manifest_v1(manifest_fixture()).model_copy(update={'product': ProductIdentity(
+                release='0.2.0', revision='e' * 40, dependency_lock='sha256:' + hashlib.sha256(b'synthetic-source-lock').hexdigest())})
+            manifests = Mock()
+            manifests.load.return_value = SimpleNamespace(manifest=manifest, token='a' * 64, diagnostics=())
+            releases, runtime, journal = Mock(), Mock(), Mock()
+            journal.load.return_value = None
+            installation = PreparedProductInstallation(root, manifests, Mock(), releases, Mock())
+            def command(command):
+                if command[:2] == ('git', 'status'):
+                    return ''
+                if command[:3] == ('git', 'rev-parse', '--show-toplevel'):
+                    return str(root)
+                if command[:3] == ('git', 'remote', 'get-url'):
+                    return OFFICIAL_REPOSITORY
+                return 'e' * 40
+            official = SimpleNamespace(files={'config/provider.yaml': b'official'}, members={})
+            effective = SimpleNamespace(files={'config/provider.yaml': b'official', 'operator.env': b'PRIVATE_CANARY'}, members={})
+            def external_inputs(_installation, path):
+                self.assertEqual(path, infra)
+                return validate_policy(official, effective)
+            service = ProductUpgradeService(manifests, installation, journal, runtime)
+            inherited = {'TSW_REPOSITORY_ROOT': str(root), 'TSW_INFRA_ROOT': str(infra), 'TSW_INSTALL_ENV_FILE': str(operator)}
+            for mode in ('inherited-private', 'fixed-official'):
+                env = dict(inherited)
+                if mode == 'fixed-official':
+                    selected = suite.upgrades.select_refusal_environment(name, args, env, root, infra, operator)
+                    self.assertEqual(selected['infra_mode'], 'OFFICIAL_INFRA_READ_ONLY')
+                    self.assertEqual(env['TSW_INSTALL_ENV_FILE'], str(operator))
+                output = io.StringIO()
+                with self.subTest(mode=mode), redirect_stdout(output), patch.dict(os.environ, env), \
+                        patch.object(installation, '_command', side_effect=command), \
+                        patch.object(configuration, '_source_tree', side_effect=external_inputs), \
+                        patch('tiny_swarm_world.infrastructure.composition.build_product_upgrade', return_value=service):
+                    with self.assertRaises(SystemExit) as stopped:
+                        await main(args)
+                self.assertEqual(stopped.exception.code, 1)
+                if mode == 'inherited-private':
+                    self.assertIn('Effective infrastructure is unsafe', output.getvalue())
+                    with self.assertRaises(suite.upgrades.UpgradeError):
+                        suite.upgrades.validate_refusal(name, args, 1, output.getvalue().encode(), b'')
+                else:
+                    self.assertEqual(suite.upgrades.validate_refusal(name, args, 1, output.getvalue().encode(), b'')['cause'], 'SOURCE_INVENTORY')
+                releases.resolve.assert_not_called()
+                self.assertEqual(runtime.mock_calls, [])
+            self.assertFalse((root / '.tiny-swarm-world').exists())
+            self.assertEqual(inherited['TSW_INFRA_ROOT'], str(infra))
+
+    def test_native_public_refusal_routes_only_closed_case_to_the_existing_transport(self):
+        case_name = 'refuse-product-consent-n'
+        port = suite.SuiteNativePort(replace(intent(), case=case_name), Mock(), None)
+        args = list(suite.upgrades.REFUSALS[case_name].args)
+        with patch.object(port, 'public', return_value=b'bounded') as public:
+            self.assertEqual(port.public_refusal(args, timeout=120), b'bounded')
+            public.assert_called_once_with(args, 120, refusal_case=case_name)
+            with self.assertRaises(suite.upgrades.UpgradeError):
+                port.public_refusal([*args, '--approve-live'], timeout=120)
+            self.assertEqual(public.call_count, 1)
 
 
 if __name__ == '__main__':

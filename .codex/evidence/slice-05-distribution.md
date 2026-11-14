@@ -1,0 +1,12 @@
+# S440O-05 distribution
+
+Workflow issue-440-open-acceptance v2.0; Freeze reviewed qualification candidate C. Predecessor437ca3a84b6ab6dcf22ce7f966bac2bd10537df2 pushed+verified. COMMON_I05_IMPLEMENTATION_IN_PROGRESS; sole common-I05 writer admitted after final actual S3D. Prior historical workflow evidence remains in Git history.
+
+- Areas: lifecycle policy/test/provenance helpers, native/WSL guards, capability/domain fixtures, documentation, security/DevOps/read-only registry evidence.
+- Sequential isolated writer open_python planned for11existing source/test/docs paths in issue440-open-slice05-runtime branchdocs/workflow-issue440-open-20261111-slice-05-runtime. Root4metadata/privateevidence/integration/SSH/Git; real five-owner+S3_DOC reviews, no fallback.
+- Parallel source work rejected: shared native/WSL provenance contract and tests, private policy/default denial fixtures, exact I05/C/K source/tree sequencing create shared locks and mandatory order. No second source writer; read-only reviews independent.
+- I05 ships candidate-only, common guard/tests/docs fully gated then one integration checkpoint. Private isolated C afterwards only exact existing2target policy/privatecatalogtest delta, full exact-source gate before prep/freeze, no private push. K solecapfile directchildC later08; no intervening metadata/tests, evidenceoutsideC/K. Csource grant is not production support.
+- Scope: original7files including2evidence docs plus4existing native/WSLsupervisors+matchingnative tests; rootworkflow/context amendment and governinghash reviewedS3_DOC before addedwrites. No newsourcefile/domainGit/runtimeflag/CLI/provider/reader/ADR.
+- Locks: all11allowedsource/test/docs, root4metadata, frozenC/K+pairedhostsource and existing Classic cold-kernel policy. Unknown/dirty/merge/intervening/substituted source refuses. Native/WSL receipt.source andfixture source exactlyC; allnoncaptrackedbytes/modesidentical.
+- Gates afterfreeze onlyrequiredSSHUbuntuWSL credentialsprivate~/.access, exactsource/packageorigin; native+WSLhelpertests first, componentpolicy/CLI2, capability/profile2, fullQUALITY. PrivateC separatelyfullgated. Seven childimage manifests/configs+six declaredtags read-only GET beforeuse, noDocker/layers/hostmutation. Externalunavailability blocksCacceptance.
+- Consolidation root integrates onlyacceptedfrozenwrites, retainslogs/hashes/sixdocs, independentboundedcompletion/D8, oneI05checkpointpush; noPR/merge/cleanup/live/parentDONE. FinalS3Drequired before sourcewriter.

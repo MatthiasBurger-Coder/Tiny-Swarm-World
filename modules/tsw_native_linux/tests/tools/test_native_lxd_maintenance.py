@@ -951,7 +951,8 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
     def test_native_static_intent_pins_the_same_asset_and_preserves_existing_pin_indices(self) -> None:
         self.assertEqual(maintenance.FILES[4], 'modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
         self.assertEqual(maintenance.FILES[5], 'modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
-        self.assertEqual(maintenance.FILES[6], 'documentation/handbook/05-development/workflow/issues/issue-449/workflow.md')
+        self.assertEqual(maintenance.FILES[6], 'documentation/handbook/05-development/workflow/workflow.md')
+        self.assertEqual(maintenance.FILES[6], maintenance.fixture.ACTIVE_WORKFLOW)
         self.assertEqual(maintenance.FILES[12], str(maintenance.fixture.WINDOWS_SNAPSHOT_REL))
         self.assertEqual(maintenance.FILES[13], str(maintenance.fixture.WINDOWS_CERTIFICATE_REL))
         source = 'a' * 40
@@ -978,6 +979,11 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
         intent: dict[str, Any] = {'schema_version': 1, 'decision': 'INTENT_ONLY', 'fixture': static,
                   'provider_config_sha256': '0' * 64}
         self.assertEqual(maintenance.validate_fixture_intent(intent, source), intent)
+        for invalid_workflow in ('dcc35dfde66417bbee7263cfc233fca68855ef66b3001dab2831ba1dc294b395', '0' * 64):
+            forged = copy.deepcopy(intent)
+            forged['fixture']['workflow_sha256'] = invalid_workflow
+            with self.assertRaisesRegex(maintenance.fixture.FixtureError, 'SOURCE_BINDING_MISMATCH'):
+                maintenance.validate_fixture_intent(forged, source)
         for field in ('windows_snapshot_sha256', 'windows_certificate_sha256'):
             for field_value in (None, '0' * 64):
                 forged = copy.deepcopy(intent)

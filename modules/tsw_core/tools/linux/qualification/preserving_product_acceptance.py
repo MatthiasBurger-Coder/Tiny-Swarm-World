@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import copy
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -43,7 +44,7 @@ PRIVATE = native.PRIVATE
 BUDGETS = {'prepare': 1200, 'pause': 600, 'approval': 180, 'case': 5400, 'teardown': 900, 'restore': 600}
 START_COVERAGE = sum(BUDGETS.values())
 ACTIVATION_COVERAGE = BUDGETS['case'] + BUDGETS['teardown'] + BUDGETS['restore']
-BOOTSTRAP = "import runpy,sys;sys.path.insert(0,'src');runpy.run_module('tiny_swarm_world',run_name='__main__')"
+BOOTSTRAP = upgrades.CLI_BOOTSTRAP
 GATED_CHILD = "import os,sys;fd=int(sys.argv[1]);permit=os.read(fd,1);os.close(fd);os.execvpe(sys.argv[2],sys.argv[2:],os.environ) if permit==b'G' else sys.exit(125)"
 PROFILE_STATE = ROOT / '.tiny-swarm-world/installation/profile-operation.json'
 MANIFEST = ROOT / '.tiny-swarm-world/installation/manifest.json'
@@ -53,7 +54,8 @@ CAPABILITY = ROOT / 'modules/tsw_core/infra/config/incus-profile-capabilities.js
 SUITE_FILES = ('modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py',
     'modules/tsw_core/tools/linux/qualification/owned_case_disposal.py', 'modules/tsw_native_linux/tests/tools/test_preserving_product_acceptance.py',
     'modules/tsw_native_linux/tests/tools/test_owned_case_disposal.py', 'modules/tsw_core/infra/config/incus-profile-capabilities.json',
-    upgrades.SCRIPT, upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py')
+    upgrades.SCRIPT, upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py',
+    upgrades.CLI_MAIN, upgrades.CLI_RELEASE)
 
 
 @dataclass(frozen=True)
@@ -161,6 +163,10 @@ def source_pins() -> tuple[str, dict[str, str]]:
         raw = native.bounded(['/usr/bin/git', '--no-optional-locks', 'show', source + ':' + relative], 10)
         native.require(raw == path.read_bytes(), 'SOURCE_BLOB_DRIFT')
         pins[relative] = native.digest(raw)
+    native.require(native.bounded(['/usr/bin/git', '--no-optional-locks', 'rev-parse', 'HEAD'], 10).decode('ascii').strip() == source,
+                   'SOURCE_HEAD_DRIFT')
+    native.require(not native.bounded(['/usr/bin/git', '--no-optional-locks', 'status', '--porcelain', '--untracked-files=all'], 10),
+                   'SOURCE_DIRTY')
     return source, pins
 
 
@@ -262,6 +268,62 @@ def validate_host_artifacts(proof: Any, capability_sha256: str, fixture_sha256: 
     return sources
 
 
+def qualification_git(root: Path, read: Callable[[list[str]], bytes], args: list[str]) -> bytes:
+    return read(['/usr/bin/git', '--no-replace-objects', '--no-optional-locks',
+        '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fileMode=true',
+        '-C', str(root), *args])
+
+
+def clean_qualification_source(root: Path, product: str, read: Callable[[list[str]], bytes]) -> None:
+    """A context check, including the historical equal-source preparation sentinel."""
+    if not isinstance(product, str) or native.inventory.HEX40.fullmatch(product) is None:
+        raise ValueError('QUALIFICATION_SOURCE_INVALID')
+    if qualification_git(root, read, ['rev-parse', '--verify', 'HEAD']).strip() != product.encode():
+        raise ValueError('QUALIFICATION_HEAD_MISMATCH')
+    if qualification_git(root, read, ['status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none']):
+        raise ValueError('QUALIFICATION_SOURCE_DIRTY')
+    flags = qualification_git(root, read, ['ls-files', '-v', '-z']).split(b'\0')
+    if flags[-1] != b'' or not flags[:-1] or any(not row.startswith(b'H ') for row in flags[:-1]):
+        raise ValueError('QUALIFICATION_INDEX_UNPROVEN')
+
+
+def qualification_promotion(root: Path, qualification: str, product: str, capability_sha: str,
+                            read: Callable[[list[str]], bytes]) -> None:
+    """Read actual objects: K is one cap-only child of the empty-matrix C."""
+    clean_qualification_source(root, product, read)
+    if (not isinstance(qualification, str) or native.inventory.HEX40.fullmatch(qualification) is None
+            or qualification == product or not isinstance(capability_sha, str) or native.HEX.fullmatch(capability_sha) is None):
+        raise ValueError('QUALIFICATION_PROMOTION_INVALID')
+    commits = {}
+    for revision in (qualification, product):
+        raw = qualification_git(root, read, ['cat-file', 'commit', revision])
+        actual = hashlib.sha1(b'commit ' + str(len(raw)).encode() + b'\0' + raw, usedforsecurity=False).hexdigest()
+        if actual != revision or len(raw) > 131072:
+            raise ValueError('QUALIFICATION_COMMIT_INVALID')
+        commits[revision] = raw.split(b'\n\n', 1)[0].splitlines()
+    parents = [line for line in commits[product] if line.startswith(b'parent ')]
+    if parents != [b'parent ' + qualification.encode()]:
+        raise ValueError('QUALIFICATION_PARENT_INVALID')
+    capability = 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+    changes = qualification_git(root, read, ['diff-tree', '--no-ext-diff', '--no-textconv', '--raw',
+        '--no-abbrev', '--no-commit-id', '--no-renames', '-r', '-z', qualification, product, '--'])
+    if re.fullmatch(rb':100644 100644 [0-9a-f]{40} [0-9a-f]{40} M\x00' + re.escape(capability.encode()) + rb'\x00', changes) is None:
+        raise ValueError('QUALIFICATION_TREE_DELTA_INVALID')
+    before = native.inventory.strict_json(qualification_git(root, read, ['cat-file', 'blob', qualification + ':' + capability]))
+    if (before != {'schema_version': 1, 'capability': 'installation-scoped-incus-manager-profile', 'admitted_versions': []}
+            or type(before['schema_version']) is not int):
+        raise ValueError('QUALIFICATION_C_MATRIX_NOT_EMPTY')
+    after = qualification_git(root, read, ['cat-file', 'blob', product + ':' + capability])
+    if native.digest(after) != capability_sha:
+        raise ValueError('QUALIFICATION_K_MATRIX_MISMATCH')
+    clean_qualification_source(root, product, read)
+
+
+def qualification_receipt_sources(sources: dict[str, str], qualification: str) -> None:
+    if set(sources) != set(CAPABILITY_HOSTS) or set(sources.values()) != {qualification}:
+        raise ValueError('BOTH_HOST_QUALIFICATION_SOURCE_MISMATCH')
+
+
 def case_tls_root(journal: native.Journal) -> str:
     native.private_directory(journal.directory)
     path = journal.directory / 'tls'
@@ -282,7 +344,7 @@ def check_prerequisites(intent: SuiteIntent) -> None:
     admission = matrix.IncusProfileCapabilityRepository(ROOT).load()
     native.require(admission.admits('6.0.5', '6.0.5'), 'BOTH_HOST_CAPABILITY_NOT_ADMITTED')
     entry = next(row for row in admission.admitted_versions if (row.client_version, row.server_version) == ('6.0.5', '6.0.5'))
-    reference = native.bounded(['/usr/bin/git', '--no-optional-locks', 'show', entry.fixture_source_revision + ':' + native.FILES[4]], 10)
+    reference = qualification_git(ROOT, lambda args: native.bounded(args, 10), ['cat-file', 'blob', entry.fixture_source_revision + ':' + native.FILES[4]])
     native.require(native.digest(reference) == entry.fixture_sha256, 'SUITE_CAPABILITY_SOURCE_MISMATCH')
     # The immutable promotion record is required in addition to its public matrix
     # entry: both actual host listener observations must identify this admission.
@@ -290,10 +352,13 @@ def check_prerequisites(intent: SuiteIntent) -> None:
     artifacts = {host: native.read_private(PRIVATE / ('profile-capability-' + host + '.json')) for host in CAPABILITY_HOSTS}
     try:
         sources = validate_host_artifacts(proof, intent.capability_sha256, entry.fixture_sha256, artifacts)
+        qualification_receipt_sources(sources, entry.fixture_source_revision)
+        qualification_promotion(ROOT, entry.fixture_source_revision, intent.source_commit, intent.capability_sha256,
+            lambda args: native.bounded(args, 10))
     except ValueError as exc:
         raise native.MaintenanceError(str(exc)) from exc
     for source in sources.values():
-        actual_blob = native.bounded(['/usr/bin/git', '--no-optional-locks', 'show', source + ':' + native.FILES[4]], 10)
+        actual_blob = qualification_git(ROOT, lambda args: native.bounded(args, 10), ['cat-file', 'blob', source + ':' + native.FILES[4]])
         native.require(native.digest(actual_blob) == entry.fixture_sha256, 'BOTH_HOST_CAPABILITY_SOURCE_MISMATCH')
     native.require(tree_digest(INFRA) == intent.infra_sha256
         and native.digest(native.read_private(OPERATOR)) == intent.operator_config_sha256, 'SUITE_CONFIGURATION_DRIFT')
@@ -341,6 +406,12 @@ class SuiteNativePort(native.NativePort):
         self.total_deadline: float | None = None
         self.authorized_until: float | None = None
         self.used_case_phases: set[str] = set()
+        self.cli_pins: dict[str, str] = {}
+        self.cli_approval: dict[str, str] | None = None
+        self.cli_activation: dict[str, str] | None = None
+        self.cli_versions: tuple[str, str] | None = None
+        self.cli_final: dict[str, Any] | None = None
+        self.cli_selection: dict[str, Any] | None = None
 
     def prestate(self) -> dict[str, Any]:
         if self.baseline is None:
@@ -410,8 +481,11 @@ class SuiteNativePort(native.NativePort):
         super().shutdown()
 
     def fresh_source(self) -> None:
-        source, _pins = source_pins()
+        source, pins = source_pins()
         native.require(source == self.source, 'SOURCE_HEAD_DRIFT')
+        if self.proposal is not None:
+            native.require(pins == self.proposal['pins'], 'SUITE_PROPOSAL_DRIFT')
+        self.cli_pins = pins
         check_prerequisites(self.intent)
 
     def capture(self) -> tuple[dict[str, Any], DetailsRunner]:
@@ -449,8 +523,10 @@ class SuiteNativePort(native.NativePort):
             'incus_unit': next(row for row in artifact['incus_units'] if row['unit'] == 'incus.service'),
             'lxd_initial_pid': (self.baseline['binding']['lxd_initial_pid'] if self.baseline is not None else artifact['lxd_executables'][0]['main_pid']),
             'fixture_image': self.intent.ubuntu_fingerprint}
-        return native.validate_snapshot({'nodes': {name: self.node(name) for name in native.NODES},
+        snapshot = native.validate_snapshot({'nodes': {name: self.node(name) for name in native.NODES},
             'socket': self.unit(native.SOCKET), 'preserve': preserve, 'binding': binding})
+        self.cli_final = snapshot
+        return snapshot
 
     def check_binding(self, baseline: dict[str, Any], *, active: bool) -> None:
         if self.recovering and not active:
@@ -495,8 +571,8 @@ class SuiteNativePort(native.NativePort):
     @staticmethod
     def incus_env(baseline: dict[str, Any]) -> dict[str, str]:
         kind = native.incus_socket(baseline)['listen']
-        return native.ENV | {'INCUS_SOCKET': '/run/incus/unix.socket' if kind == 'incus_run' else '/var/lib/incus/unix.socket',
-                             'INCUS_CONF': '/proc/self'}
+        return native.inventory.ENV_BASE | {
+            'INCUS_SOCKET': '/run/incus/unix.socket' if kind == 'incus_run' else '/var/lib/incus/unix.socket'}
 
     def incus_effect(self, args: list[str], timeout: int) -> None:
         native.require(self.baseline is not None and self.worker_settled, 'CASE_WORKER_NOT_SETTLED')
@@ -513,7 +589,7 @@ class SuiteNativePort(native.NativePort):
             or args[:4] == ['--project', 'default', 'profile', 'delete'] and len(args) == 5
                 and self.owned is not None and args[4] == self.owned.profile_name)
         native.require(allowed, 'CASE_COMMAND_NOT_ALLOWED')
-        env = self.incus_env(self.prestate())
+        env = self.incus_env(self.prestate()) | {'INCUS_CONF': '/proc/self'}
         self.command(['/usr/bin/env', '-i', *(key + '=' + value for key, value in sorted(env.items())),
                       '/usr/bin/incus', '--force-local', *args], timeout)
 
@@ -624,7 +700,8 @@ class SuiteNativePort(native.NativePort):
                 value = native.inventory.strict_json(raw)
                 native.require(self.proposal is not None, 'SUITE_PROPOSAL_MISSING')
                 proposal = self.current_proposal()
-                expires = validate_go(value, proposal, native.digest(native.canonical(proposal)), datetime.now(timezone.utc), paused=True, case=self.intent.case)
+                accepted_at = datetime.now(timezone.utc)
+                expires = validate_go(value, proposal, native.digest(native.canonical(proposal)), accepted_at, paused=True, case=self.intent.case)
                 native.require(all(value[key] == item for key, item in expected.items()), 'SUITE_PAUSED_CAPTURE_DRIFT')
                 self.approval_recheck = True
                 try:
@@ -637,6 +714,7 @@ class SuiteNativePort(native.NativePort):
                     native.require(remaining >= sum(self.purpose_budgets[k] for k in ('case', 'teardown', 'restore')), 'UPGRADE_ACTIVATION_RESERVE')
                     self.authorized_until = time.monotonic() + remaining
                 self.journal.save('activation-accepted.json', {'activation_sha256': native.digest(raw)})
+                self.cli_activation = upgrades.approval_receipt(raw, value, accepted_at.isoformat())
                 return
             time.sleep(.25)
         raise native.MaintenanceError('SUITE_ACTIVATION_TIMEOUT')
@@ -693,16 +771,30 @@ class SuiteNativePort(native.NativePort):
     def listeners_clear(self, before: dict[str, Any]) -> bool:
         return self.worker_settled and self.route_capture() == before
 
-    def public(self, args: list[str], timeout: int) -> bytes:
+    def refusal_inputs(self) -> dict[str, Any]:
+        return upgrades.capture_refusal_inputs(ROOT, INFRA, OPERATOR,
+            self.intent.infra_sha256, self.intent.operator_config_sha256)
+
+    def public_refusal(self, args: list[str], *, timeout: int) -> bytes:
+        upgrades.refusal_spec(self.intent.case, args)
+        return self.public(args, timeout, refusal_case=self.intent.case)
+
+    def public(self, args: list[str], timeout: int, *, refusal_case: str | None = None) -> bytes:
         if self.intent.case in upgrades.RECIPES:
             upgrades.require_cache_settled(self)
         self.fresh_source()
         native.require(self.baseline is not None, 'SUITE_PRESTATE_MISSING')
         self.check_binding(self.prestate(), active=False)
         native.require(self.unit(native.SOCKET) == 'inactive', 'DAEMON_REACTIVATED')
-        return self.child([self.interpreter(), '-E', '-s', '-B', '-c', BOOTSTRAP, *args], timeout)
+        _code, raw, _error = native.inventory.Runner().run(['/usr/bin/incus', '--force-local', 'version'],
+            command_id='suite_cli_incus_version', env=self.incus_env(self.prestate()), safe_args=[])
+        native.require(_code == 0 and not _error, 'SUITE_VERSION_DRIFT')
+        self.cli_versions = upgrades.cli_incus_versions(raw)
+        native.require(self.cli_versions == ('6.0.5', '6.0.5'), 'SUITE_VERSION_DRIFT')
+        self.check_binding(self.prestate(), active=False)
+        return self.child([self.interpreter(), '-E', '-s', '-B', '-c', BOOTSTRAP, *args], timeout, refusal_case=refusal_case)
 
-    def child(self, argv: list[str], timeout: int) -> bytes:
+    def child(self, argv: list[str], timeout: int, *, refusal_case: str | None = None) -> bytes:
         self.budget()
         native.require(self.deadline - time.monotonic() >= timeout + 10 and self.worker_settled, 'CASE_BUDGET_INSUFFICIENT')
         if self.intent.case in upgrades.RECIPES:
@@ -711,13 +803,27 @@ class SuiteNativePort(native.NativePort):
         env = native.ENV | operator_values(self.intent) | baseline_images | {'TSW_REPOSITORY_ROOT': str(ROOT), 'TSW_INFRA_ROOT': str(INFRA),
             'TSW_INSTALL_ENV_FILE': str(OPERATOR), 'TSW_LIVE_EVIDENCE_ROOT': str(self.journal.directory),
             'TSW_LOCAL_TLS_STATE_ROOT': case_tls_root(self.journal)}
-        self.worker_settled = False
         child_key = 'child-' + uuid4().hex
+        args = upgrades.cli_args(argv)
+        receipt = None if args is None else upgrades.CliReceipt(self.journal, child_key,
+            upgrades.cli_binding(self, 'native', native.fixture.ACTIVE_WORKFLOW), argv, args)
+        if receipt is not None:
+            receipt.require_approval()
+        refusal = None
+        if refusal_case is not None:
+            native.require(refusal_case == self.intent.case and args is not None and receipt is not None, 'REFUSAL_COMMAND_NOT_ADMITTED')
+            refusal = upgrades.refusal_spec(refusal_case, args if args is not None else [])
+            upgrades.require_refusal_binding(receipt, refusal_case)
+            if receipt is None:
+                raise native.MaintenanceError('REFUSAL_CHILD_MISSING')
+            receipt.environment = upgrades.select_refusal_environment(refusal_case, receipt.args, env, ROOT, INFRA, OPERATOR)
+            receipt.inputs_sha256 = upgrades.digest(self.refusal_inputs())
+        self.worker_settled = False
         self.journal.save(child_key + '-intent.json', {'argv_sha256': native.digest(native.canonical(argv)), 'timeout': timeout})
         gate_read, gate_write = os.pipe()
         try:
             child = subprocess.Popen([self.interpreter(), '-E', '-s', '-B', '-c', GATED_CHILD,
-                str(gate_read), *argv], cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+                str(gate_read), *argv], cwd=ROOT, env=env, stdin=(subprocess.PIPE if refusal is not None and refusal.stdin_mode == 'DECLINE_N' else subprocess.DEVNULL),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, pass_fds=(gate_read,))
         except OSError:
             os.close(gate_write)
@@ -729,19 +835,29 @@ class SuiteNativePort(native.NativePort):
         selector = selectors.DefaultSelector()
         output = bytearray()
         error_digest = hashlib.sha256()
+        refusal_error = bytearray()
         total = 0
+        output_complete = False
         deadline = time.monotonic() + timeout
         try:
-            self.journal.save(child_key + '-pid.json', {'pid': child.pid, 'start_time': process_start(child.pid)})
+            identity = {'pid': child.pid, 'start_time': process_start(child.pid)}
+            self.journal.save(child_key + '-pid.json', identity)
+            if receipt is not None:
+                receipt.start(identity, process_start(os.getpid()))
             os.write(gate_write, b'G')
+            if receipt is not None:
+                receipt.release()
             os.close(gate_write)
             gate_write = -1
+            if refusal_case is not None:
+                upgrades.fixed_stdin(refusal_case, list(upgrades.REFUSALS[refusal_case].args), child, receipt)
             if child.stdout is None or child.stderr is None:
                 raise native.MaintenanceError('CASE_PIPE_UNAVAILABLE')
             selector.register(child.stdout, selectors.EVENT_READ)
             selector.register(child.stderr, selectors.EVENT_READ)
             while selector.get_map():
-                upgrades.poll_fault(self, child)
+                if receipt is not None and upgrades.cli_fault_candidate(self, receipt):
+                    upgrades.poll_fault(self, child, before_signal=receipt.prepare_fault, receipt=receipt)
                 native.require(time.monotonic() < deadline, 'CASE_WORKER_TIMEOUT')
                 for selected, _event in selector.select(.2):
                     chunk = os.read(selected.fd, 65536)
@@ -753,15 +869,35 @@ class SuiteNativePort(native.NativePort):
                         output.extend(chunk)
                     else:
                         error_digest.update(chunk)
+                        if refusal_case is not None:
+                            refusal_error.extend(chunk)
             status = child.wait(timeout=max(.01, deadline - time.monotonic()))
+            output_complete = True
             self.journal.save(child_key + '-outcome.json', {'return_code': status,
                 'stdout_sha256': native.digest(bytes(output)), 'stderr_sha256': error_digest.hexdigest()})
-            native.require(status == 0, 'CASE_CLI_FAILED')
+            if refusal_case is None:
+                native.require(status == 0, 'CASE_CLI_FAILED')
+            else:
+                upgrades.save_refusal(receipt, refusal_case, status, bytes(output), bytes(refusal_error))
             return bytes(output)
+        except upgrades.FaultObserved as exc:
+            if receipt is not None:
+                receipt.fault = exc.receipt
+            raise
         finally:
             selector.close()
+            if receipt is not None and receipt.fault is not None and receipt.fault['signal'] == int(signal.SIGINT):
+                try:
+                    extra, errors = upgrades.settle_interrupt(child, min(deadline, self.deadline,
+                        self.authorized_until if self.authorized_until is not None else self.deadline))
+                    output.extend(extra); error_digest.update(errors)
+                    native.require(total + len(extra) + len(errors) <= native.LIMIT, 'CASE_OUTPUT_BOUND')
+                    output_complete = True
+                except (upgrades.UpgradeError, subprocess.TimeoutExpired, OSError, native.MaintenanceError):
+                    self.upgrade_fault_observed = False
             if child.poll() is None:
-                os.killpg(child.pid, signal.SIGTERM)
+                if receipt is None or receipt.fault is None:
+                    os.killpg(child.pid, signal.SIGTERM)
                 try:
                     child.wait(timeout=5)
                 except subprocess.TimeoutExpired:
@@ -772,10 +908,17 @@ class SuiteNativePort(native.NativePort):
                 self.journal.save(child_key + '-settled.json', {'pid': child.pid, 'group_absent': True})
             if gate_write >= 0:
                 os.close(gate_write)
+            if refusal_case is not None and child.stdin is not None and not child.stdin.closed:
+                child.stdin.close()
             if child.stdout is not None:
                 child.stdout.close()
             if child.stderr is not None:
                 child.stderr.close()
+            if receipt is not None and self.worker_settled and child.returncode is not None:
+                if receipt.fault is not None and child.returncode != -receipt.fault['signal']:
+                    self.upgrade_fault_observed = False
+                receipt.settle(child.pid, child.returncode, output_complete,
+                    native.digest(bytes(output)), error_digest.hexdigest())
 
     def upgrade_validate_inputs(self) -> None:
         native.require(tree_digest(INFRA) == self.intent.infra_sha256, 'SUITE_INFRA_DRIFT')
@@ -798,12 +941,14 @@ class SuiteNativePort(native.NativePort):
         raw = self.child([self.interpreter(), '-E', '-s', '-B', str(Path(__file__)), 'observe'], 180)
         native.require(native.inventory.strict_json(raw) == {'status': 'SELECTED_RUNTIME_VERIFIED'}, 'CASE_COMPLETION_NOT_PROVEN')
         model = importlib.import_module('tiny_swarm_world.infrastructure.adapters.lifecycle.manifest')
-        actual = model.decode_manifest(native.read_private(MANIFEST))
+        manifest_raw = native.read_private(MANIFEST)
+        actual = model.decode_manifest(manifest_raw)
         recipe = CASE_RECIPES[self.intent.case]
         wanted = set(recipe.services) | ({'traefik'} if recipe.add_traefik else set())
         native.require(set(actual.requested_services) == wanted and actual.schema_version == 2
             and actual.effective_exposure().get('swagger') == (recipe.exposure if 'swagger' in wanted else None)
             and all(owner.owner == recipe.owner for owner in actual.effective_stack_ownership().values()), 'CASE_SAVED_SELECTION_DRIFT')
+        self.cli_selection = upgrades.selection_evidence(actual, native.digest(manifest_raw))
 
     @contextmanager
     def installation_lease(self) -> Iterator[Any]:
@@ -1017,7 +1162,7 @@ def process_start(pid: int) -> int:
 
 
 def previous_children_settled(journal: native.Journal) -> bool:
-    intents = list(journal.directory.glob('child-*-intent.json'))
+    intents = upgrades.ordinary_intents(journal.directory, 64)
     native.require(len(intents) <= 32, 'CASE_CHILD_EVENT_BOUND')
     for path in intents:
         key = path.name.removesuffix('-intent.json')
@@ -1130,6 +1275,10 @@ def observe_prerequisites() -> None:
     print('{"status":"SHARED_PREREQUISITES_READY"}')
 
 
+def case_exit_status(status: str) -> int:
+    return 0 if status in {'PASS', 'RECOVERED', 'ENGINE_RECOVERED_DISPOSED'} else 2
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', choices=('prepare', 'execute', 'recover', 'prepare-engine-recovery', 'engine-recovery', 'observe', 'prerequisites'))
@@ -1160,7 +1309,7 @@ def main(argv: list[str] | None = None) -> int:
         intent = SuiteIntent.parse(native.inventory.strict_json(raw), source)
         native.require(intent.run_id == args.run_id, 'SUITE_RUN_ID_DRIFT')
         if intent.case in upgrades.RECIPES and upgrades.RECIPES[intent.case].kind == 'product':
-            print(native.canonical({'status': 'NOT_IMPLEMENTED', 'case': intent.case, 'requires': 'S-U2', 'epic_complete': False}).decode())
+            print(native.canonical(upgrades.unavailable_product(intent.case) | {'run_id': intent.run_id, 'source_commit': intent.source_commit}).decode())
             return 2
         check_prerequisites(intent)
         if intent.case in upgrades.RECIPES:
@@ -1200,9 +1349,11 @@ def main(argv: list[str] | None = None) -> int:
         go = native.inventory.strict_json(go_raw)
         validate_go(go, proposal, native.digest(proposal_raw), datetime.now(timezone.utc), paused=False, recovery=args.mode == 'recover', case=intent.case, engine_recovery=args.mode == 'engine-recovery')
         with native.host_lock():
-            expires = validate_go(go, proposal, native.digest(proposal_raw), datetime.now(timezone.utc), paused=False, recovery=args.mode == 'recover', case=intent.case, engine_recovery=args.mode == 'engine-recovery')
+            accepted_at = datetime.now(timezone.utc)
+            expires = validate_go(go, proposal, native.digest(proposal_raw), accepted_at, paused=False, recovery=args.mode == 'recover', case=intent.case, engine_recovery=args.mode == 'engine-recovery')
             port = SuiteNativePort(intent, journal, proposal)
             port.baseline = proposal['baseline']
+            port.cli_approval = upgrades.approval_receipt(go_raw, go, accepted_at.isoformat())
             if intent.case in upgrades.RECIPES and args.mode != 'recover':
                 port.engine_recovery = args.mode == 'engine-recovery'
                 port.purpose_budgets = upgrades.budgets(intent.case, 'native', engine_recovery=port.engine_recovery)
@@ -1264,8 +1415,10 @@ def main(argv: list[str] | None = None) -> int:
                     raise cleanup_failure
                 result = {'status': 'RECOVERED'}
             journal.save('result-' + uuid4().hex + '.json', result)
+            if result['status'] in {'PASS', 'ENGINE_RECOVERED_DISPOSED'}:
+                upgrades.save_cli_case_result(port, result)
             print(native.canonical(result).decode())
-            return 0 if result['status'] in {'PASS', 'RECOVERED'} else 2
+            return case_exit_status(result['status'])
     except BaseException as exc:
         reason = native.failure_reason(exc)
         print(native.canonical({'status': reason}).decode(), file=sys.stderr)

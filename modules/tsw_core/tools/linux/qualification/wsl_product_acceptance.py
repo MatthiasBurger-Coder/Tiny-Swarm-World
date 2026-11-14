@@ -29,18 +29,23 @@ from typing import TYPE_CHECKING, Any, Iterator, Protocol, cast
 from uuid import UUID, uuid4
 
 if TYPE_CHECKING:
+    from .incus_profile_listener_fixture import ACTIVE_WORKFLOW
     from . import native_runtime_inventory as inventory
     from . import owned_case_disposal as disposal
     from . import product_upgrade_cases as upgrades
     from .preserving_product_acceptance import RECIPES, validate_preview, operator_credentials, validate_host_artifacts, CAPABILITY_HOSTS
+    from .preserving_product_acceptance import clean_qualification_source, qualification_promotion, qualification_receipt_sources, qualification_git
 else:
     prefix = __package__ + '.' if __package__ else ''
+    ACTIVE_WORKFLOW = importlib.import_module(prefix + 'incus_profile_listener_fixture').ACTIVE_WORKFLOW
     inventory = importlib.import_module(prefix + 'native_runtime_inventory')
     disposal = importlib.import_module(prefix + 'owned_case_disposal')
     upgrades = importlib.import_module(prefix + 'product_upgrade_cases')
     recipes = importlib.import_module(prefix + 'preserving_product_acceptance')
     RECIPES, validate_preview = recipes.RECIPES, recipes.validate_preview
     operator_credentials, validate_host_artifacts, CAPABILITY_HOSTS = recipes.operator_credentials, recipes.validate_host_artifacts, recipes.CAPABILITY_HOSTS
+    clean_qualification_source, qualification_promotion = recipes.clean_qualification_source, recipes.qualification_promotion
+    qualification_receipt_sources, qualification_git = recipes.qualification_receipt_sources, recipes.qualification_git
 
 ROOT = Path(__file__).resolve().parents[5]
 BASE = Path('/root/tsw440-acceptance')
@@ -50,7 +55,8 @@ FILES = (SCRIPT, 'modules/tsw_core/tools/linux/qualification/owned_case_disposal
          'modules/tsw_core/tools/linux/qualification/preserving_product_acceptance.py',
          'modules/tsw_core/tools/linux/qualification/native_runtime_inventory.py',
          'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py', CAPABILITY, upgrades.SCRIPT,
-         upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py')
+         upgrades.CATALOG, 'modules/tsw_core/src/infrastructure/adapters/lifecycle/catalog.py',
+         ACTIVE_WORKFLOW, upgrades.CLI_MAIN, upgrades.CLI_RELEASE)
 CASE_RECIPES = RECIPES | upgrades.RECIPES
 LIMIT = 8 * 1024 * 1024
 HEX = re.compile(r'[0-9a-f]{64}\Z')
@@ -60,7 +66,7 @@ REVIEWS = {'requirements', 'architecture', 'security', 'devops', 'test_evidence'
 FUTURE = {'prepare': 0, 'admit': 6600, 'case': 1200, 'disposal': 300, 'final': 0, 'recover': 0}
 ENV = {'LC_ALL': 'C', 'PATH': '/usr/sbin:/usr/bin:/sbin:/bin', 'HOME': '/root',
        'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': '/dev/null', 'GIT_OPTIONAL_LOCKS': '0'}
-BOOTSTRAP = "import runpy,sys;sys.path.insert(0,'src');runpy.run_module('tiny_swarm_world',run_name='__main__')"
+BOOTSTRAP = upgrades.CLI_BOOTSTRAP
 GATE = "import os,sys;f=int(sys.argv[1]);p=os.read(f,1);os.close(f);os.execvpe(sys.argv[2],sys.argv[2:],os.environ) if p==b'G' else sys.exit(125)"
 
 
@@ -166,7 +172,8 @@ class Intent:
         return self.home / 'cases' / self.case / 'checkout'
 
 
-def approval(value: Any, intent: Intent, proposal: dict[str, Any], raw_sha: str, *, recover: bool = False, engine_recovery: bool = False) -> datetime:
+def approval(value: Any, intent: Intent, proposal: dict[str, Any], raw_sha: str, *, recover: bool = False,
+             engine_recovery: bool = False, now: datetime | None = None) -> datetime:
     fields = {'schema_version', 'decision', 'phase', 'intent_sha256', 'proposal_sha256', 'source_commit', 'pins', 'budgets',
               'expires_at_utc', 'reviews'}
     selected_budgets = upgrades.budgets(intent.case, 'wsl', engine_recovery=engine_recovery)
@@ -182,7 +189,7 @@ def approval(value: Any, intent: Intent, proposal: dict[str, Any], raw_sha: str,
          and all(v == 'APPROVED' for v in value['reviews'].values()), 'CASE_GO_REVIEWS')
     try:
         expiry = datetime.fromisoformat(value['expires_at_utc'])
-        seconds = (expiry - datetime.now(timezone.utc)).total_seconds()
+        seconds = (expiry - (now if now is not None else datetime.now(timezone.utc))).total_seconds()
     except (TypeError, ValueError) as exc:
         raise CaseError('CASE_GO_EXPIRY') from exc
     minimum = BUDGETS['recover'] if recover else sum(selected_budgets[k] for k in ('admit', 'case', 'disposal', 'final'))
@@ -341,6 +348,12 @@ class WslCasePort:
         self.artifact: dict[str, Any] = {}
         self.details: dict[Any, Any] = {}
         self.proposal: dict[str, Any] | None = None
+        self.cli_pins: dict[str, str] = {}
+        self.cli_approval: dict[str, str] | None = None
+        self.cli_activation = None
+        self.cli_versions: tuple[str, str] | None = None
+        self.cli_final: dict[str, Any] | None = None
+        self.cli_selection: dict[str, Any] | None = None
 
     def phase(self, name: str) -> None:
         need(name in self.purpose_budgets, 'CASE_PHASE')
@@ -369,7 +382,7 @@ class WslCasePort:
         self.journal.save(stage + '-' + uuid4().hex + '.json', value | {'run_id': self.intent.run_id,
             'source_commit': self.intent.source_commit, 'case': self.intent.case})
 
-    def command(self, argv: list[str], timeout: int, *, public: bool = False, extra_env: dict[str, str] | None = None) -> bytes:
+    def command(self, argv: list[str], timeout: int, *, public: bool = False, extra_env: dict[str, str] | None = None, refusal_case: str | None = None) -> bytes:
         """Gate every mutation worker until its PID/starttime intent is durable."""
         self.reserve(timeout + 10)
         need(self.worker_settled, 'CASE_WORKER_UNSETTLED')
@@ -391,26 +404,50 @@ class WslCasePort:
                 'TSW_INSTALL_ENV_FILE': str(self.intent.home / 'infra/operator.env'),
                 'TSW_LIVE_EVIDENCE_ROOT': str(self.journal.directory), 'TSW_LOCAL_TLS_STATE_ROOT': self.tls_root()}
         key = 'child-' + uuid4().hex
+        args = upgrades.cli_args(argv) if public else None
+        receipt = None if args is None else upgrades.CliReceipt(self.journal, key,
+            upgrades.cli_binding(self, 'wsl', ACTIVE_WORKFLOW), argv, args)
+        if receipt is not None:
+            receipt.require_approval()
+        refusal = None
+        if refusal_case is not None:
+            need(public and refusal_case == self.intent.case and args is not None and receipt is not None, 'REFUSAL_COMMAND_NOT_ADMITTED')
+            refusal = upgrades.refusal_spec(refusal_case, args if args is not None else [])
+            upgrades.require_refusal_binding(receipt, refusal_case)
+            if receipt is None:
+                raise CaseError('REFUSAL_CHILD_MISSING')
+            infra = self.intent.home / 'infra'
+            receipt.environment = upgrades.select_refusal_environment(refusal_case, receipt.args, env, ROOT, infra, infra / 'operator.env')
+            receipt.inputs_sha256 = upgrades.digest(self.refusal_inputs())
         self.journal.save(key + '-intent.json', {'argv_sha256': sha(canonical(argv)), 'timeout': timeout, 'public': public})
         if argv[0].endswith('.exe'):
             need(len(subprocess.list2cmdline(argv).encode('utf-16-le')) // 2 + 1 <= 30000, 'CASE_WINDOWS_COMMAND_BOUND')
         reader, writer = os.pipe(); child = None; released = False
         selector = selectors.DefaultSelector(); output = bytearray(); error = bytearray()
+        output_complete = False
         self.worker_settled = False
         try:
             child = subprocess.Popen([self.interpreter(), '-E', '-s', '-B', '-c', GATE, str(reader), *argv],
-                cwd=ROOT, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd=ROOT, env=env, stdin=(subprocess.PIPE if refusal is not None and refusal.stdin_mode == 'DECLINE_N' else subprocess.DEVNULL), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 start_new_session=True, pass_fds=(reader,))
             os.close(reader); reader = -1
-            self.journal.save(key + '-pid.json', {'pid': child.pid, 'start_time': start_time(child.pid)})
+            identity = {'pid': child.pid, 'start_time': start_time(child.pid)}
+            self.journal.save(key + '-pid.json', identity)
+            if receipt is not None:
+                receipt.start(identity, start_time(os.getpid()))
             if child.stdout is None or child.stderr is None:
                 raise CaseError('CASE_PIPE_MISSING')
             os.write(writer, b'G'); released = True; os.close(writer); writer = -1
+            if receipt is not None:
+                receipt.release()
+            if refusal_case is not None:
+                upgrades.fixed_stdin(refusal_case, list(upgrades.REFUSALS[refusal_case].args), child, receipt)
             selector.register(child.stdout, selectors.EVENT_READ, output)
             selector.register(child.stderr, selectors.EVENT_READ, error)
             end = time.monotonic() + timeout
             while selector.get_map():
-                upgrades.poll_fault(self, child)
+                if receipt is not None and upgrades.cli_fault_candidate(self, receipt):
+                    upgrades.poll_fault(self, child, before_signal=receipt.prepare_fault, receipt=receipt)
                 need(time.monotonic() < end, 'CASE_COMMAND_TIMEOUT')
                 for selected, _event in selector.select(.2):
                     chunk = os.read(selected.fd, 65536)
@@ -419,10 +456,18 @@ class WslCasePort:
                     if not chunk:
                         selector.unregister(selected.fileobj)
             status = child.wait(timeout=max(.01, end - time.monotonic()))
+            output_complete = True
             self.journal.save(key + '-outcome.json', {'return_code': status,
                 'stdout_sha256': sha(bytes(output)), 'stderr_sha256': sha(bytes(error))})
-            need(status == 0, 'CASE_COMMAND_FAILED')
+            if refusal_case is None:
+                need(status == 0, 'CASE_COMMAND_FAILED')
+            else:
+                upgrades.save_refusal(receipt, refusal_case, status, bytes(output), bytes(error))
             return bytes(output)
+        except upgrades.FaultObserved as exc:
+            if receipt is not None:
+                receipt.fault = exc.receipt
+            raise
         finally:
             selector.close()
             if reader >= 0:
@@ -433,8 +478,18 @@ class WslCasePort:
                 self.worker_settled = True
                 self.journal.save(key + '-launch-refused.json', {'released': False})
             else:
+                if receipt is not None and receipt.fault is not None and receipt.fault['signal'] == int(signal.SIGINT):
+                    try:
+                        extra, errors = upgrades.settle_interrupt(child, min(end, self.deadline,
+                            self.authorized_until if self.authorized_until is not None else self.deadline))
+                        output.extend(extra); error.extend(errors)
+                        need(len(output) + len(error) <= LIMIT, 'CASE_COMMAND_OUTPUT_BOUND')
+                        output_complete = True
+                    except (upgrades.UpgradeError, subprocess.TimeoutExpired, OSError, CaseError):
+                        self.upgrade_fault_observed = False
                 if child.poll() is None:
-                    os.killpg(child.pid, signal.SIGTERM)
+                    if receipt is None or receipt.fault is None:
+                        os.killpg(child.pid, signal.SIGTERM)
                     try:
                         child.wait(timeout=5)
                     except subprocess.TimeoutExpired:
@@ -442,14 +497,20 @@ class WslCasePort:
                 self.worker_settled = group_absent(child.pid)
                 if self.worker_settled:
                     self.journal.save(key + '-settled.json', {'pid': child.pid, 'released': released, 'group_absent': True})
+                if refusal_case is not None and child.stdin is not None and not child.stdin.closed:
+                    child.stdin.close()
                 for stream in (child.stdout, child.stderr):
                     if stream is not None:
                         stream.close()
+                if receipt is not None and self.worker_settled and child.returncode is not None:
+                    if receipt.fault is not None and child.returncode != -receipt.fault['signal']:
+                        self.upgrade_fault_observed = False
+                    receipt.settle(child.pid, child.returncode, output_complete, sha(bytes(output)), sha(bytes(error)))
 
     def settled(self) -> bool:
         if not self.worker_settled:
             return False
-        paths = list(self.journal.directory.glob('child-*-intent.json'))
+        paths = upgrades.ordinary_intents(self.journal.directory, 1024)
         need(len(paths) <= 1024, 'CASE_CHILD_EVENT_BOUND')
         for path in paths:
             stem = path.name.removesuffix('-intent.json')
@@ -490,6 +551,8 @@ class WslCasePort:
             raw = path.read_bytes(); need(len(raw) <= 2 * 1024 * 1024, 'CASE_SOURCE_BOUND')
             need(raw == self.command(git + ['show', self.intent.source_commit + ':' + relative], 10), 'CASE_SOURCE_BLOB')
             pins[relative] = sha(raw)
+        need(self.command(git + ['rev-parse', 'HEAD'], 10).decode().strip() == self.intent.source_commit, 'CASE_SOURCE_HEAD')
+        need(not self.command(git + ['status', '--porcelain=v1', '--untracked-files=all'], 10), 'CASE_SOURCE_DIRTY')
         return pins
 
     def identity(self) -> dict[str, str]:
@@ -521,6 +584,14 @@ class WslCasePort:
              and bridge['status'] == 'NEW_BINDING_READY'
              and bridge['application_ready'] is False, 'CASE_COORDINATOR_NOT_READY')
         qualification = self.qualification_revision(prep['source_commit'])
+        capability = ROOT / CAPABILITY
+        trusted(capability)
+        need(sha(capability.read_bytes()) == self.intent.capability_sha256, 'CASE_CAPABILITY_DRIFT')
+        matrix = importlib.import_module('tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository')
+        admission = matrix.IncusProfileCapabilityRepository(ROOT).load()
+        if admission.admits('6.0.5', '6.0.5'):
+            entry = next(row for row in admission.admitted_versions if row.client_version == row.server_version == '6.0.5')
+            need(qualification == entry.fixture_source_revision, 'CASE_PREPARATION_QUALIFICATION_SOURCE')
         windows = windows_scope(self.intent)
         observed = inventory.strict_json(self.command(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
             '-NoProfile', '-NonInteractive', '-Command', windows], 30))
@@ -535,11 +606,14 @@ class WslCasePort:
         """Keep the original receipt; only one data-only admission commit may follow it."""
         need(isinstance(qualification, str) and bool(inventory.HEX40.fullmatch(qualification)), 'CASE_QUALIFICATION_SOURCE')
         product = self.intent.source_commit
-        if qualification != product:
-            git = ['/usr/bin/git', '--no-optional-locks', '-C', str(ROOT)]
-            parents = self.command(git + ['rev-list', '--parents', '-n', '1', product], 10).decode('ascii').split()
-            changes = self.command(git + ['diff', '--name-only', '--no-renames', qualification, product, '--'], 10).decode('ascii').splitlines()
-            need(parents == [product, qualification] and changes == [CAPABILITY], 'CASE_QUALIFICATION_PROMOTION')
+        try:
+            if qualification == product:
+                clean_qualification_source(ROOT, product, lambda args: self.command(args, 10))
+            else:
+                qualification_promotion(ROOT, qualification, product, self.intent.capability_sha256,
+                    lambda args: self.command(args, 10))
+        except ValueError as exc:
+            raise CaseError(str(exc)) from exc
         return qualification
 
     def prerequisites(self) -> None:
@@ -553,12 +627,15 @@ class WslCasePort:
         artifacts = {host: private(self.intent.home / ('profile-capability-' + host + '.json')) for host in CAPABILITY_HOSTS}
         try:
             sources = validate_host_artifacts(record, self.intent.capability_sha256, entry.fixture_sha256, artifacts)
+            qualification_receipt_sources(sources, entry.fixture_source_revision)
+            qualification_promotion(ROOT, entry.fixture_source_revision, self.intent.source_commit, self.intent.capability_sha256,
+                lambda args: self.command(args, 10))
         except ValueError as exc:
             raise CaseError(str(exc)) from exc
         revisions = (entry.fixture_source_revision, *sources.values())
         for revision in revisions:
-            blob = self.command(['/usr/bin/git', '--no-optional-locks', 'show', revision +
-                ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'], 10)
+            blob = qualification_git(ROOT, lambda args: self.command(args, 10), ['cat-file', 'blob', revision +
+                ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'])
             need(sha(blob) == entry.fixture_sha256, 'CASE_CAPABILITY_SOURCE_DRIFT')
         self.operator_values()
         infra = self.intent.home / 'infra'
@@ -708,13 +785,34 @@ class WslCasePort:
         need(sha(canonical(value)) == proposal['preview_sha256'], 'CASE_PREVIEW_DRIFT')
         self.proposal = proposal
 
-    def public(self, args: list[str], *, timeout: int, helper: bool = False) -> bytes:
+    def refusal_inputs(self) -> dict[str, Any]:
+        infra = self.intent.home / 'infra'
+        return upgrades.capture_refusal_inputs(ROOT, infra, infra / 'operator.env',
+            self.intent.configuration_sha256, sha(self.configuration_bytes()))
+
+    def public_refusal(self, args: list[str], *, timeout: int) -> bytes:
+        upgrades.refusal_spec(self.intent.case, args)
+        return self.public(args, timeout=timeout, refusal_case=self.intent.case)
+
+    def public(self, args: list[str], *, timeout: int, helper: bool = False, refusal_case: str | None = None) -> bytes:
+        need(refusal_case is None or not helper, 'REFUSAL_COMMAND_NOT_ADMITTED')
         if not helper and self.intent.case in upgrades.RECIPES:
             upgrades.require_cache_settled(self)
         self.identity()
+        if not helper:
+            self.cli_pins = self.source()
+            if self.proposal is not None:
+                need(self.cli_pins == self.proposal['pins'], 'CASE_SOURCE_DRIFT')
+            self.reserve(35)
+            env = self.incus_env()
+            status, raw, error = inventory.Runner().run(['/usr/bin/incus', '--force-local', 'version'],
+                command_id='wsl_cli_incus_version', env=env, safe_args=[])
+            need(status == 0 and not error and self.incus_env() == env, 'CASE_CLI_INCUS_VERSION_DRIFT')
+            self.cli_versions = upgrades.cli_incus_versions(raw)
+            need(self.cli_versions == ('6.0.5', '6.0.5'), 'CASE_CLI_INCUS_VERSION_DRIFT')
         argv = [self.interpreter(), '-E', '-s', '-B']
         argv += [str(ROOT / SCRIPT), *args] if helper else ['-c', BOOTSTRAP, *args]
-        return self.command(argv, timeout, public=True)
+        return self.command(argv, timeout, public=True, refusal_case=refusal_case)
 
     def upgrade_validate_inputs(self) -> None:
         values = self.operator_values()
@@ -742,11 +840,13 @@ class WslCasePort:
             self.public(recipe.args(add=True), timeout=600)
         self.public(['observe'], helper=True, timeout=180)
         model = importlib.import_module('tiny_swarm_world.infrastructure.adapters.lifecycle.manifest')
-        manifest = model.decode_manifest(private(ROOT / '.tiny-swarm-world/installation/manifest.json'))
+        manifest_raw = private(ROOT / '.tiny-swarm-world/installation/manifest.json')
+        manifest = model.decode_manifest(manifest_raw)
         wanted = set(recipe.services) | ({'traefik'} if recipe.add_traefik else set())
         need(manifest.schema_version == 2 and set(manifest.requested_services) == wanted
              and manifest.effective_exposure().get('swagger') == (recipe.exposure if 'swagger' in wanted else None)
              and all(o.owner == recipe.owner for o in manifest.effective_stack_ownership().values()), 'CASE_MANIFEST_DRIFT')
+        self.cli_selection = upgrades.selection_evidence(manifest, sha(manifest_raw))
 
     @contextmanager
     def installation_lease(self) -> Iterator[None]:
@@ -878,7 +978,9 @@ class WslCasePort:
         need(not project['instances'] and not any(p['volumes'] or p['snapshots'] for p in project['pools'])
              and not any(p['name'].startswith('tsw-manager-') for p in project['profiles']), 'CASE_NODES_REMAIN')
         self.cache_receipt(baseline, record=False)
-        need(projection(self.artifact, self.details, self.owned, self.intent.ubuntu_fingerprint, baseline) == baseline, 'CASE_FINAL_PRESERVATION_DRIFT')
+        observed = projection(self.artifact, self.details, self.owned, self.intent.ubuntu_fingerprint, baseline)
+        need(observed == baseline, 'CASE_FINAL_PRESERVATION_DRIFT')
+        self.cli_final = observed
 
 
 def start_time(pid: int) -> int:
@@ -942,6 +1044,19 @@ def helper(kind: str) -> None:
     print('{"status":"READ_ONLY_VERIFIED"}')
 
 
+def no_public_execution(directory: Path) -> None:
+    rows = []
+    for path in directory.iterdir():
+        need(len(rows) < 8192, 'CASE_UNAVAILABLE_RECORD_BOUND')
+        rows.append(path)
+    need(not any(path.name.startswith(('execution-intent-', 'engine-recovery-', 'disposal-'))
+                 or path.name.endswith('-cli-start.json') for path in rows), 'CASE_UNAVAILABLE_EXECUTED')
+    for path in rows:
+        if re.fullmatch('child-[0-9a-f]{32}-intent.json', path.name):
+            value = inventory.strict_json(private(path))
+            need(type(value) is dict and value.get('public') is False, 'CASE_UNAVAILABLE_EXECUTED')
+
+
 def finish(port: WslCasePort) -> dict[str, Any]:
     """All original/current case metadata stays retained for coordinator reset."""
     port.phase('recover'); port.source(); port.prerequisites(); identity = port.identity(); port.operations(); port.capture()
@@ -971,13 +1086,19 @@ def finish(port: WslCasePort) -> dict[str, Any]:
             unexecuted = Intent.parse(raw_intent)
             need(unexecuted.run_id == port.intent.run_id and unexecuted.source_commit == port.intent.source_commit
                  and unexecuted.case == case, 'CASE_FINISH_OUTCOME_UNCERTAIN')
-            journal.save('outcome-' + uuid4().hex + '.json', {'status': 'CASE_NOT_IMPLEMENTED' if case in upgrades.RECIPES and upgrades.RECIPES[case].kind == 'product' else 'CASE_NOT_EXECUTED', 'run_id': port.intent.run_id,
+            if case in {'upgrade-product-v1', 'recover-product-v1'}:
+                no_public_execution(directory)
+            journal.save('outcome-' + uuid4().hex + '.json', {'status': 'QUALIFICATION_HELPER_UNAVAILABLE' if case in upgrades.RECIPES and upgrades.RECIPES[case].kind == 'product' else 'CASE_NOT_EXECUTED', 'command_executed': False, 'product_result': None, 'run_id': port.intent.run_id,
                 'source_commit': port.intent.source_commit, 'case': case, 'epic_complete': False})
             outcomes = list(directory.glob('outcome-*.json'))
         need(len(outcomes) == 1, 'CASE_FINISH_OUTCOME_UNCERTAIN')
         raw = private(outcomes[0]); value = inventory.strict_json(raw)
-        need(value['status'] in {'CASE_PASS_DISPOSED', 'CASE_FAILED_DISPOSED', 'CASE_RECOVERED', 'CASE_NOT_EXECUTED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED'} and value['run_id'] == port.intent.run_id
+        need(value['status'] in {'CASE_PASS_DISPOSED', 'CASE_FAILED_DISPOSED', 'CASE_RECOVERED', 'CASE_NOT_EXECUTED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED', 'QUALIFICATION_HELPER_UNAVAILABLE'} and value['run_id'] == port.intent.run_id
              and value['source_commit'] == port.intent.source_commit and value['case'] == case, 'CASE_FINISH_OUTCOME_UNCERTAIN')
+        if value['status'] in {'CASE_NOT_EXECUTED', 'CASE_NOT_IMPLEMENTED', 'QUALIFICATION_HELPER_UNAVAILABLE'}:
+            upgrades.validate_unexecuted(value, case, port.intent.run_id, port.intent.source_commit)
+            if value['status'] == 'QUALIFICATION_HELPER_UNAVAILABLE':
+                no_public_execution(directory)
         ledger.append({'case': case, 'outcome_sha256': sha(raw)})
     need(bool(ledger), 'CASE_FINISH_NO_CASES')
     raw = canonical({'schema_version': 2 if any(row['case'] in upgrades.RECIPES for row in ledger) else 1, 'run_id': port.intent.run_id, 'source_commit': port.intent.source_commit, 'cases': ledger})
@@ -1011,7 +1132,7 @@ def main(argv: list[str] | None = None) -> int:
         intent = Intent.parse(inventory.strict_json(raw))
         need(intent.run_id == args.run_id and intent.case == args.case, 'CASE_INTENT_BINDING')
         if intent.case in upgrades.RECIPES and upgrades.RECIPES[intent.case].kind == 'product':
-            print(json.dumps({'status': 'NOT_IMPLEMENTED', 'case': intent.case, 'requires': 'S-U2', 'epic_complete': False})); return 2
+            print(json.dumps(upgrades.unavailable_product(intent.case) | {'run_id': intent.run_id, 'source_commit': intent.source_commit})); return 2
         journal = Journal(home / 'journal'); port = WslCasePort(intent, journal)
         import fcntl
         fd = os.open(intent.home / 'product-acceptance.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
@@ -1031,7 +1152,11 @@ def main(argv: list[str] | None = None) -> int:
             proposal_raw = private(journal.directory / 'proposal.json'); proposal = inventory.strict_json(proposal_raw)
             go_raw = private(home / ('engine-recovery-go.json' if args.mode == 'engine-recovery' else 'recovery-go.json' if args.mode in {'recover', 'finish'} else 'run-go.json'))
             need(sha(go_raw) == args.go_sha256, 'CASE_GO_HASH')
-            expiry = approval(inventory.strict_json(go_raw), intent, proposal, sha(proposal_raw), recover=args.mode in {'recover', 'finish'}, engine_recovery=args.mode == 'engine-recovery')
+            accepted_at = datetime.now(timezone.utc)
+            go = inventory.strict_json(go_raw)
+            expiry = approval(go, intent, proposal, sha(proposal_raw), recover=args.mode in {'recover', 'finish'},
+                              engine_recovery=args.mode == 'engine-recovery', now=accepted_at)
+            port.cli_approval = upgrades.approval_receipt(go_raw, go, accepted_at.isoformat())
             port.authorized_until = time.monotonic() + (expiry - datetime.now(timezone.utc)).total_seconds()
             port.proposal = proposal
             if args.mode not in {'recover', 'finish'}:
@@ -1065,7 +1190,10 @@ def main(argv: list[str] | None = None) -> int:
                         port.event('outcome', result)
                     else:
                         result = execute(port, proposal, recover=args.mode == 'recover')
-            print(json.dumps(result)); return 0 if result.get('status') not in {'CASE_FAILED_DISPOSED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED'} else 2
+            if result['status'] == 'CASE_PASS_DISPOSED' or args.mode == 'engine-recovery' and result['status'] == 'CASE_RECOVERED':
+                upgrades.save_cli_case_result(port, result | {'run_id': intent.run_id,
+                    'case': intent.case, 'source_commit': intent.source_commit})
+            print(json.dumps(result)); return 0 if result.get('status') not in {'CASE_FAILED_DISPOSED', 'CASE_NOT_EXERCISED', 'CASE_NOT_IMPLEMENTED', 'QUALIFICATION_HELPER_UNAVAILABLE'} else 2
         finally:
             os.close(fd)
     except BaseException as exc:

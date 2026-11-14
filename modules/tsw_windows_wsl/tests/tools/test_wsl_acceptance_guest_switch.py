@@ -120,7 +120,7 @@ class UpgradeLedgerTests(unittest.TestCase):
                     raise ValueError('PROMOTION_DENIED')
             namespace: dict[str, Any] = {'need': need, 're': re, 'git': git, 'private': private,
                 'strict': json.loads, 'root': Path('/never-accessed'), 'product_source': 'c' * 40,
-                'hashlib': __import__('hashlib')}
+                'hashlib': __import__('hashlib'), 'verify_qualification_helpers': lambda: None}
             exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
             with self.subTest(kind=kind), patch.dict('sys.modules', {'preserving_product_acceptance': proof_module}):
                 if kind == 'valid':
@@ -192,6 +192,10 @@ class ClosedGuestSwitchTests(unittest.TestCase):
         self.assertFalse(report["actual_preparation"])
         self.assertFalse(report["originals_touched"])
         self.assertFalse(report["application_ready"])
+        self.assertTrue(report["versioned_windows"])
+        self.assertEqual(report["pending_reconciliation_cases"], 13)
+        self.assertEqual(report["pending_reconciliation_denials"], 1)
+        self.assertTrue(report["public_refusal_fixture_denied"])
 
 
 class NetfilterReadParserTests(unittest.TestCase):
@@ -301,3 +305,259 @@ class NetfilterReadParserTests(unittest.TestCase):
             reads["/proc/net/unix"] = b"header\n0000: 0000 0000 0000 0001 01 123 /foreign/incus.socket\n"
             with self.assertRaises(probe["Residue"]):
                 probe["inspect"]()
+
+
+class FixtureReturnProofTests(unittest.TestCase):
+    def _function(self, name: str, end: str, namespace: dict[str, Any]) -> Any:
+        source = CONTROLLER.read_text()
+        start = source.index('def ' + name + '(')
+        stop = source.index(end, start)
+        exec(compile(ast.parse(source[start:stop]), str(CONTROLLER), 'exec'), namespace)
+        return namespace[name]
+
+    def test_empty_resource_proof_rejects_residue_and_binds_full_inventory(self):
+        import copy
+        import hashlib
+        def need(value):
+            if not value:
+                raise ValueError('FIXTURE_NOT_EMPTY')
+        def digest(value):
+            return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+        check = self._function('check_resources', "sock=Path('/var/lib/incus/unix.socket')", {'need': need, 'digest': digest, 're': re})
+        projects = '/1.0/projects?recursion=1'
+        instances = '/1.0/instances?recursion=1&project=default'
+        profiles = '/1.0/profiles?recursion=1&project=default'
+        pools = '/1.0/storage-pools?recursion=1'
+        volumes = '/1.0/storage-pools/default/volumes?recursion=1&project=default'
+        operations = '/1.0/operations?recursion=1&all-projects=true'
+        baseline = {projects: [{'name': 'default', 'config': {}}], instances: [],
+            profiles: [{'name': 'default', 'used_by': [], 'config': {}, 'devices': {}}],
+            pools: [{'name': 'default', 'driver': 'dir'}],
+            volumes: [{'name': 'a' * 64, 'type': 'image', 'description': ''}], operations: {'running': []}}
+        expected = check(baseline.__getitem__)
+        for uri, changed in ((projects, [{'name': 'default'}, {'name': 'foreign'}]),
+                             (instances, [{'name': 'stopped', 'status': 'Stopped'}]),
+                             (profiles, [*baseline[profiles], {'name': 'tsw-q449-residue'}]),
+                             (pools, [{'name': '../unsafe'}]),
+                             (volumes, [{'name': 'stopped', 'type': 'container'}]),
+                             (operations, {'running': ['operation']})):
+            values = baseline | {uri: changed}
+            with self.subTest(uri=uri), self.assertRaises(ValueError):
+                check(values.__getitem__)
+        for uri, changed in ((projects, [{'name': 'default', 'config': {'changed': 'yes'}}]),
+                             (pools, [{'name': 'default', 'driver': 'zfs'}]),
+                             (volumes, [{'name': 'a' * 64, 'type': 'image', 'description': 'changed'}])):
+            self.assertNotEqual(check((baseline | {uri: changed}).__getitem__), expected)
+        unordered = copy.deepcopy(baseline)
+        unordered[pools].append({'name': 'other', 'driver': 'dir'})
+        other = '/1.0/storage-pools/other/volumes?recursion=1&project=default'
+        unordered[other] = [{'name': 'b' * 64, 'type': 'image'}, {'name': 'c' * 64, 'type': 'image'}]
+        first = check(unordered.__getitem__)
+        unordered[pools].reverse()
+        unordered[other].reverse()
+        self.assertEqual(check(unordered.__getitem__), first)
+
+    def test_generic_interpreter_or_shell_cannot_be_credited_as_settled(self):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        def need(value):
+            if not value:
+                raise ValueError('WORKER_PRESENT')
+        pid = MagicMock()
+        pid.name = '4242'
+        pid.__truediv__.return_value = Path('/proc/4242/cmdline')
+        namespace: dict[str, Any] = {'need': need, 're': re, 'root': Path('/root/tsw440-acceptance/fixed'),
+            'workers': ('incus_profile_listener_fixture.py', 'wsl_product_acceptance.py'),
+            'programs': {'apt-get', 'dpkg', 'git', 'lxd', 'dockerd', 'forkproxy'},
+            'os': SimpleNamespace(getpid=lambda: 4241),
+            'Path': lambda value: SimpleNamespace(iterdir=lambda: [pid]) if value == '/proc' else Path(value)}
+        for argv in (b'/usr/bin/python3\0-c\0pass\0', b'/bin/bash\0/tmp/renamed-prep\0',
+                     b'/usr/bin/git\0clone\0', b'/usr/bin/timeout\0' + b'300\0',
+                     b'/tmp/worker\0/root/tsw440-acceptance/fixed/run\0'):
+            namespace['read'] = lambda path, raw=argv: raw
+            check = self._function('process_snapshot', 'daemons=process_snapshot()', namespace)
+            with self.subTest(argv=argv), self.assertRaises(ValueError):
+                check()
+        namespace['read'] = lambda path: b''
+        self.assertEqual(check(), [])
+
+    def test_promoted_helper_loader_verifies_bytes_before_enabling_imports(self):
+        import sys
+        def need(value):
+            if not value:
+                raise ValueError('HELPER_BYTES')
+        with tempfile.TemporaryDirectory() as directory:
+            checkout = Path(directory)
+            helpers = checkout / 'modules/tsw_core/tools/linux/qualification'
+            helpers.mkdir(parents=True)
+            helper = helpers / 'preserving_product_acceptance.py'
+            helper.write_bytes(b'raise RuntimeError("must not execute during source validation")\n')
+            namespace = {'need': need, 'checkout': checkout, 'trusted': lambda *args: None,
+                'source': 'a' * 40, 'sys': sys, 'git': lambda args: helper.read_bytes()}
+            loader = self._function('verify_qualification_helpers', 'def admitted_product_revision(', namespace)
+            with patch.object(sys, 'path', list(sys.path)):
+                loader()
+                self.assertEqual(sys.path[0], str(helpers))
+            namespace['git'] = lambda args: b'changed'
+            with patch.object(sys, 'path', list(sys.path)), self.assertRaises(ValueError):
+                loader()
+
+    def test_registered_source_asset_paths_exist_after_module_split(self):
+        source = CONTROLLER.read_text()
+        assets = source[source.index('function Get-WslSwitchAssets'):source.index('function Assert-WslSwitchScenario')]
+        for relative in re.findall(r"'(modules/[^']+)'", assets):
+            self.assertTrue((ROOT / relative).is_file(), relative)
+        registration = (ROOT / 'modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_registration.ps1').read_text()
+        self.assertIn("'modules/tsw_core/tests/fixtures/wsl_acceptance_registration.ps1'", registration)
+        self.assertIn("'modules/tsw_windows_wsl/tests/tools/test_wsl_acceptance_registration.py'", registration)
+
+
+class ProductRefusalConsumerTests(unittest.TestCase):
+    def test_actual_fault_intent_classifier_keeps_ordinary_pid_and_source_bound_fault_separate(self):
+        import hashlib
+        from modules.tsw_native_linux.tests.tools.test_preserving_product_acceptance import fault_journal
+        from modules.tsw_native_linux.tools.qualification import product_upgrade_cases as upgrades
+        _, namespace = self.namespace()
+        namespace.update(json=json, hashlib=hashlib, strict=json.loads, private=lambda path: path.read_bytes())
+        classify = namespace['case_process_intents']
+        for case in ('recover-portainer', 'recover-portainer-sigint', 'recover-portainer-api-down'):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                key, rows = fault_journal(root)
+                start = rows[key + '-cli-start.json']
+                start['case'] = case
+                prepared = rows[key + '-cli-fault-intent.json']
+                if case != 'recover-portainer':
+                    start.update({name: None for name in upgrades.CLI_BINDING_KEYS if name not in start})
+                    prepared.update(signal=2, authority_sha256=upgrades.digest({name: start[name] for name in upgrades.CLI_BINDING_KEYS}),
+                        operation_id='a' * 32, phase='upgrading', backup_digest='sha256:' + 'b' * 64)
+                for name, value in rows.items():
+                    (root / name).write_text(json.dumps(value))
+                self.assertEqual([path.name for path in classify(root, case, 'a' * 32, 'b' * 40)], [key + '-intent.json'])
+                (root / (key + '-pid.json')).write_text('{"pid":4243,"start_time":1234}')
+                with self.assertRaises(ValueError):
+                    classify(root, case, 'a' * 32, 'b' * 40)
+                (root / 'child-unknown-intent.json').write_text('{}')
+                with self.assertRaises(ValueError):
+                    classify(root, case, 'a' * 32, 'b' * 40)
+
+    def namespace(self):
+        source = CONTROLLER.read_text()
+        start = source.index('def case_ledger_names(')
+        end = source.index("if kind=='prepared':", start)
+        def need(value):
+            if not value:
+                raise ValueError('DISPOSAL_UNPROVEN')
+        namespace: dict[str, Any] = {'need': need, 're': re}
+        exec(compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec'), namespace)
+        return source, namespace
+
+    def execute_stopped(self, case, outcome_changes=None, *, promoted=False, marker=None, public=False,
+                        cli_start=False, unsettled=False, replaced_source=False, unknown=False, missing_checkout=False):
+        import hashlib
+        import textwrap
+        from types import SimpleNamespace
+        source, namespace = self.namespace()
+        start = source.index('    recipes=case_ledger_names(ledger,run,product_source)')
+        end = source.index("    projects=query('/1.0/projects?recursion=1')", start)
+        code = compile(ast.parse(textwrap.dedent(source[start:end])), str(CONTROLLER), 'exec')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run, candidate, product = 'a' * 32, 'b' * 40, 'c' * 40 if promoted else 'b' * 40
+            home = root / 'cases' / case
+            journal = home / 'journal'
+            journal.mkdir(parents=True)
+            unavailable = case in {'upgrade-product-v1', 'recover-product-v1'}
+            value = {'status': 'QUALIFICATION_HELPER_UNAVAILABLE' if unavailable else 'CASE_PASS_DISPOSED',
+                     'run_id': run, 'source_commit': product, 'case': case, 'epic_complete': False}
+            if unavailable:
+                value.update(command_executed=False, product_result=None)
+            value.update(outcome_changes or {})
+            if replaced_source:
+                value['source_commit'] = 'f' * 40
+            raw = json.dumps(value).encode()
+            (journal / ('outcome-' + 'd' * 32 + '.json')).write_bytes(raw)
+            ledger = {'schema_version': 2, 'run_id': run, 'source_commit': product,
+                      'cases': [{'case': case, 'outcome_sha256': hashlib.sha256(raw).hexdigest()}]}
+            if unknown:
+                ledger['cases'][0]['case'] = 'refuse-product-arbitrary'
+            if marker:
+                (journal / marker).write_text('{}')
+            stem = 'child-' + 'e' * 32
+            if public or unsettled:
+                (journal / (stem + '-intent.json')).write_text(json.dumps({'argv_sha256': 'f' * 64, 'timeout': 10, 'public': public}))
+                (journal / (stem + '-pid.json')).write_text('{"pid":4242,"start_time":10}')
+                (journal / (stem + '-settled.json')).write_text(json.dumps({'pid': 4242, 'released': True, 'group_absent': not unsettled}))
+                (journal / (stem + '-outcome.json')).write_text(json.dumps({'return_code': 2, 'stdout_sha256': 'f' * 64, 'stderr_sha256': 'e' * 64}))
+            if cli_start:
+                (journal / (stem + '-cli-start.json')).write_text('{}')
+            checkout = home / 'checkout'
+            if not unavailable and not missing_checkout:
+                (checkout / '.git').mkdir(parents=True)
+                cap = checkout / 'modules/tsw_core/infra/config/incus-profile-capabilities.json'
+                cap.parent.mkdir(parents=True)
+                cap.write_bytes(b'approved-matrix')
+            def trusted(path, *args):
+                if not path.exists():
+                    raise FileNotFoundError(path)
+            def git(args, exits=(0,), directory=None):
+                del exits, directory
+                if args[0] == 'rev-parse':
+                    return product.encode()
+                return b'approved-matrix' if args[0] == 'show' else b''
+            def absent_group(pid, number):
+                del pid, number
+                raise ProcessLookupError
+            namespace.update(root=root, run=run, source=candidate, product_source=product,
+                ledger=ledger, capraw=b'approved-matrix', private=lambda path: path.read_bytes(), strict=json.loads,
+                trusted=trusted, git=git, hashlib=hashlib, os=SimpleNamespace(killpg=absent_group))
+            exec(code, namespace)
+            return namespace['needs_checkout']
+
+    def test_actual_stopped_reader_rejects_forged_unavailability_even_when_c_equals_k(self):
+        for promoted in (False, True):
+            self.assertFalse(self.execute_stopped('upgrade-product-v1', promoted=promoted))
+            for change in ({'command_executed': True}, {'product_result': {}}, {'epic_complete': True}, {'extra': 1}):
+                with self.subTest(promoted=promoted, change=change), self.assertRaises(ValueError):
+                    self.execute_stopped('upgrade-product-v1', change, promoted=promoted)
+            for options in ({'public': True}, {'cli_start': True}, {'marker': 'execution-intent-a.json'},
+                            {'marker': 'engine-recovery-proposal.json'}, {'marker': 'disposal-intent.json'},
+                            {'replaced_source': True}, {'unknown': True}):
+                with self.subTest(promoted=promoted, options=options), self.assertRaises(ValueError):
+                    self.execute_stopped('upgrade-product-v1', promoted=promoted, **options)
+        with self.assertRaises(ValueError):
+            self.execute_stopped('refuse-product-consent-n', {'status': 'QUALIFICATION_HELPER_UNAVAILABLE',
+                'command_executed': False, 'product_result': None})
+
+    def test_actual_negative_stopped_reader_requires_normal_checkout_and_settlement(self):
+        self.assertTrue(self.execute_stopped('refuse-product-consent-n', public=True))
+        self.assertTrue(self.execute_stopped('refuse-product-recovery-consent-eof', public=True, promoted=True))
+        with self.assertRaises(ValueError):
+            self.execute_stopped('refuse-product-consent-n', public=True, unsettled=True)
+        with self.assertRaises(FileNotFoundError):
+            self.execute_stopped('refuse-product-consent-n', public=True, missing_checkout=True)
+        _, namespace = self.namespace()
+        old = {'status': 'CASE_NOT_EXECUTED', 'run_id': 'a' * 32, 'source_commit': 'b' * 40,
+               'case': 'minimal', 'epic_complete': False}
+        self.assertFalse(namespace['case_requires_checkout'](old, [], []))
+        self.assertFalse(namespace['case_requires_checkout'](old | {'command_executed': False, 'product_result': None}, [], []))
+        with self.assertRaises(ValueError):
+            namespace['case_requires_checkout'](old | {'command_executed': 0, 'product_result': None}, [], [])
+
+    def test_actual_fixture_probe_still_refuses_any_product_case_or_ledger(self):
+        import os
+        source = CONTROLLER.read_text()
+        start = source.index('if os.path.lexists(root):', source.index('function Get-WslSwitchFixtureProof'))
+        end = source.index('    # Known preparation/fixture child intents', start)
+        body = compile(ast.parse(source[start:end]), str(CONTROLLER), 'exec')
+        def need(value):
+            if not value:
+                raise ValueError('FIXTURE_PRODUCT_STARTED')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ('cases', 'product-case-ledger.json', 'new-case-stop.json'):
+                path = root / name
+                path.write_bytes(b'closed-refusal-even-without-mutation')
+                with self.subTest(path=name), self.assertRaises(ValueError):
+                    exec(body, {'root': root, 'os': os, 'need': need, 'trusted': lambda path: None})
+                path.unlink()

@@ -8,13 +8,14 @@ import re
 import shlex
 import subprocess
 from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 
 from tiny_swarm_world.application.ports.network import (
     CommandObservation,
     NetworkRepairMutationResult,
 )
+
+from tiny_swarm_world.infrastructure.adapters.network.wslconfig_files import update_wslconfig
 
 
 CommandExecutor = Callable[[str, int], CommandObservation]
@@ -66,21 +67,22 @@ class SubprocessNetworkRepair:
                 message="Refused to update .wslconfig because the mapped profile path is outside /mnt/<drive>/Users.",
                 commands=(profile, wsl_path),
             )
-        backup_path: Path | None = None
-        if config_path.exists():
-            timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-            backup_path = config_path.with_name(f".wslconfig.bak-{timestamp}")
-            backup_path.write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
-            original = config_path.read_text(encoding="utf-8")
-        else:
-            original = ""
-        config_path.write_text(_set_wsl_networking_mode(original, "nat"), encoding="utf-8")
+        success, applied, backup_name = update_wslconfig(
+            config_path, lambda content: _set_wsl_networking_mode(content, "nat"),
+        )
+        if not success:
+            return NetworkRepairMutationResult(
+                target="runtime", applied=applied, success=False,
+                message=("The .wslconfig update did not verify after a file change; inspect retained backups before retrying."
+                         if applied else "Refused an unsafe or changed .wslconfig target; no configuration was written."),
+                commands=(profile, wsl_path),
+            )
 
         details = []
-        if backup_path is not None:
+        if backup_name is not None:
             details.append(
                 "Backed up "
-                f"{windows_profile}\\.wslconfig to {windows_profile}\\{backup_path.name}"
+                f"{windows_profile}\\.wslconfig to {windows_profile}\\{backup_name}"
             )
         else:
             details.append(f"Created {windows_profile}\\.wslconfig")
@@ -272,14 +274,15 @@ def _run_shell_command(command: str, timeout: int) -> CommandObservation:
 
 
 def _wslconfig_path_from_mapped_profile(mapped_profile: str) -> Path | None:
-    candidate = Path(mapped_profile.strip())
+    candidate = Path(mapped_profile.rstrip("\r\n"))
     parts = candidate.parts
     if not candidate.is_absolute() or len(parts) != 5:
         return None
     root, mount, drive, users, username = parts
     if root != "/" or mount != "mnt" or users != "Users":
         return None
-    if not re.fullmatch(r"[a-z]", drive) or not WINDOWS_USER_PROFILE_PATTERN.fullmatch(username):
+    if (not re.fullmatch(r"[a-z]", drive) or not WINDOWS_USER_PROFILE_PATTERN.fullmatch(username)
+            or username.endswith((".", " "))):
         return None
     return Path("/mnt") / drive / "Users" / username / ".wslconfig"
 

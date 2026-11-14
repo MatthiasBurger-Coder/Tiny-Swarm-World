@@ -137,12 +137,12 @@ $moduleSeam=New-Module -ArgumentList $RepositoryRoot,$constructors[0].Extent.Tex
     param($root,$constructor)
     function Source {return 'CALLER_SOURCE'}
     function Run {return 'CALLER_RUN'}
-    $Scenario=@{source_root=$root;run_id=('7'*32)}
+    $Scenario=@{schema_version=1;source_root=$root;run_id=('7'*32)}
     $nested=& ([scriptblock]::Create($constructor))
     if($nested -isnot [Management.Automation.PSModuleInfo] -or $nested.ExportedFunctions.Count -ne 0){throw 'BINDING_HELPERS_EXPORTED'}
     if((Source) -cne 'CALLER_SOURCE' -or (Run) -cne 'CALLER_RUN'){throw 'BINDING_CALLER_HELPERS_REPLACED'}
     if((& $nested {Get-WslBindingPhaseSeconds 'Archive'}) -ne 180){throw 'BINDING_EXPLICIT_MODULE_CALL_BROKEN'}
-    if((& $nested {@($script:bindingPorts.Keys).Count}) -ne 18){throw 'BINDING_CAPTURED_PORTS_MISSING'}
+    if((& $nested {@($script:bindingPorts.Keys).Count}) -ne 20){throw 'BINDING_CAPTURED_PORTS_MISSING'}
     $probe={& $nested {param($value) Get-WslBindingHash $value} @{proof='private-module'}}.GetNewClosure()
     if((& $probe) -cnotmatch '\A[0-9a-f]{64}\z'){throw 'BINDING_MODULE_CLOSURE_BROKEN'}
     Remove-Module $nested -Force
@@ -254,4 +254,114 @@ try{
         Check $denied ('actual heartbeat validator '+$field);$script:cases++
     }
 }finally{Remove-Item -LiteralPath $ServiceRoot -Recurse -Force -ErrorAction SilentlyContinue}
-[pscustomobject]@{status='PASS';cases=$script:cases;runtime_mutations=0;live_capability_claim=$false;real_payload_primitives=$true} | ConvertTo-Json -Compress
+# Read-only failures never reach the production failure-record port. A failed
+# Intent is already uncertain, even before the later payload operation runs.
+foreach($phase in @('Prepare','Bind')){
+ $r=Protocol $phase 'Observe'
+ Check (!$events.Contains('Failure') -and !$r.recovery_required) ('readonly_failure_'+$phase);$script:cases++
+}
+$r=Protocol 'Bind' '' ('0'*64)
+Check (!$events.Contains('Failure') -and !$r.recovery_required) 'invalid_go_no_failure_write';$script:cases++
+$r=Protocol 'Bind' 'Intent'
+Check ($events.Contains('Failure') -and $r.recovery_required) 'intent_write_is_uncertain';$script:cases++
+$r=Protocol 'Archive' 'Archive'
+Check ($events.Contains('Failure') -and $r.recovery_required) 'archive_write_is_uncertain';$script:cases++
+# Run the actual nested SaveFailure against disposable evidence files. It must
+# retain original descriptor bytes, exact pending intent and bounded history.
+$failureBody=$tree.Find({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq 'SaveFailure'},$true).Extent.Text
+$failureRoot=Join-Path ([IO.Path]::GetTempPath()) ('tsw-binding-failure-'+[guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($failureRoot)
+try{
+ $failureModule=New-Module -ArgumentList $RepositoryRoot,$failureBody,$failureRoot -ScriptBlock {
+  param($root,$body,$folder)
+  . (Join-Path $root 'modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1')
+  function Assert-BridgePayloadPathSafety($path){if(!(Test-Path -LiteralPath $path)){throw 'FIXTURE_MISSING'}}
+  function Set-BridgeExactAcl($path){if(!(Test-Path -LiteralPath $path)){throw 'FIXTURE_MISSING'}}
+  $script:bindingSpec=@{run_id='synthetic'};$script:bindingArchive=$folder;$script:bindingDescriptorPath=Join-Path $folder 'descriptor.json'
+  $old=[Text.Encoding]::UTF8.GetBytes('{"phase":"bound","phase_intent":"StageRestore","transaction_id":"kept"}')
+  [IO.File]::WriteAllBytes($bindingDescriptorPath,$old)
+  . ([scriptblock]::Create($body))
+  SaveFailure 'BINDING_INJECTED';SaveFailure 'BINDING_INJECTED'
+  if([Convert]::ToBase64String([IO.File]::ReadAllBytes($bindingDescriptorPath)) -cne [Convert]::ToBase64String($old)){throw 'FAILURE_OVERWROTE_DESCRIPTOR'}
+  $rows=@(Get-ChildItem $folder -Filter 'failure-*.json')
+  if($rows.Count -ne 1){throw 'FAILURE_RETRY_UNBOUNDED'}
+  $receipt=Get-Content $rows[0].FullName -Raw|ConvertFrom-Json
+  if($receipt.descriptor.phase_intent -cne 'StageRestore' -or $receipt.descriptor.transaction_id -cne 'kept' -or
+   $receipt.descriptor_sha256 -cne (Get-WslBindingRawHash $old)){throw 'FAILURE_LOST_INTENT_LINK'}
+  [IO.File]::WriteAllBytes($rows[0].FullName,[Text.Encoding]::UTF8.GetBytes('{}'))
+  $denied=$false;try{SaveFailure 'BINDING_INJECTED'}catch{$denied=$_.Exception.Message -ceq 'BINDING_FAILURE_CAS'}
+  if(!$denied){throw 'FAILURE_OVERWROTE_CORRUPT_RECEIPT'}
+  Export-ModuleMember -Function @() -Alias @()
+ }
+ Remove-Module $failureModule -Force;$script:cases++
+}finally{Remove-Item -LiteralPath $failureRoot -Recurse -Force}
+
+# Actual parent and descriptor-phase predicates, with injected host observations.
+$parentBody=$tree.Find({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq 'ParentCapsule'},$true).Extent.Text
+$snapshotBody=$tree.Find({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq 'Snapshot'},$true).Extent.Text
+$finalBody=$tree.Find({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq 'CheckFinal'},$true).Extent.Text
+$parentRoot=Join-Path ([IO.Path]::GetTempPath()) ('tsw-binding-parent-'+[guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($parentRoot)
+try{
+ $parentModule=New-Module -ArgumentList $RepositoryRoot,$parentBody,$snapshotBody,$finalBody,$parentRoot,$s,$cert -ScriptBlock {
+  param($root,$parentBody,$snapshotBody,$finalBody,$folder,$spec,$certificate)
+  . (Join-Path $root 'modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_bridge_binding.ps1')
+  function Claim {return 180};function Source {};function Assert-BridgePayloadPathSafety($path){if(!(Test-Path -LiteralPath $path)){throw 'FIXTURE_MISSING'}}
+  function CloneValue($value){return $value|ConvertTo-Json -Depth 50|ConvertFrom-Json}
+  $script:ServiceRoot=$folder;$script:ServiceName='synthetic';$script:TransactionJournalPath=Join-Path $folder 'transaction.json'
+  $script:bindingSpec=CloneValue $spec;$script:bindingSpec.schema_version=2
+  foreach($pair in @(@('window','fixture'),@('parent_bridge_sha256',('0'*64)),@('parent_switch_sha256',('0'*64)),@('parent_scenario_sha256',('0'*64)),@('registration_sha256',('9'*64)),@('registration_state_sha256',('8'*64)))){$script:bindingSpec|Add-Member NoteProperty $pair[0] $pair[1]}
+  $archive=Join-Path $folder ('.staging-acceptance-'+$bindingSpec.run_id+'-fixture-original');[void][IO.Directory]::CreateDirectory((Join-Path $archive 'payload'))
+  $hashes=[ordered]@{}
+  foreach($name in @('bundle',($ServiceName+'.exe'),($ServiceName+'.xml'),'installation-manifest.json')){
+   $path=Join-Path (Join-Path $archive 'payload') $name;[IO.File]::WriteAllText($path,'fixed original '+$name);$hashes[$name]=Get-WslBindingRawHash ([IO.File]::ReadAllBytes($path))
+  }
+  function Get-BridgePayloadFingerprint($path){return Get-WslBindingRawHash ([IO.File]::ReadAllBytes($path))}
+  $script:fixtureHashes=$hashes;$script:fixtureCert=$certificate;$script:fixtureRunning=@($bindingSpec.original_distro);$script:fixtureStatus='Running'
+  $script:fixtureRoutes=@{foreign_sha256=('7'*64)}
+  function Registrations {return @{hash=('9'*64);default_guid=$bindingSpec.original_guid}}
+  function Running {return $script:fixtureRunning}
+  function Payload {return @{hashes=$script:fixtureHashes;status=$script:fixtureStatus;policy_sha256=('6'*64);config=@{distro='Ubuntu'};bundle_id=('5'*64)}}
+  function Routes($p){return $script:fixtureRoutes};function Hosts {return '4'*64};function Certificate {return $script:fixtureCert}
+  function EffectiveDistro($config){return $config.distro}
+  function Address($name){return '192.0.2.10'}
+  $original=@{registration_sha256=('9'*64);payload=@{bundle_id=('5'*64)};certificate=$certificate;routes=$fixtureRoutes;hosts_sha256=('4'*64);policy_sha256=('6'*64);config=@{distro='Ubuntu'}}
+  $script:fixtureDescriptor=@{schema_version=1;scenario_sha256=(Get-WslBindingHash $bindingSpec);original=$original;archive_hashes=$hashes;
+   phase='restored';phase_intent='';transaction_id='';bound_hashes=@{};approval_sha256=('3'*64);guest_quiesce_sha256=('2'*64);
+   staging_root='';bound_address='';rollback_root='';transaction_before_hashes=@{};transaction_staged_hashes=@{}}
+  function ReadDescriptor {$script:bindingDescriptor=$script:fixtureDescriptor;return $script:fixtureDescriptor}
+  [IO.File]::WriteAllBytes((Join-Path $archive 'scenario.json'),(Get-WslBindingBytes $bindingSpec))
+  $descriptorPath=Join-Path $archive 'descriptor.json';[IO.File]::WriteAllText($descriptorPath,($fixtureDescriptor|ConvertTo-Json -Depth 30))
+  . ([scriptblock]::Create($parentBody));. ([scriptblock]::Create($snapshotBody));. ([scriptblock]::Create($finalBody))
+  $capsule=ParentCapsule
+  if($capsule.phase -cne 'restored' -or $capsule.registration_sha256 -cne ('9'*64)){throw 'PARENT_ACTUAL_POSITIVE_FAILED'}
+  $before=[Convert]::ToBase64String([IO.File]::ReadAllBytes($descriptorPath))
+  $bindingSpec.registration_sha256='0'*64;$denied=$false;try{$null=ParentCapsule}catch{$denied=$_.Exception.Message -ceq 'BINDING_PARENT_IDENTITY'}
+  if(!$denied){throw 'PARENT_RELABELLED_REGISTRATION'};$bindingSpec.registration_sha256='9'*64
+  $saved=Get-Content (Join-Path $archive 'scenario.json') -Raw|ConvertFrom-Json;$saved.source_commit='0'*40
+  [IO.File]::WriteAllBytes((Join-Path $archive 'scenario.json'),(Get-WslBindingBytes $saved))
+  $denied=$false;try{$null=ParentCapsule}catch{$denied=$_.Exception.Message -ceq 'BINDING_PARENT_SOURCE'}
+  if(!$denied){throw 'PARENT_RELABELLED_SOURCE'}
+  if([Convert]::ToBase64String([IO.File]::ReadAllBytes($descriptorPath)) -cne $before){throw 'PARENT_MUTATED_DESCRIPTOR'}
+  # A completed explicit Recover retains its distinct provenance. Both the
+  # return boundary and a product Bind accept only its proven stopped outcome.
+  $fixtureDescriptor.phase='recovered-stopped';$script:fixtureStatus='Stopped';$script:fixtureRunning=@($bindingSpec.new_distro)
+  $boundary=Snapshot 'FixtureBoundary';if(!$boundary.fingerprint){throw 'RECOVERED_BOUNDARY_REFUSED'}
+  $bindingSpec.window='product';$null=Snapshot 'Bind'
+  # The actual BoundBoundary checks the committed phase, exact bound bytes and
+  # current new guest/service/address. An unknown descriptor cannot masquerade.
+  function Payload {return @{hashes=$script:fixtureHashes;status='Running';policy_sha256=('6'*64);config=@{distro=$bindingSpec.new_distro};bundle_id=('5'*64);state=@{wslIp='192.0.2.10'}}}
+  $fixtureDescriptor.phase='bound';$fixtureDescriptor.bound_hashes=$fixtureHashes
+  $null=Snapshot 'BoundBoundary'
+  $fixtureDescriptor.phase='restore-pending';$denied=$false;try{$null=Snapshot 'BoundBoundary'}catch{$denied=$_.Exception.Message -ceq 'BINDING_BOUND_BOUNDARY'}
+  if(!$denied){throw 'UNKNOWN_BOUND_CREDITED'}
+  function Payload {return @{hashes=$script:fixtureHashes;status='Stopped';policy_sha256=('6'*64);config=@{distro='Ubuntu'};bundle_id=('5'*64)}}
+  $fixtureDescriptor.phase='recovered-stopped'
+  $fixtureDescriptor.phase_intent='Recover';$denied=$false;try{$null=Snapshot 'FixtureBoundary'}catch{$denied=$_.Exception.Message -ceq 'BINDING_FIXTURE_BOUNDARY'}
+  if(!$denied){throw 'UNCERTAIN_RECOVER_CREDITED'}
+  Export-ModuleMember -Function @() -Alias @()
+ }
+ Remove-Module $parentModule -Force;$script:cases+=5
+}finally{Remove-Item -LiteralPath $parentRoot -Recurse -Force}
+
+[pscustomobject]@{status='PASS';cases=$script:cases;runtime_mutations=0;live_capability_claim=$false;real_payload_primitives=$true;readonly_failures_preserved=$true;actual_failure_receipts=$true;actual_parent_capsule=$true} | ConvertTo-Json -Compress

@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import hashlib
+import io
 import json
 import os
 import signal
@@ -166,6 +168,30 @@ class _FixtureBehaviorTestCase(unittest.TestCase):
         patcher = patch.object(fixture, '_require_private_ext4')
         patcher.start()
         self.addCleanup(patcher.stop)
+
+
+class WorkflowSourceBindingTests(unittest.TestCase):
+    def test_preflight_reads_three_blobs_at_the_initial_commit(self):
+        head = 'a' * 40
+        outputs = (head.encode(), b'', b'workflow', b'runner', b'tests', head.encode(), b'')
+        with patch.object(fixture.subprocess, 'run', side_effect=[
+                SimpleNamespace(returncode=0, stdout=output) for output in outputs]) as run:
+            self.assertEqual(fixture.git_preflight(), (head, b'workflow', b'runner', b'tests'))
+        commands = [call.args[0][2:] for call in run.call_args_list]
+        self.assertEqual(commands[2:5], [
+            ['show', head + ':documentation/handbook/05-development/workflow/workflow.md'],
+            ['show', head + ':modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py'],
+            ['show', head + ':modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py'],
+        ])
+
+    def test_preflight_rejects_changed_head_or_dirty_checkout_after_blob_reads(self):
+        head = b'a' * 40
+        initial = (head, b'', b'workflow', b'runner', b'tests')
+        for final in ((b'b' * 40,), (head, b' M workflow.md\n')):
+            with self.subTest(final=final), patch.object(fixture.subprocess, 'run', side_effect=[
+                    SimpleNamespace(returncode=0, stdout=output) for output in (*initial, *final)]):
+                with self.assertRaisesRegex(fixture.FixtureError, 'CHECKOUT_NOT_CLEAN'):
+                    fixture.git_preflight()
 
 
 class PrivateEvidenceEntrypointTests(unittest.TestCase):
@@ -363,9 +389,9 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
                     b'[{"name":"shared","project":"default","config":{},"devices":{"listener":{"type":"proxy","listen":"tcp:0.0.0.0:10001","connect":"tcp:127.0.0.1:8080"}},"used_by":["/1.0/instances/swarm-manager?project=issue447"]}]',
                 ('incus', 'query', '/1.0/profiles/shared?project=default'):
                     b'{"name":"shared","project":"default","config":{},"devices":{"listener":{"type":"proxy","listen":"tcp:0.0.0.0:10001","connect":"tcp:127.0.0.1:8080"}},"used_by":["/1.0/instances/swarm-manager?project=issue447"]}',
-                ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-                ('incus', 'list', '--project', 'issue447', '--format', 'json'): b'[]',
-                ('incus', 'list', '--project', 'legacy', '--format', 'json'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=issue447&recursion=1'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=legacy&recursion=1'): b'[]',
             }
             return responses[tuple(argv)]
 
@@ -378,7 +404,7 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
         self.assertEqual(routes[0]['owner'], 'shared')
         self.assertEqual(routes[0]['effective_profiles'], ['shared'])
         self.assertEqual(calls.count(('incus', 'profile', 'list', '--project', 'default', '--format', 'json')), 1)
-        self.assertIn(('incus', 'list', '--project', 'issue447', '--format', 'json'), calls)
+        self.assertIn(('incus', 'query', '/1.0/instances?project=issue447&recursion=1'), calls)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'issue447', '--format', 'json'), calls)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'legacy', '--format', 'json'), calls)
 
@@ -524,7 +550,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                 return b'{"name":"default","description":"","config":{}}'
             if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
                 return b'[]'
-            if argv == ['incus', 'list', '--project', 'default', '--format', 'json']:
+            if argv == ['incus', 'query', '/1.0/instances?project=default&recursion=1']:
                 return b'[{"name":"expected"}]'
             if argv[:2] == ['incus', 'query']:
                 return json.dumps({'name': 'other', 'project': 'default',
@@ -544,7 +570,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                         return b'{"name":"default","description":"","config":{}}'
                     if argv == ['incus', 'profile', 'list', '--project', 'default', '--format', 'json']:
                         return json.dumps([{'name': 'expected', 'project': 'other', 'config': {}, 'devices': {}, 'used_by': []}]).encode() if resource == 'profile' else b'[]'
-                    if argv == ['incus', 'list', '--project', 'default', '--format', 'json']:
+                    if argv == ['incus', 'query', '/1.0/instances?project=default&recursion=1']:
                         return json.dumps([{'name': 'expected', 'project': 'other', 'status': 'Running', 'type': 'container', 'config': {}, 'devices': {}, 'profiles': []}]).encode() if resource == 'instance' else b'[]'
                     if argv[:2] == ['incus', 'query']:
                         identity = {'name': 'expected', 'project': 'other',
@@ -598,8 +624,8 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                         json.dumps([{'name': 'qa-profile', 'project': 'qa', 'config': {}, 'devices': {'web': route_device}, 'used_by': []}]).encode(),
                     ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')):
                         json.dumps({'name': 'qa-profile', 'project': 'qa', 'config': {}, 'devices': {'web': route_device}, 'used_by': []}).encode(),
-                    ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-                    ('incus', 'list', '--project', 'qa', '--format', 'json'):
+                    ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
+                    ('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
                         json.dumps([{'name': 'qa-instance', 'project': 'qa', 'status': 'Running', 'type': 'container', 'config': {}, 'devices': {'web': route_device}, 'expanded_config': {}, 'expanded_devices': {'web': route_device}, 'profiles': ['qa-profile']}]).encode(),
                     ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa')):
                         json.dumps({'name': 'qa-instance', 'project': 'qa', 'config': {}, 'devices': {'web': route_device},
@@ -643,7 +669,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     if argv[1] == 'project':
                         self.assertEqual(argv[2], 'list')
                     if argv[1] == 'query':
-                        self.assertIn(tuple(argv), {('incus', 'query', '/1.0/projects/default'), ('incus', 'query', '/1.0/projects/qa'), ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')), ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa'))})
+                        self.assertIn(tuple(argv), {('incus', 'query', '/1.0/projects/default'), ('incus', 'query', '/1.0/projects/qa'), ('incus', 'query', fixture._profile_api_path('qa-profile', 'qa')), ('incus', 'query', fixture._instance_api_path('qa-instance', 'qa')), ('incus', 'query', '/1.0/instances?project=default&recursion=1'), ('incus', 'query', '/1.0/instances?project=qa&recursion=1')})
                     if argv[1] == 'profile':
                         self.assertEqual(argv[2], 'list')
                     if argv[1] == 'config':
@@ -679,7 +705,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
                 ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
                 ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{"features.images":"true","features.networks":true,"features.profiles":"false","features.storage.volumes":false}}',
                 ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): b'[]',
-                ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
             }
             def inventory(argv):
                 calls.append(tuple(argv))
@@ -1015,7 +1041,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             ('incus', 'query', fixture._profile_api_path('web', 'qa')):
                 json.dumps({'name': 'web', 'project': 'qa', 'description': '', 'config': {'user.note': 'omit'},
                             'devices': {'proxy0': device}, 'used_by': []}).encode(),
-            ('incus', 'list', '--project', 'qa', '--format', 'json'):
+            ('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
                 json.dumps([{'name': 'vm', 'status': 'Running', 'status_code': 103,
                              'type': 'virtual-machine', 'profiles': ['web'], 'ephemeral': False,
                              'description': '', 'project': 'qa', 'backups': None,
@@ -1044,7 +1070,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertEqual(project['profiles'], [{'name': 'web', 'used_by': [], 'devices': {'proxy0': device}}])
         self.assertEqual(project['instances'], [{'name': 'vm', 'status': 'Running', 'type': 'virtual-machine',
             'profiles': ['web'], 'local_devices': {'local0': device}, 'expanded_devices': {'expanded0': device}}])
-        self.assertIn(('incus', 'list', '--project', 'qa', '--format', 'json'), seen)
+        self.assertIn(('incus', 'query', '/1.0/instances?project=qa&recursion=1'), seen)
         self.assertIn(('incus', 'query', fixture._instance_api_path('vm', 'qa')), seen)
         self.assertEqual(set(inventory), {'projects', 'command_records'})
 
@@ -1066,12 +1092,12 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
             ('incus', 'query', '/1.0/profiles/shared?project=default'):
                 json.dumps({'name': 'shared', 'project': 'default', 'config': {}, 'devices': {},
                             'used_by': shared_used_by}).encode(),
-            ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
-            ('incus', 'list', '--project', 'issue447', '--format', 'json'):
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
+            ('incus', 'query', '/1.0/instances?project=issue447&recursion=1'):
                 b'[{"name":"swarm-manager","status":"Running","type":"container","profiles":["default"],"project":"issue447"}]',
             ('incus', 'query', fixture._instance_api_path('swarm-manager', 'issue447')):
                 json.dumps(instance).encode(),
-            ('incus', 'list', '--project', 'legacy', '--format', 'json'): b'[]',
+            ('incus', 'query', '/1.0/instances?project=legacy&recursion=1'): b'[]',
         }
         seen = []
 
@@ -1096,7 +1122,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
         self.assertEqual(seen.count(('incus', 'profile', 'list', '--project', 'default', '--format', 'json')), 1)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'issue447', '--format', 'json'), seen)
         self.assertNotIn(('incus', 'profile', 'list', '--project', 'legacy', '--format', 'json'), seen)
-        self.assertIn(('incus', 'list', '--project', 'issue447', '--format', 'json'), seen)
+        self.assertIn(('incus', 'query', '/1.0/instances?project=issue447&recursion=1'), seen)
 
     def test_inventory_refuses_to_list_projects_without_completeness_authority(self):
         with (patch.object(fixture, '_assert_host_identity_inventory'), patch.object(fixture, '_assert_local_incus_remote_inventory'),
@@ -1121,53 +1147,53 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
               b'{"name":"p","project":"other","config":{},"devices":{},"used_by":[]}'},
              'INCUS_PROFILE_INVENTORY_UNREADABLE'),
             ('instance-project-mismatch',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"project":"other"}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-architecture',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"architecture":12}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-created-at',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"created_at":12}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-stateful',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"stateful":"false"}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-ephemeral',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"ephemeral":"false"}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-status-code',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"status_code":true}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-backups',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"backups":{}}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-snapshots',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"snapshots":["snap0"]}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('malformed-state',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"state":[]}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('oversized-snapshots',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               json.dumps([{'name': 'i', 'status': 'Running', 'type': 'container', 'profiles': [],
                            'snapshots': [{} for _ in range(fixture._INVENTORY_MAX_ENTITIES + 1)]}]).encode()},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('oversized-state',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               json.dumps([{'name': 'i', 'status': 'Running', 'type': 'container', 'profiles': [],
                            'state': {f'field-{i}': None for i in range(fixture._INVENTORY_MAX_ENTITIES + 1)}}]).encode()},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
             ('unknown-instance-summary-field',
-             {('incus', 'list', '--project', 'qa', '--format', 'json'):
+             {('incus', 'query', '/1.0/instances?project=qa&recursion=1'):
               b'[{"name":"i","status":"Running","type":"container","profiles":[],"vendor_extra":true}]'},
              'INCUS_INSTANCE_INVENTORY_UNREADABLE'),
         ]
@@ -1178,7 +1204,7 @@ class ProjectInventoryCaptureTests(_FixtureBehaviorTestCase):
                     ('incus', 'query', '/1.0/projects/qa'):
                         json.dumps({'name': 'qa', 'description': '', 'config': feature_config}).encode(),
                     ('incus', 'profile', 'list', '--project', 'qa', '--format', 'json'): b'[]',
-                    ('incus', 'list', '--project', 'qa', '--format', 'json'): b'[]',
+                    ('incus', 'query', '/1.0/instances?project=qa&recursion=1'): b'[]',
                 }
                 base.update(overrides)
                 def read(argv):
@@ -1723,7 +1749,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                     raise AssertionError(argv)
 
                 def incus(*args, profile_data=None):
-                    if args[:1] == ('list',) or args[:2] == ('profile', 'list'):
+                    if args == ('query', '/1.0/instances?project=default&recursion=1') or args[:2] == ('profile', 'list'):
                         return b'[]'
                     writes.append(args)
                     return b''
@@ -1867,7 +1893,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 state['profile_exists'] = False
             if args[:2] == ('profile', 'delete') and args[2] == base_profile:
                 state['base_exists'] = False
-            if args[:1] == ('list',):
+            if args == ('query', '/1.0/instances?project=default&recursion=1'):
                 names = ([{'name': instance}] if state['foreign_instance'] else [])
                 return json.dumps(names).encode()
             if args[:2] == ('profile', 'list'):
@@ -2094,8 +2120,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
 
 
 class ResponderShellTests(unittest.TestCase):
-    def test_responder_uses_fixed_nonce_http_and_nonconnecting_listener_readiness(self):
-        fake = r"""#!/usr/bin/python3
+    _BUSYBOX = r"""#!/usr/bin/python3
 import json,os,sys,time
 from pathlib import Path
 args=sys.argv[1:]
@@ -2106,14 +2131,14 @@ if args==['nc','-l','-s','127.0.0.1','-p','8080','-w','15']:
  data=sys.stdin.buffer.read()
  (root/'response.bin').write_bytes(data)
  (root/'ready').write_text('listener')
+ if mode=='dead':sys.exit(0)
  deadline=time.monotonic()+3
  while not (root/'finished').exists() and time.monotonic()<deadline:time.sleep(0.01)
  sys.exit(0)
 if args==['netstat','-ltn']:
- if (root/'ready').exists():
-  address='0.0.0.0:8080' if mode=='foreign' else '127.0.0.1:8080'
+ if mode=='dead' or ((root/'ready').exists() and mode!='absent'):
+  address={'foreign':'0.0.0.0:8080','wrong-port':'127.0.0.1:8081'}.get(mode,'127.0.0.1:8080')
   print('tcp 0 0 '+address+' 0.0.0.0:* LISTEN')
-  if mode=='ready':(root/'finished').write_text('readiness observed without connecting')
  sys.exit(0)
 if args[0]=='awk':
  assert args[1]=='$1 == "tcp" && $4 == "127.0.0.1:8080" && $6 == "LISTEN" { ready=1 } END { exit !ready }'
@@ -2122,42 +2147,111 @@ if args[0]=='awk':
 if args==['sleep','0.2']:sys.exit(0)
 sys.exit(2)
 """
+    _STAT_FAULT = r'''fake_stat() {
+  process_stat="$responder (nc) $1 $2"
+  fields=0
+  while [ "$fields" -lt 17 ]; do
+    process_stat="$process_stat 0"
+    fields=$((fields + 1))
+  done
+  process_stat="$process_stat $3"
+}
+read() {
+  command read "$@" || return 1
+  if [ -e "$RESPONDER_FIXTURE/stat-seen" ]; then
+    case "$RESPONDER_STAT_FAULT" in
+      changed-start) fake_stat S "$$" 999999999999999999999 ;;
+      changed-parent) fake_stat S 999999999999999999999 1 ;;
+      changed-pid) process_stat="999999999999999999999 (nc) S $$ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1" ;;
+    esac
+  fi
+  : > "$RESPONDER_FIXTURE/stat-seen"
+  case "$RESPONDER_STAT_FAULT" in
+    unreadable|missing) return 1 ;;
+    malformed) process_stat="not a process stat" ;;
+    truncated) process_stat="$responder (nc) S $$" ;;
+    zombie|dead-state|dead-lower|unknown-state)
+      case "$RESPONDER_STAT_FAULT" in zombie) state=Z ;; dead-state) state=X ;; dead-lower) state=x ;; *) state='?' ;; esac
+      fake_stat "$state" "$$" 1 ;;
+    malformed-start) fake_stat S "$$" unknown ;;
+    spaced-comm) process_stat="$responder (name with ) and ( spaces) ${process_stat##*) }" ;;
+  esac
+}
+'''
+
+    def _run_responder(self, mode='ready', *, prefix='', stat_fault=''):
         nonce = '0123456789abcdef' * 2
-        script = fixture._fixture_responder_script(nonce)
-        for mode in ('ready', 'foreign'):
-            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                busybox = root / 'busybox'
-                busybox.write_text(fake)
-                busybox.chmod(0o700)
-                process = subprocess.Popen(['/bin/sh', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    env={'PATH': str(root) + ':/usr/bin:/bin', 'RESPONDER_FIXTURE': str(root), 'RESPONDER_MODE': mode},
-                    start_new_session=True)
+        script = prefix + fixture._fixture_responder_script(nonce)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            busybox = root / 'busybox'
+            busybox.write_text(self._BUSYBOX)
+            busybox.chmod(0o700)
+            process = subprocess.Popen(['/bin/sh', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env={'PATH': str(root) + ':/usr/bin:/bin', 'RESPONDER_FIXTURE': str(root),
+                     'RESPONDER_MODE': mode, 'RESPONDER_STAT_FAULT': stat_fault}, start_new_session=True)
+            try:
+                stdout, stderr = process.communicate(timeout=8)
+            finally:
                 try:
-                    stdout, stderr = process.communicate(timeout=8)
-                finally:
-                    try:
-                        os.killpg(process.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                    if process.poll() is None:
-                        process.wait(timeout=3)
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                if process.poll() is None:
+                    process.wait(timeout=3)
+            calls_file = root / 'calls.jsonl'
+            calls = [json.loads(line) for line in calls_file.read_text().splitlines()] if calls_file.exists() else []
+            response = root / 'response.bin'
+            return process.returncode, stdout, stderr, calls, response.read_bytes() if response.exists() else None
+
+    def test_responder_uses_fixed_nonce_http_and_nonconnecting_listener_readiness(self):
+        nonce = '0123456789abcdef' * 2
+        for mode in ('ready', 'foreign', 'wrong-port', 'absent'):
+            with self.subTest(mode=mode):
+                code, stdout, stderr, calls, response = self._run_responder(mode)
                 self.assertEqual((stdout, stderr), (b'', b''))
                 if mode == 'ready':
-                    self.assertEqual(process.returncode, 0)
+                    self.assertEqual(code, 0)
                 else:
-                    self.assertNotEqual(process.returncode, 0)
-                response = (root / 'response.bin').read_bytes()
+                    self.assertNotEqual(code, 0)
+                self.assertIsNotNone(response)
                 headers, body = response.split(b'\r\n\r\n', 1)
                 self.assertEqual(headers, b'HTTP/1.1 200 OK\r\nContent-Length: 32\r\nConnection: close\r\nContent-Type: text/plain')
                 self.assertEqual(body, nonce.encode('ascii'))
-                calls = [json.loads(line) for line in (root / 'calls.jsonl').read_text().splitlines()]
                 self.assertEqual(sum(call[0] == 'nc' for call in calls), 1)
                 self.assertTrue(any(call == ['netstat', '-ltn'] for call in calls))
+                self.assertLessEqual(sum(call == ['sleep', '0.2'] for call in calls), 25)
                 self.assertTrue(all(call[0] in {'nc', 'netstat', 'awk', 'sleep'} for call in calls))
         for invalid in ('', 'A' * 32, 'a' * 31, 'a' * 33, 'a' * 31 + "'", 'a' * 32 + '\n'):
             with self.subTest(invalid=invalid), self.assertRaises(fixture.FixtureError):
                 fixture._fixture_responder_script(invalid)
+
+    def test_live_responder_is_ready_when_signal_probe_is_denied(self):
+        code, stdout, stderr, calls, response = self._run_responder(prefix='kill() { return 1; }\n')
+        self.assertEqual((code, stdout, stderr), (0, b'', b''))
+        self.assertEqual(sum(call[0] == 'nc' for call in calls), 1)
+        self.assertTrue(any(call == ['netstat', '-ltn'] for call in calls))
+        self.assertTrue(response.endswith(('0123456789abcdef' * 2).encode('ascii')))
+
+    def test_responder_rejects_unknown_or_replaced_process_identity_with_ready_socket(self):
+        faults = ('unreadable', 'missing', 'malformed', 'truncated', 'zombie', 'dead-state',
+                  'dead-lower', 'unknown-state', 'malformed-start', 'changed-start',
+                  'changed-parent', 'changed-pid')
+        for fault in faults:
+            with self.subTest(fault=fault):
+                code, stdout, stderr, calls, _ = self._run_responder(prefix=self._STAT_FAULT, stat_fault=fault)
+                self.assertNotEqual(code, 0)
+                self.assertEqual((stdout, stderr), (b'', b''))
+                self.assertFalse(any(call[0] in {'curl', 'wget'} for call in calls))
+
+    def test_dead_responder_cannot_be_replaced_by_stale_ready_socket(self):
+        code, stdout, stderr, _, _ = self._run_responder('dead')
+        self.assertNotEqual(code, 0)
+        self.assertEqual((stdout, stderr), (b'', b''))
+
+    def test_responder_identity_parses_parenthesized_process_names(self):
+        code, stdout, stderr, _, _ = self._run_responder(prefix=self._STAT_FAULT, stat_fault='spaced-comm')
+        self.assertEqual((code, stdout, stderr), (0, b'', b''))
 
 
 class JitNoMutationTests(_FixtureBehaviorTestCase):
@@ -2372,7 +2466,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
             ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
             ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
-            ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): json.dumps([route]).encode(),
         }
         go = {'target': {'host': '192.168.178.33', 'server_version': '6.0.5',
@@ -2393,12 +2487,12 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
             ('incus', 'query', '/1.0/images/' + fingerprint + '?project=default'),
             ('free', '-b'), ('df', '-B1', '--output=avail', str(fixture.ROOT)),
             ('ss', '-H', '-ltn'), ('ss', '-H', '-ltnp'),
-            ('incus', 'list', '--project', 'default', '--format', 'json'),
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
             ('incus', 'project', 'list', '--format', 'json'),
             ('incus', 'query', '/1.0/projects/default'),
             ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'),
-            ('incus', 'list', '--project', 'default', '--format', 'json'),
+            ('incus', 'query', '/1.0/instances?project=default&recursion=1'),
         ]
         self.assertEqual(set(command_order), set(responses))
         for failure_index in range(1, len(command_order) + 1):
@@ -2493,7 +2587,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
                 ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
                 ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
-                ('incus', 'list', '--project', 'default', '--format', 'json'): b'[]',
+                ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
                 ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): json.dumps([route]).encode(),
                 }
             return mapping[tuple(argv)]
@@ -2640,7 +2734,7 @@ class WslJitTests(_FixtureBehaviorTestCase):
                 return b'{"name":"qa","description":"","config":{}}'
             if argv[:3] == ['incus', 'profile', 'list']:
                 return b'[]'
-            if argv[:2] == ['incus', 'list']:
+            if argv in (['incus', 'query', '/1.0/instances?project=default&recursion=1'], ['incus', 'query', '/1.0/instances?project=qa&recursion=1']):
                 return b'[]'
             self.fail(f'unexpected capture command: {argv}')
 
@@ -3287,7 +3381,7 @@ class _FullGraphFixtureTransport:
         since = self.events[self.effects[-1][1] + 1:] if self.effects else self.events
         required = [('project', 'list', '--format', 'json')]
         required += [('query', fixture._project_api_path(project)) for project in self.projects]
-        required += [('list', '--project', project, '--format', 'json') for project in self.projects]
+        required += [('query', '/1.0/instances?project=' + project + '&recursion=1') for project in self.projects]
         required += [('profile', 'list', '--project', 'default', '--format', 'json')]
         for read in required:
             self.testcase.assertIn(read, since)
@@ -3339,6 +3433,14 @@ class _FullGraphFixtureTransport:
             return self._json([{'fingerprint': 'b' * 64}])
         if args[:1] == ['query']:
             path = args[1]
+            for project in self.projects:
+                if path == '/1.0/instances?project=' + project + '&recursion=1':
+                    rows = list(self.foreign_rows[project])
+                    if rows:
+                        self.foreign_lists += 1
+                    if project == 'default' and self.current is not None:
+                        rows.append(self._instance())
+                    return self._json(rows)
             if path.startswith('/1.0/projects/'):
                 project = path.rsplit('/', 1)[-1]
                 return self._json(self._project_row(project))
@@ -3435,9 +3537,112 @@ class _FullGraphFixtureTransport:
         return SimpleNamespace(returncode=1 if self.lost_init and command_name == 'incus' and args[:1] == ['init'] else 0, stdout=output)
 
 
+class GracefulFixtureStopBudgetTests(_FixtureBehaviorTestCase):
+    _NAME = 'tsw-q449-' + 'a' * 32 + '-fixture'
+
+    def _stop(self):
+        return ['incus', 'stop', self._NAME, '--project', 'default', '--timeout', '30']
+
+    def test_fixture_stop_waits_for_graceful_reply_beyond_generic_deadline(self):
+        clock = [100.0]
+        fixture._INVENTORY_STARTED_AT = clock[0]
+        fixture._INVENTORY_RESERVE_CLEANUP = True
+        fixture._INVENTORY_CLEANUP_MODE = True
+
+        def graceful_reply(argv, timeout, *_args, **_kwargs):
+            if timeout < 35:
+                raise fixture._BoundedCommandFailure('JIT_COMMAND_FAILED', 0, 0)
+            clock[0] += 35
+            return b'', b'', 0
+
+        with (patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0]),
+              patch.object(fixture, '_bounded_process_output', side_effect=graceful_reply) as process):
+            self.assertEqual(fixture.command(self._stop()), b'')
+        self.assertEqual(process.call_args.args[0], ['/usr/bin/incus', *self._stop()[1:]])
+        self.assertEqual(process.call_args.args[1], 45)
+        self.assertNotIn('--force', process.call_args.args[0])
+        self.assertEqual(fixture._COMMAND_AUDIT[-1]['exit_status'], 0)
+        self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+
+    def test_only_exact_trusted_nonce_fixture_stop_gets_45_seconds(self):
+        stop = self._stop()
+        cases = [(stop, 45), (['/usr/bin/incus', *stop[1:]], 45),
+                 (['/tmp/incus', *stop[1:]], 20),
+                 ([*stop[:2], 'swarm-manager', *stop[3:]], 20),
+                 ([*stop[:2], 'tsw-q449-' + 'A' * 32 + '-fixture', *stop[3:]], 20),
+                 ([*stop[:2], 'tsw-q449-' + 'a' * 31 + '-fixture', *stop[3:]], 20),
+                 ([*stop[:4], 'foreign', *stop[5:]], 20),
+                 ([*stop[:-1], '60'], 20), (stop[:-2], 20),
+                 ([*stop, '--force'], 20),
+                 (['incus', 'stop', '--project', 'default', self._NAME, '--timeout', '30'], 20),
+                 (['ss', '-H', '-ltnp'], 20)]
+        for argv, limit in cases:
+            with self.subTest(argv=argv):
+                fixture._INVENTORY_STARTED_AT = 100.0
+                with (patch.object(fixture.time, 'monotonic', return_value=100.0),
+                      patch.object(fixture, '_bounded_process_output', return_value=(b'', b'', 0)) as process):
+                    fixture.command(argv)
+                self.assertEqual(process.call_args.args[1], limit)
+                self.assertEqual(process.call_args.args[0][1:], argv[1:])
+
+    def test_remaining_active_and_cleanup_time_caps_stop_without_resetting_clock(self):
+        for host, active, reserve, total in (('192.168.178.33', 180, 120, 300),
+                                             ('192.168.178.58', 350, 300, 650)):
+            for cleanup, horizon in ((False, active), (True, total)):
+                with self.subTest(host=host, cleanup=cleanup):
+                    fixture._begin_inventory(host, reserve_cleanup=True)
+                    fixture._INVENTORY_STARTED_AT = 100.0
+                    fixture._INVENTORY_CLEANUP_MODE = cleanup
+                    self.assertEqual(fixture._inventory_budget_profile(), {
+                        'target_host': host, 'total_seconds': total,
+                        'cleanup_reserve_seconds': reserve, 'active_seconds': active})
+                    with (patch.object(fixture.time, 'monotonic', return_value=100.0 + horizon - 17),
+                          patch.object(fixture, '_bounded_process_output', return_value=(b'', b'', 0)) as process):
+                        fixture.command(self._stop())
+                    self.assertEqual(process.call_args.args[1], 17)
+                    self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+
+    def test_exhausted_phase_deadline_never_spawns_a_stop_client(self):
+        for host, active, total in (('192.168.178.33', 180, 300), ('192.168.178.58', 350, 650)):
+            for cleanup, horizon in ((False, active), (True, total)):
+                with self.subTest(host=host, cleanup=cleanup):
+                    fixture._begin_inventory(host, reserve_cleanup=True)
+                    fixture._INVENTORY_STARTED_AT = 100.0
+                    fixture._INVENTORY_CLEANUP_MODE = cleanup
+                    with (patch.object(fixture.time, 'monotonic', return_value=100.0 + horizon),
+                          patch.object(fixture.subprocess, 'Popen') as spawn,
+                          patch.object(fixture, '_bounded_process_output') as process,
+                          self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_TOTAL_TIMEOUT')):
+                        fixture.command(self._stop())
+                    process.assert_not_called()
+                    spawn.assert_not_called()
+                    self.assertEqual(fixture._COMMAND_AUDIT, [])
+                    self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+
+    def test_cleanup_preserves_clock_and_charged_usage_after_active_phase(self):
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        fixture._INVENTORY_STARTED_AT = 100.0
+        fixture._INVENTORY_BYTES_CAPTURED = 7
+        fixture._COMMAND_AUDIT.append({'prior': True})
+        clock = [279.0]
+        with (patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0]),
+              patch.object(fixture, '_bounded_process_output', return_value=(b'ab', b'', 0)) as process):
+            fixture.command(['ss', '-H', '-ltnp'])
+            self.assertEqual(process.call_args.args[1], 1)
+            clock[0] = 280.0
+            fixture._INVENTORY_CLEANUP_MODE = True
+            fixture.command(self._stop())
+            self.assertEqual(process.call_args.args[1], 45)
+        self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
+        self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 11)
+        self.assertEqual(len(fixture._COMMAND_AUDIT), 3)
+        self.assertEqual(fixture._COMMAND_AUDIT[0], {'prior': True})
+        self.assertEqual(fixture._inventory_budgets()[-1], 300)
+
+
 class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
     def test_native_and_wsl_profiles_reset_every_quota_without_cleanup_reclaim(self):
-        for host, active, total in (('192.168.178.58', 350, 650), ('192.168.178.33', 240, 300)):
+        for host, active, total in (('192.168.178.58', 350, 650), ('192.168.178.33', 180, 300)):
             fixture._COMMAND_AUDIT.append({'old': True})
             fixture._INVENTORY_BYTES_CAPTURED = 100
             fixture._INVENTORY_ENTITIES_CAPTURED = 100
@@ -3466,7 +3671,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
         fixture._INVENTORY_BYTES_CAPTURED = 37
         with self.assertRaisesRegex(fixture.FixtureError, 'HOST_IDENTITY_DRIFT'):
             fixture._begin_inventory('unbound', reserve_cleanup=True)
-        self.assertEqual(fixture._inventory_budgets()[-1], 240)
+        self.assertEqual(fixture._inventory_budgets()[-1], 180)
         self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 37)
 
     def test_all_capture_entrypoints_reset_stale_host_and_time_before_queries(self):
@@ -3489,7 +3694,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
     def test_main_resets_host_scope_before_approval_or_effect(self):
         import contextlib
         import io
-        for host, active in (('192.168.178.58', 350), ('192.168.178.33', 240)):
+        for host, active in (('192.168.178.58', 350), ('192.168.178.33', 180)):
             fixture._INVENTORY_STARTED_AT = -999.0
             fixture._INVENTORY_BYTES_CAPTURED = 999
             with (contextlib.redirect_stderr(io.StringIO()), patch.object(fixture, 'git_preflight') as source):
@@ -3529,7 +3734,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
 
 class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
     def test_incus_read_cannot_spend_active_or_cleanup_time_reserve(self):
-        for host, cleanup, total in (('192.168.178.33', False, 240), ('192.168.178.33', True, 300),
+        for host, cleanup, total in (('192.168.178.33', False, 180), ('192.168.178.33', True, 300),
                                      ('192.168.178.58', False, 350), ('192.168.178.58', True, 650)):
             with self.subTest(host=host, cleanup=cleanup):
                 self.setUp()
@@ -4496,6 +4701,653 @@ class WindowsInteropEnvironmentTests(_FixtureBehaviorTestCase):
             with patch.dict(os.environ, value, clear=True):
                 self.assertEqual(fixture._fixture_process_environment([self.WINDOWS[0]]), expected)
 
+
+
+class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
+    """Exercise the existing entrypoint/transport; never call an invented diagnostic API."""
+
+    _STDOUT = b'SYNTHETIC_PRIVATE_STDOUT\x00\xff'
+    _STDERR = b'SYNTHETIC_PRIVATE_STDERR ' + b'e' * 152
+
+    def _exercise(self, *, primary=None, failed_stop=True, overflow=False, fault=None,
+                  postcheck_failure=False, specialized=None):
+        transport = _FullGraphFixtureTransport(self)
+        for key in ('workflow_sha256', 'runner_sha256', 'test_sha256',
+                    'resource_admission_sha256', 'issue447_inventory_sha256'):
+            transport.go[key] = 'd' * 64
+        raw_go = _approved_test_go_raw(transport.go)
+        original_command = fixture.command
+        original_output = fixture._bounded_process_output
+        original_fixture, original_listeners = fixture._run_fixture, fixture._listeners
+        completed, injected = [False], [False]
+        original_open, original_write, original_fstat = os.open, os.write, os.fstat
+        failed_processes, opened = [], []
+
+        class FailedStopProcess(_BoundedMemoryProcess):
+            def __init__(self, status=1):
+                self.status, self.threads = status, []
+                self.stdout = self._pipe(b'x' * 65 if overflow else self_outer._STDOUT)
+                self.stderr = self._pipe(b'' if overflow else self_outer._STDERR)
+
+        self_outer = self
+        stop = ('stop', transport.instance, '--project', 'default', '--timeout', '30')
+
+        def popen(argv, **kwargs):
+            if argv[1:2] == ['--synthetic-diagnostic-probe']:
+                return FailedStopProcess(0 if specialized == 'snapshot-stderr' else 1)
+            selected = ((specialized in {'profile-create', 'profile-stderr'} and argv[1:4] == ['profile', 'create', transport.base])
+                        or (specialized == 'inventory' and argv[1:] == ['query', fixture._profile_api_path(transport.base, 'default')]))
+            if selected and not injected[0]:
+                injected[0] = True
+                original = transport.popen(argv, **kwargs)
+                original.wait(timeout=1)
+                original.stdout.close()
+                original.stderr.close()
+                return FailedStopProcess(0 if specialized == 'profile-stderr' else 1)
+            if failed_stop and tuple(argv[1:]) == stop:
+                transport._observe(argv[1:])
+                transport._before_effect(argv[1:])
+                process = FailedStopProcess()
+                failed_processes.append(process)
+                return process
+            return transport.popen(argv, **kwargs)
+
+        def command(argv):
+            if argv[0] == 'curl' and fault in {'reuse-owned', 'replace-owned'}:
+                for index in range(2):
+                    try:
+                        original_command(['/usr/bin/curl', '--synthetic-diagnostic-probe', 'PRIVATE_ARG_CANARY'])
+                    except fixture.TargetDrift:
+                        pass
+                    if index == 0 and fault == 'replace-owned':
+                        diagnostic.rename(diagnostic.with_name(diagnostic.name + '-original'))
+                        diagnostic.mkdir(mode=0o700)
+            if argv[0] == 'curl' and specialized in {'snapshot', 'snapshot-stderr'}:
+                fixture._snapshot_process(['/usr/bin/ss', '--synthetic-diagnostic-probe', 'PRIVATE_ARG_CANARY'],
+                                          5, 128, 256, 'SYNTHETIC_SNAPSHOT_FAILURE', require_empty_stderr=True)
+            if argv[0] == 'curl' and primary is not None:
+                raise primary
+            return original_command(argv)
+
+        def run_fixture(*args, **kwargs):
+            result = original_fixture(*args, **kwargs)
+            completed[0] = True
+            return result
+
+        def listeners():
+            if completed[0] and postcheck_failure:
+                raise fixture.TargetDrift('SYNTHETIC_FINAL_PRESERVATION_FAILURE')
+            return original_listeners()
+
+        def output(argv, timeout, cap, **kwargs):
+            return original_output(argv, timeout, 64 if overflow and tuple(argv[1:]) == stop else cap, **kwargs)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parent = root / fixture.PRIVATE_EVIDENCE_REL
+            parent.mkdir(parents=True, mode=0o700)
+            parent.chmod(0o700)
+            diagnostic = parent / ('listener-diagnostics-' + transport.run_id)
+            victim = root / 'unchanged-victim'
+            victim.write_bytes(b'EXISTING_PRIVATE_BYTES')
+            existing = None
+            if fault in {'directory-mode', 'directory-owner', 'existing', 'file-symlink', 'empty-existing'}:
+                diagnostic.mkdir(mode=0o700)
+            if fault == 'directory-mode':
+                diagnostic.chmod(0o755)
+            if fault == 'directory-symlink':
+                diagnostic.symlink_to(root, target_is_directory=True)
+            if fault == 'existing':
+                existing = diagnostic / 'command-0001.stdout.bin'
+                existing.write_bytes(b'EXISTING_PRIVATE_BYTES')
+                existing.chmod(0o600)
+            if fault == 'file-symlink':
+                (diagnostic / 'command-0001.stdout.bin').symlink_to(victim)
+
+            def descriptor_path(fd):
+                try:
+                    return Path(os.readlink('/proc/self/fd/' + str(fd)))
+                except OSError:
+                    return None
+
+            def fstat(fd):
+                info = original_fstat(fd)
+                if fault == 'directory-owner' and descriptor_path(fd) == diagnostic:
+                    fields = list(info)
+                    fields[4] = os.geteuid() + 1
+                    return os.stat_result(fields)
+                return info
+
+            def open_file(path, flags, mode=0o777, **kwargs):
+                opened.append((Path(path).name, flags, mode))
+                return original_open(path, flags, mode, **kwargs)
+
+            def write(fd, value):
+                if fault == 'write' and descriptor_path(fd) == diagnostic / 'command-0001.stdout.bin':
+                    raise OSError('RAW_PRIVATE_WRITE_ERROR_CANARY')
+                return original_write(fd, value)
+
+            errors = io.StringIO()
+            with (patch.object(fixture, 'ROOT', root),
+                  patch.object(fixture, 'git_preflight', return_value=(transport.go['source_commit'], b'w', b'r', b't')),
+                  patch.object(fixture, 'read_once', return_value=raw_go),
+                  patch.object(fixture, 'validate_go', return_value=transport.go),
+                  patch.object(fixture, 'command', side_effect=command),
+                  patch.object(fixture, '_run_fixture', side_effect=run_fixture),
+                  patch.object(fixture, '_listeners', side_effect=listeners),
+                  patch.dict(os.environ, {'TA40_ENV_CANARY': 'PRIVATE_ENV_CANARY'}),
+                  patch.object(fixture, '_bounded_process_output', side_effect=output),
+                  patch.object(fixture.subprocess, 'Popen', side_effect=popen),
+                  patch.object(fixture.subprocess, 'run', side_effect=transport.run),
+                  patch.object(fixture.os, 'open', side_effect=open_file),
+                  patch.object(fixture.os, 'write', side_effect=write),
+                  patch.object(fixture.os, 'fstat', side_effect=fstat),
+                  contextlib.redirect_stderr(errors)):
+                status = fixture.main(['--target-host', '192.168.178.33',
+                                       '--expected-approval-sha256', fixture.digest(raw_go)])
+            result = json.loads((root / fixture.RESULT_REL).read_bytes())
+            artifacts = {str(path.relative_to(parent)): (path.read_bytes(), stat.S_IMODE(path.stat().st_mode),
+                                                         path.stat().st_uid)
+                         for path in parent.rglob('*') if not path.is_symlink() and path.is_file()}
+            if 'listener-diagnostics-' + transport.run_id + '/command-0001.json' in artifacts:
+                raw_opens = [(flags, mode) for name, flags, mode in opened
+                             if name in {'command-0001.stdout.bin', 'command-0001.stderr.bin', 'command-0001.json'}]
+                self.assertEqual(len(raw_opens), 3)
+                for flags, mode in raw_opens:
+                    self.assertTrue(flags & os.O_EXCL and flags & os.O_NOFOLLOW)
+                    self.assertEqual(mode, 0o600)
+            self.assertEqual(victim.read_bytes(), b'EXISTING_PRIVATE_BYTES')
+            if existing is not None:
+                self.assertEqual(existing.read_bytes(), b'EXISTING_PRIVATE_BYTES')
+            self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
+            self.assertFalse(any('--force' in args for args, _ in transport.effects))
+            self.assertLessEqual(len(fixture._COMMAND_AUDIT), fixture._INVENTORY_MAX_COMMANDS)
+            self.assertLessEqual(fixture._INVENTORY_BYTES_CAPTURED, fixture._INVENTORY_TOTAL_COMMAND_MAX_BYTES)
+            public = json.dumps(result).encode() + errors.getvalue().encode()
+            for canary in (b'SYNTHETIC_PRIVATE_STDOUT', b'SYNTHETIC_PRIVATE_STDERR',
+                           base64.b64encode(self._STDOUT), base64.b64encode(self._STDERR),
+                           b'RAW_PRIVATE_WRITE_ERROR_CANARY', b'RAW_PRIVATE_CANCEL_CANARY'):
+                self.assertNotIn(canary, public)
+            return status, result, artifacts, transport, failed_processes
+
+    def _provenance(self, result):
+        value = result.get('failure_provenance')
+        self.assertIsInstance(value, dict, 'non-pass result must preserve separate failure provenance')
+        return value
+
+    def test_primary_and_cleanup_failures_remain_separately_attributable_and_nonpass(self):
+        status, result, _, transport, _ = self._exercise(primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'))
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        self.assertEqual(result['code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        provenance = self._provenance(result)
+        self.assertEqual(provenance['primary_code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+        self.assertFalse(provenance['cancelled'])
+        self.assertTrue(transport.running)
+
+    def test_cleanup_only_failure_is_nonpass_without_fabricating_primary_failure(self):
+        status, result, _, _, _ = self._exercise()
+        self.assertEqual(status, 2)
+        self.assertEqual(result['code'], 'JIT_COMMAND_FAILED')
+        provenance = self._provenance(result)
+        self.assertIsNone(provenance['primary_code'])
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+        self.assertFalse(provenance['cancelled'])
+
+    def test_cancellation_and_cleanup_failure_preserve_cancellation_and_nonpass(self):
+        status, result, _, _, _ = self._exercise(primary=KeyboardInterrupt('RAW_PRIVATE_CANCEL_CANARY'))
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        self.assertEqual(result['code'], 'FIXTURE_CANCELLED')
+        provenance = self._provenance(result)
+        self.assertTrue(provenance['cancelled'])
+        self.assertEqual(provenance['primary_code'], 'FIXTURE_CANCELLED')
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+
+    def test_failed_command_retains_private_raw_bytes_with_only_bounded_public_metadata(self):
+        status, result, artifacts, transport, _ = self._exercise()
+        self.assertEqual(status, 2)
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-0001'
+        self.assertIn(prefix + '.json', artifacts, 'failed command diagnostics were discarded')
+        metadata = json.loads(artifacts[prefix + '.json'][0])
+        for name, raw in (('stdout', self._STDOUT), ('stderr', self._STDERR)):
+            path = prefix + '.' + name + '.bin'
+            self.assertIn(path, artifacts)
+            self.assertEqual(artifacts[path], (raw, 0o600, os.geteuid()))
+            stream = metadata[name]
+            self.assertEqual(stream['bytes'], len(raw))
+            self.assertEqual(stream['retained_bytes'], len(raw))
+            self.assertEqual(stream['sha256'], fixture.digest(raw))
+            self.assertFalse(stream['truncated'])
+        self.assertEqual(metadata['run_id'], transport.run_id)
+        self.assertEqual(metadata['go_sha256'], fixture.digest(_approved_test_go_raw(transport.go)))
+        self.assertEqual(artifacts[prefix + '.json'][1:], (0o600, os.geteuid()))
+        failed = [row for row in result['commands'] if row.get('exit_status') == 1]
+        self.assertEqual(len(failed), 1)
+        summary = failed[0].get('diagnostic')
+        self.assertIsInstance(summary, dict)
+        self.assertEqual(summary['artifact_sha256'], fixture.digest(artifacts[prefix + '.json'][0]))
+        self.assertNotIn('argv', metadata)
+        self.assertNotIn('environment', metadata)
+
+    def test_overflow_keeps_only_bounded_prefix_and_marks_truncation_without_pass(self):
+        status, result, artifacts, transport, _ = self._exercise(overflow=True)
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-0001'
+        self.assertIn(prefix + '.json', artifacts, 'partial bounded output needs retained failure diagnostics')
+        stream = json.loads(artifacts[prefix + '.json'][0])['stdout']
+        self.assertEqual(artifacts[prefix + '.stdout.bin'][0], b'x' * 64)
+        self.assertEqual(stream['bytes'], 65)
+        self.assertEqual(stream['retained_bytes'], 64)
+        self.assertEqual(stream['sha256'], fixture.digest(b'x' * 64))
+        self.assertTrue(stream['truncated'])
+
+    def test_unsafe_diagnostic_directories_symlinks_and_existing_files_are_never_adopted(self):
+        for fault in ('directory-mode', 'directory-owner', 'directory-symlink', 'file-symlink', 'existing'):
+            with self.subTest(fault=fault):
+                self.setUp()
+                status, result, _, _, _ = self._exercise(fault=fault)
+                self.assertEqual(status, 2)
+                self.assertNotEqual(result['status'], 'PASS')
+                provenance = self._provenance(result)
+                self.assertTrue(provenance['diagnostics_failed'])
+                self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+
+    def test_diagnostic_write_failure_cannot_mask_primary_or_allow_success(self):
+        status, result, _, _, _ = self._exercise(
+            primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'), fault='write')
+        self.assertEqual(status, 2)
+        self.assertEqual(result['code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        provenance = self._provenance(result)
+        self.assertEqual(provenance['primary_code'], 'SYNTHETIC_PRIMARY_FAILURE')
+        self.assertEqual(provenance['cleanup_codes'], ['JIT_COMMAND_FAILED'])
+        self.assertTrue(provenance['diagnostics_failed'])
+
+    def test_success_keeps_existing_pass_shape_and_creates_no_failure_artifacts(self):
+        status, result, artifacts, transport, _ = self._exercise(failed_stop=False)
+        self.assertEqual(status, 0)
+        self.assertEqual(result['status'], 'PASS')
+        self.assertNotIn('failure_provenance', result)
+        self.assertFalse(any(name.startswith('listener-diagnostics-') for name in artifacts))
+        self.assertTrue(all(set(row) == {'command_id', 'safe_args', 'exit_status', 'stdout_bytes', 'stderr_bytes'}
+                            for row in result['commands']))
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+
+    def test_final_main_check_after_successful_cleanup_is_primary_not_cleanup_failure(self):
+        status, result, _, transport, _ = self._exercise(failed_stop=False, postcheck_failure=True)
+        self.assertEqual(status, 2)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+        provenance = self._provenance(result)
+        self.assertEqual(provenance['primary_code'], 'SYNTHETIC_FINAL_PRESERVATION_FAILURE')
+        self.assertEqual(provenance['cleanup_codes'], [])
+        self.assertEqual(result['code'], 'SYNTHETIC_FINAL_PRESERVATION_FAILURE')
+
+    def test_empty_existing_private_diagnostic_directory_is_not_adopted(self):
+        status, result, artifacts, transport, _ = self._exercise(fault='empty-existing')
+        self.assertEqual(status, 2)
+        self.assertTrue(self._provenance(result)['diagnostics_failed'])
+        prefix = 'listener-diagnostics-' + transport.run_id + '/'
+        self.assertFalse(any(name.startswith(prefix) for name in artifacts))
+
+    def test_later_failure_reuses_only_the_directory_created_by_this_invocation(self):
+        status, result, artifacts, transport, _ = self._exercise(
+            failed_stop=False, primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'), fault='reuse-owned')
+        self.assertEqual(status, 2)
+        self.assertFalse(self._provenance(result)['diagnostics_failed'])
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-'
+        for sequence in ('0001', '0002'):
+            self.assertIn(prefix + sequence + '.json', artifacts)
+            self.assertEqual(artifacts[prefix + sequence + '.stdout.bin'][0], self._STDOUT)
+            self.assertEqual(artifacts[prefix + sequence + '.stderr.bin'][0], self._STDERR)
+        self.assertEqual(len([row for row in result['commands'] if row.get('diagnostic')]), 2)
+
+    def test_replaced_diagnostic_directory_cannot_reuse_prior_invocation_binding(self):
+        status, result, artifacts, transport, _ = self._exercise(
+            failed_stop=False, primary=fixture.TargetDrift('SYNTHETIC_PRIMARY_FAILURE'), fault='replace-owned')
+        self.assertEqual(status, 2)
+        self.assertTrue(self._provenance(result)['diagnostics_failed'])
+        prefix = 'listener-diagnostics-' + transport.run_id
+        self.assertIn(prefix + '-original/command-0001.json', artifacts)
+        self.assertFalse(any(name.startswith(prefix + '/') for name in artifacts))
+        self.assertEqual(len([row for row in result['commands'] if row.get('diagnostic')]), 1)
+
+    def _assert_specialized_diagnostic(self, kind):
+        status, result, artifacts, transport, _ = self._exercise(failed_stop=False, specialized=kind)
+        self.assertEqual(status, 2)
+        self.assertNotEqual(result['status'], 'PASS')
+        prefix = 'listener-diagnostics-' + transport.run_id + '/command-0001'
+        self.assertIn(prefix + '.json', artifacts, kind + ' bypassed the consumed-invocation failure recorder')
+        raw_metadata, mode, owner = artifacts[prefix + '.json']
+        metadata = json.loads(raw_metadata)
+        self.assertEqual((mode, owner), (0o600, os.geteuid()))
+        self.assertEqual(metadata['go_sha256'], fixture.digest(_approved_test_go_raw(transport.go)))
+        self.assertEqual(metadata['run_id'], transport.run_id)
+        for name, raw in (('stdout', self._STDOUT), ('stderr', self._STDERR)):
+            self.assertEqual(artifacts[prefix + '.' + name + '.bin'], (raw, 0o600, os.geteuid()))
+            self.assertEqual(metadata[name]['bytes'], len(raw))
+            self.assertEqual(metadata[name]['retained_bytes'], len(raw))
+            self.assertEqual(metadata[name]['sha256'], fixture.digest(raw))
+            self.assertFalse(metadata[name]['truncated'])
+        diagnostic_rows = [row for row in result['commands'] if row.get('diagnostic')]
+        self.assertEqual(len(diagnostic_rows), 1)
+        self.assertEqual(diagnostic_rows[0]['diagnostic']['artifact_sha256'], fixture.digest(raw_metadata))
+        self.assertEqual(metadata['exit_status'], 0 if kind.endswith('-stderr') else 1)
+        for forbidden in (b'PRIVATE_ARG_CANARY', b'PRIVATE_ENV_CANARY', b'boot.autostart',
+                          b'"config"', b'"devices"', b'"stdin"', b'"argv"', b'"environment"'):
+            self.assertNotIn(forbidden, raw_metadata)
+
+    def test_failed_and_stderr_uncertain_profile_create_retain_only_bounded_output(self):
+        for kind in ('profile-create', 'profile-stderr'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                self._assert_specialized_diagnostic(kind)
+
+    def test_failed_inventory_transport_retains_bounded_private_output(self):
+        self._assert_specialized_diagnostic('inventory')
+
+    def test_failed_and_stderr_uncertain_snapshot_transport_retain_bounded_output(self):
+        for kind in ('snapshot', 'snapshot-stderr'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                self._assert_specialized_diagnostic(kind)
+
+    def test_unapproved_readonly_capture_keeps_specialized_failure_retention_unarmed(self):
+        name = 'tsw-q449-' + 'a' * 32 + '-base'
+        readers = (
+            lambda: fixture._create_profile_command(['profile', 'create', name, '--project', 'default'],
+                                                    {'config': {'boot.autostart': 'false'}, 'devices': {}}),
+            lambda: fixture._inventory_command(['incus', 'project', 'list', '--format', 'json']),
+            lambda: fixture._snapshot_process(['/usr/bin/ss'], 5, 128, 256, 'UNARMED_READ_FAILURE'),
+        )
+        for reader in readers:
+            with self.subTest(reader=reader), tempfile.TemporaryDirectory() as directory:
+                self.setUp()
+                root = Path(directory)
+                errors = io.StringIO()
+                with (patch.object(fixture, 'ROOT', root),
+                      patch.object(fixture, 'capture_project_inventory', side_effect=lambda *_args: reader()),
+                      patch.object(fixture, '_run_fixture') as qualifier,
+                      patch.object(fixture.subprocess, 'Popen', return_value=_BoundedMemoryProcess(self._STDOUT, 1)),
+                      contextlib.redirect_stderr(errors)):
+                    status = fixture.main(['--capture-project-inventory', '--target-host', '192.168.178.33',
+                                           '--output', str(fixture.PRIVATE_EVIDENCE_REL / 'readonly.json')])
+                self.assertEqual(status, 2)
+                qualifier.assert_not_called()
+                self.assertFalse((root / fixture.PRIVATE_EVIDENCE_REL).exists())
+                self.assertNotIn('SYNTHETIC_PRIVATE_STDOUT', errors.getvalue())
+
+
+class _MetadataEnumerationTransport(_FullGraphFixtureTransport):
+    """Portable four-original/seven-backup DTOs; no captured environment data."""
+
+    def __init__(self, testcase):
+        super().__init__(testcase)
+        self.metadata_reads, self.legacy_reads = [], []
+        self.mutate_metadata = None
+        self.fail_metadata = False
+        self.active_slots_peak = 0
+        self.foreign_rows = {project: [] for project in self.projects}
+        for index, project in enumerate(['default'] * 3 + ['foreign']):
+            row = json.loads(json.dumps(self.foreign))
+            row.update(name='original-' + str(index), project=project,
+                       status='Stopped' if index == 3 else 'Running',
+                       status_code=102 if index == 3 else 103)
+            for field in ('state', 'backups', 'snapshots'):
+                row.pop(field)
+            row['config']['volatile.uuid'] = '00000000-0000-4000-8000-00000000000' + str(index)
+            row['expanded_config'] = dict(row['config'])
+            if project == 'default':
+                row['profiles'], row['expanded_devices'] = ['legacy-base'], {}
+            self.foreign_rows[project].append(row)
+        self.profiles['legacy-base']['used_by'] = [fixture._instance_api_path(row['name'], 'default')
+                                                  for row in self.foreign_rows['default']]
+        self.profiles['legacy-route']['used_by'] = [fixture._instance_api_path('original-3', 'foreign')]
+        self.originals_before = json.dumps(self.foreign_rows, sort_keys=True)
+        self.backups = [{'name': 'backup-' + str(index), 'architecture': 'x86_64',
+                         'config': {f'user.setting.{key}': 'synthetic-value' for key in range(122)},
+                         'expanded_config': {f'user.setting.{key}': 'synthetic-value' for key in range(122)},
+                         'devices': {}, 'expanded_devices': {}, 'profiles': ['legacy-base'],
+                         'created_at': '2026-01-01T00:00:00Z', 'expires_at': '0001-01-01T00:00:00Z',
+                         'stateful': False} for index in range(7)]
+
+    @staticmethod
+    def collection_path(project):
+        from urllib.parse import quote
+        return '/1.0/instances?project=' + quote(project, safe='') + '&recursion=1'
+
+    def rows(self, project, *, full=False):
+        rows = json.loads(json.dumps(self.foreign_rows[project]))
+        if project == 'default' and self.current is not None:
+            rows.append(self._instance())
+        if full:
+            for row in rows:
+                row.update(backups=[], snapshots=[], state={'status': row['status'], 'processes': 1})
+            if project == 'default':
+                rows[0]['snapshots'] = json.loads(json.dumps(self.backups))
+        return rows
+
+    def _observe(self, args):
+        super()._observe(args)
+        if not fixture._INVENTORY_CLEANUP_MODE:
+            self.active_slots_peak = max(self.active_slots_peak, fixture._INVENTORY_ENTITIES_CAPTURED)
+
+    def read(self, args):
+        for project in self.projects:
+            if args == ['query', self.collection_path(project)]:
+                self.metadata_reads.append(project)
+                rows = self.rows(project)
+                if self.mutate_metadata is not None:
+                    rows = self.mutate_metadata(project, rows)
+                return self._json(rows)
+            if args == ['list', '--project', project, '--format', 'json']:
+                self.legacy_reads.append(project)
+                return self._json(self.rows(project, full=True))
+            for row in self.foreign_rows[project]:
+                if args == ['query', fixture._instance_api_path(row['name'], project)]:
+                    return self._json(row)
+        return super().read(args)
+
+    def popen(self, argv, **kwargs):
+        if self.fail_metadata and argv[1:] == ['query', self.collection_path('default')]:
+            self._observe(argv[1:])
+            self.metadata_reads.append('default')
+            return _BoundedMemoryProcess(b'synthetic collection unavailable', 1)
+        return super().popen(argv, **kwargs)
+
+    def _before_effect(self, args):
+        since = self.events[self.effects[-1][1] + 1:] if self.effects else self.events
+        required = [('project', 'list', '--format', 'json')]
+        required += [('query', fixture._project_api_path(project)) for project in self.projects]
+        required += [('query', self.collection_path(project)) for project in self.projects]
+        required += [('profile', 'list', '--project', 'default', '--format', 'json')]
+        for read in required:
+            self.testcase.assertIn(read, since)
+        self.effects.append((tuple(args), len(self.events) - 1))
+        if self.fail_effect == tuple(args):
+            raise OSError('simulated transport loss before effect')
+
+
+class MetadataEnumerationTests(_FixtureBehaviorTestCase):
+    def _run_flow(self, transport):
+        failure, result = None, None
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
+              patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
+            try:
+                baseline = fixture.jit(transport.go, '192.168.178.33')
+                result = _run_approved_fixture(transport.go, baseline)
+            except fixture.FixtureError as error:
+                failure = error.args[0]
+        return result, failure
+
+    def test_only_canonical_project_scoped_recursion_one_query_is_allowed(self):
+        for project in ('default', 'qa%20zone', 'qa%2Bzone', 'caf%C3%A9'):
+            with self.subTest(project=project):
+                self.assertTrue(fixture._is_incus_query_argv(
+                    ['incus', 'query', '/1.0/instances?project=' + project + '&recursion=1']))
+        invalid = ('/1.0/instances', '/1.0/instances/',
+                   '/1.0/instances?project=default', '/1.0/instances?project=&recursion=1',
+                   '/1.0/instances?recursion=1&project=default',
+                   '/1.0/instances?project=default&recursion=0', '/1.0/instances?project=default&recursion=2',
+                   '/1.0/instances?project=default&recursion=01', '/1.0/instances?project=default&recursion=%31',
+                   '/1.0/instances?project=default&recursion=1&recursion=1',
+                   '/1.0/instances?project=default&project=other&recursion=1',
+                   '/1.0/instances?project=default&recursion=1&all-projects=true',
+                   '/1.0/instances?project=default&recursion=1&',
+                   '/1.0/instances?project=%64efault&recursion=1', '/1.0/instances?project=qa+zone&recursion=1',
+                   '/1.0/instances?project=qa%2fzone&recursion=1', '/1.0/instances?project=qa%2Fzone&recursion=1',
+                   '/1.0/instances?project=qa%5Czone&recursion=1', '/1.0/instances?project=%FF&recursion=1',
+                   '/1.0/instances?project=%00&recursion=1', '/1.0/instances?project=..&recursion=1',
+                   '/1.0/containers?project=default&recursion=1', '/1.0/instances?project=default&recursion=1#fragment')
+        for path in invalid:
+            with self.subTest(path=path):
+                self.assertFalse(fixture._is_incus_query_argv(['incus', 'query', path]))
+        path = '/1.0/instances?project=default&recursion=1'
+        for argv in (['incus', 'query', path, '--request', 'DELETE'], ['incus', 'query', '--request=GET', path],
+                     ['incus', 'query', path, '--data', '{}'], ['incus', 'query', path, '--raw']):
+            self.assertFalse(fixture._is_incus_query_argv(argv))
+
+    def test_portable_full_four_original_seven_snapshot_prefix_exceeds_forward_budget_atomically(self):
+        transport = _MetadataEnumerationTransport(self)
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        self.assertEqual((fixture._INVENTORY_MAX_ENTITIES, fixture._INVENTORY_CLEANUP_ENTITY_RESERVE), (10000, 5000))
+        argv = [['incus', 'remote', 'list', '--format', 'json'],
+                ['incus', 'image', 'list', '--project', 'default', '--format', 'json'],
+                ['incus', 'query', '/1.0/images/' + 'b' * 64 + '?project=default'],
+                ['incus', 'query', fixture._profile_api_path('default', 'default')],
+                ['incus', 'project', 'list', '--format', 'json']]
+        argv += [['incus', 'query', fixture._project_api_path(project)] for project in transport.projects]
+        argv += [['incus', 'profile', 'list', '--project', 'default', '--format', 'json']]
+        argv += [['incus', 'list', '--project', project, '--format', 'json'] for project in transport.projects]
+        denied = False
+        with patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen):
+            for command in argv:
+                before, slots = fixture._INVENTORY_ENTITIES_CAPTURED, set(fixture._INVENTORY_ENTITY_SLOTS)
+                try:
+                    fixture._inventory_command(command)
+                except fixture.TargetDrift as error:
+                    self.assertEqual(error.args[0], 'INCUS_INVENTORY_UNREADABLE')
+                    self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, before)
+                    self.assertEqual(fixture._INVENTORY_ENTITY_SLOTS, slots)
+                    denied = True
+                    break
+        self.assertTrue(denied, 'realistic Full DTO overhead must reproduce the unchanged 5000-slot denial')
+        self.assertEqual(sum(len(rows) for rows in transport.foreign_rows.values()), 4)
+        self.assertEqual(len(transport.backups), 7)
+        self.assertEqual(transport.metadata_reads, [])
+
+    def test_metadata_full_mocked_fixture_flow_fits_unchanged_limits_without_full_fallback(self):
+        transport = _MetadataEnumerationTransport(self)
+        result, failure = self._run_flow(transport)
+        self.assertIsNone(failure, 'canonical metadata enumeration must avoid the Full DTO aggregate denial')
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(transport.legacy_reads, [], 'qualification must not fall back to Full CLI list')
+        self.assertEqual(set(transport.metadata_reads), set(transport.projects))
+        self.assertLessEqual(transport.active_slots_peak, 5000)
+        self.assertLessEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 10000)
+        self.assertEqual(fixture._INVENTORY_JSON_MAX_DEPTH, 32)
+        self.assertLessEqual(len(fixture._COMMAND_AUDIT), fixture._INVENTORY_MAX_COMMANDS)
+        self.assertLessEqual(fixture._INVENTORY_BYTES_CAPTURED, fixture._INVENTORY_TOTAL_COMMAND_MAX_BYTES)
+        self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.originals_before)
+        self.assertIsNone(transport.current)
+        self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
+
+    def test_complete_metadata_dto_profile_membership_and_route_drift_block_before_effects(self):
+        def mutate(kind, project, rows):
+            if project != 'default':
+                return rows
+            if kind == 'duplicate':
+                rows.append(dict(rows[0]))
+                return rows
+            if kind == 'missing-config':
+                rows[0].pop('config')
+            if kind == 'missing-expanded':
+                rows[0].pop('expanded_config')
+            if kind == 'unknown':
+                rows[0]['unmodeled_field'] = True
+            if kind == 'wrong-project':
+                rows[0]['project'] = 'foreign'
+            if kind == 'profile':
+                rows[0]['profiles'] = ['unobserved-profile']
+            if kind == 'status':
+                rows[0]['status'] = 1
+            if kind == 'route':
+                rows[0]['devices'] = {'new-route': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
+                    'connect': 'tcp:127.0.0.1:9999', 'bind': 'host'}}
+            return rows
+        for kind in ('duplicate', 'missing-config', 'missing-expanded', 'unknown', 'wrong-project', 'profile', 'status', 'route'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                transport = _MetadataEnumerationTransport(self)
+                transport.mutate_metadata = lambda project, rows: mutate(kind, project, rows)
+                result, failure = self._run_flow(transport)
+                self.assertIsNone(result)
+                self.assertIsNotNone(failure)
+                self.assertIn('default', transport.metadata_reads)
+                self.assertEqual(transport.effects, [])
+
+    def test_whole_metadata_response_is_budgeted_before_field_extraction_or_validation(self):
+        for kind in ('entities', 'depth'):
+            with self.subTest(kind=kind):
+                self.setUp()
+                transport = _MetadataEnumerationTransport(self)
+                def mutate(project, rows):
+                    if project == 'default':
+                        extension = list(range(6000))
+                        if kind == 'depth':
+                            extension = 'leaf'
+                            for _ in range(34):
+                                extension = {'child': extension}
+                        rows[0]['unmodeled_extension'] = extension
+                    return rows
+                transport.mutate_metadata = mutate
+                with patch.object(fixture, '_route_instance', wraps=fixture._route_instance) as validator:
+                    _, failure = self._run_flow(transport)
+                self.assertEqual(failure, 'INCUS_INVENTORY_UNREADABLE')
+                self.assertIn('default', transport.metadata_reads)
+                validator.assert_not_called()
+                self.assertEqual(transport.effects, [])
+                self.assertGreater(fixture._INVENTORY_ENTITIES_CAPTURED, 0)
+                self.assertLessEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 5000)
+
+    def test_metadata_scope_is_exact_and_repeated_observation_never_resets_or_recharges_slots(self):
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        row = {'name': 'node', 'project': 'default', 'status': 'Running', 'profiles': ['p'],
+               'config': {}, 'expanded_config': {}, 'devices': {}, 'expanded_devices': {}}
+        first = ['incus', 'query', _MetadataEnumerationTransport.collection_path('default')]
+        second = ['incus', 'query', _MetadataEnumerationTransport.collection_path('foreign')]
+        self.assertTrue(fixture._is_incus_query_argv(first))
+        fixture._account_inventory_json(first, [row], 'INCUS_INVENTORY_UNREADABLE')
+        count, slots = fixture._INVENTORY_ENTITIES_CAPTURED, set(fixture._INVENTORY_ENTITY_SLOTS)
+        fixture._account_inventory_json(first, [row], 'INCUS_INVENTORY_UNREADABLE')
+        self.assertEqual((fixture._INVENTORY_ENTITIES_CAPTURED, fixture._INVENTORY_ENTITY_SLOTS), (count, slots))
+        fixture._account_inventory_json(second, [dict(row, project='foreign')], 'INCUS_INVENTORY_UNREADABLE')
+        self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 2 * count)
+        self.assertEqual({scope for scope, _ in fixture._INVENTORY_ENTITY_SLOTS}, {tuple(first), tuple(second)})
+
+    def test_metadata_transport_failure_never_retries_with_full_instance_list(self):
+        transport = _MetadataEnumerationTransport(self)
+        transport.fail_metadata = True
+        result, failure = self._run_flow(transport)
+        self.assertIsNone(result)
+        self.assertEqual(failure, 'INCUS_INVENTORY_COMMAND_FAILED')
+        self.assertEqual(transport.legacy_reads, [])
+        self.assertEqual(transport.effects, [])
+
+    def test_portable_metadata_preserves_all_required_instance_fields_and_membership(self):
+        transport = _MetadataEnumerationTransport(self)
+        omitted = {'state', 'backups', 'snapshots'}
+        for project in transport.projects:
+            full, metadata = transport.rows(project, full=True), transport.rows(project)
+            self.assertEqual({row['name'] for row in full}, {row['name'] for row in metadata})
+            for old, current in zip(full, metadata):
+                self.assertEqual({key: value for key, value in old.items() if key not in omitted}, current)
+                self.assertEqual(fixture._route_instance(current, project, transport.profiles), current)
+        self.assertEqual(sum(len(row['snapshots']) for row in transport.rows('default', full=True)), 7)
 
 if __name__ == '__main__':
     unittest.main()

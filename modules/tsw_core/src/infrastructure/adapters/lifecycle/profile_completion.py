@@ -18,10 +18,11 @@ async def prepare_creation_completion(state, consent, lease, *, recovery):
     if not recovery or checkpoint is None or checkpoint.installation_committed:
         raise LifecycleStateError('Original creation completion requires explicit recovery.')
     lease.require_active()
-    runtime = IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner())
+    capabilities = IncusProfileCapabilityRepository(state.root)
+    runtime = IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner(), capabilities=capabilities)
     if await clean_source_revision(runtime.for_preparation(lease), state.root) != checkpoint.intent.profile.controller_revision:
         raise LifecycleStateError('Original creation controller source changed.')
-    service = InstallationProfileService(IncusProfileCapabilityRepository(state.root), runtime, journal,
+    service = InstallationProfileService(capabilities, runtime, journal,
         state.lifecycle.manifests, state.lifecycle.operation_lock)
     async def verify(manifest):
         await verify_completed_stacks(state.root, manifest, ManagedLxcBackend.INCUS,

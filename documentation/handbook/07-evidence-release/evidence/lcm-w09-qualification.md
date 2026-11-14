@@ -1,6 +1,6 @@
 # LCM-W09 qualification matrix — issue #449
 
-Status: **INCOMPLETE**, updated 2026-10-28. Historical bounded native Linux and WSL2 installation,
+Status: **INCOMPLETE**. Historical baseline updated 2026-10-28; accepted bounded C7 native/WSL listener pair recorded 2026-11-14 below. Historical native Linux and WSL2 installation,
 component-update, Portainer recovery and product recovery scenarios have executed
 successfully. The WSL four-stage Swagger and two-service interrupted-batch paths
 and selective `incus+portainer` fresh installation are verified. Remaining
@@ -31,10 +31,257 @@ issue remains incomplete.
 Sources: [#449](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/449),
 parent #440 and [W01 scenarios LCM-S01–S12](../../01-product/contracts/lifecycle.md).
 Management baseline: `6d2f25ee843a01066fcdcfe4855666849513ff06` plus the
-recorded candidate file hashes. This publication records no new live runs.
+recorded candidate file hashes. That historical publication recorded no new live
+runs; the S440O-07 sections below record the historical WSL TA04 fixture and
+the later accepted C7 pair.
 The generic component transition runner has changed since its historical live
 run; see the transition proposal for both source hashes and the applicability
 limits. #449 remains incomplete.
+
+## Current C7 native/WSL listener pair — S440O-07 (2026-11-14)
+
+**The bounded C7 native and WSL listener pair is PASS, independently accepted.**
+Native qualification and independent preservation completed before WSL execution;
+each host had its own actual context, six-role admission and explicit Root GO.
+The paired receipt binds the same frozen C7 source, runner, test, qualification
+workflow and actual Incus client/server 6.0.5. This supersedes the earlier
+native-pending/WSL-only state for this listener prerequisite. Earlier attempts retain their original dispositions. Accepted C6/K6 evidence
+remains historical and is not retargeted to C7.
+
+| Shared executed identity | Value / SHA-256 |
+|---|---|
+| C7 commit | `c976ed379f73b6fc4f29226f1516d8e7c9f781cd` |
+| C7 tree | `6a9b0e678b071915aa2d53c4c9974cf454e6055e` |
+| All 1811 source files and modes | `416f656405519476185e4f6fa3ded5c4dacea7fbc9f57df081235394e0a93abb` |
+| Frozen fixture runner | `b7876225a7d516633e801abae4d3582272aca5ad86245e482572d2fca0cec4bf` |
+| Frozen fixture test | `259311531762ca5dcdb62c8e7e0de4c78915b068eb8aecbc20f47700c27a53b7` |
+| Frozen qualification workflow | `8608ca69d1e7b222f79d62599a81a9f0f510c8c961a8c37ed900bf97ca496833` |
+
+Standalone fixture runtimes used Python 3.14.4. Their accepted source identity
+is separate from the prescribed Python 3.12 source/full-suite gates. Neither
+Python 3.14 product/full-suite qualification nor whole-public-tree equivalence
+is asserted. Reporting checkpoint `78741b3ab70d595b1b3d7036bbe6740cd342279b`
+already differs from C7 in workflow/evidence documents, the capability asset,
+and the component-transition adapter/test; these report edits add documentation
+differences. The pair does not qualify those differing public product bytes.
+
+Native independent evidence verifies four original UUID/semantic-configuration/
+state restorations, profile/pool/all-listener and captured Docker identity
+preservation, all eight prior snapshot full-metadata hashes, and positive cold
+creation/retention of the owned ninth snapshot. All nineteen service full IDs,
+complete Specs, array ordering, modes, desired counts and prior replica floors
+were preserved without overshoot. One pre-existing 0/1 service remained 0/1;
+no universal service-health or Docker node-membership claim follows. The pinned
+independent postchecker executed complete admitted IPv4/IPv6 route and boot
+checks; no separately retained full after-route JSON body is claimed. The older
+route-baseline mismatch remains recorded as an unattributed historical change.
+
+WSL independent Linux postchecks verify zero all-project instances, the exact
+default and two pre-existing profiles, no owned instance/profile/volume, and no
+owned 61080 or 10001 listener. The fixture's protected before/after Windows
+route/rule/certificate hashes were preserved. The Linux postcheck did not
+independently re-query Windows or kernel state. Source/environment/READY
+preservation and settled caller/process/daemon evidence are recorded separately.
+
+| Actual artifact | SHA-256 |
+|---|---|
+| Native fixture result | `71ca934914e57fef67972d537076972094285389548784a6cd432b2fae224a16` |
+| Native fixture GO | `038b484b7b475e7e0ae666fed2b6784990f86677ad5b56bf398b649eb90fbdfe` |
+| Native Root live GO | `a44950d25e4c0fb3e5be30c129cc7bdf2d1edcc5b33ff9ef14b32642103549ba` |
+| Native independent final acceptance | `6113e712db651c8da9155ef770ac8887368b8c98675bee453ee99c6b3647e5b0` |
+| Native execution / independent-after archives | `9800be068b099d3f75da331a351dfa41d17e7804a2277f314429bffda8080cd7` / `dc7fc11a20e4d046dd575186bf5518087a11f1148880456743f733f6033f9f31` |
+| WSL fixture result | `159b149ef52442933bae1e2cdcaae434901351bc56cf3b0175eef808575694de` |
+| WSL fixture GO | `09e7284463f253980b35538db604e08844a8fb1b48efe7ec3478de4a6a598e5f` |
+| WSL Root live GO | `ec872ffb448165e45ba74df0a95ae22908d5edb5fe3dc80f7e28f10ad2b87805` |
+| WSL independent final acceptance | `03fbc95f3858ee2c5f6c463c062f7b020d1cb3354c2779fb16172607174ac821` |
+| WSL complete / independent-post archives | `c17b51aff19c71b23b4c65f5c2c7b886652b679de3a253e813e2d48074ebbf87` / `4d2aafd14cbfe8f44df5630abd3c40a04e2f08f6b12c407285bdf95ad970ac23` |
+| Accepted paired receipt | `0662db998bc718549545b38ec81c84bd1f3c18d1577eb8e9140e9c922332680e` |
+
+Raw Specs, API responses, exact host/run identifiers and closed manifests remain
+private. These hashes identify executed evidence, not a new run or retrospective
+qualification of earlier attempts. Both hosts' **product health remains
+NOT_VERIFIED**. No endpoint, component/product transition or data-recovery PASS
+is added; bounded manager restoration is not a product/data-recovery scenario.
+
+Only the listener prerequisites within P03/P04/P09/P12 are closed by this pair.
+Those complete parent rows, W09/AC5/W10 and the EPIC remain OPEN/PARTIAL. K7
+capability admission/write remains a separate S440O-08 decision and has not been
+granted. This S07 report implementation awaits the designated SSH/WSL
+documentation gate and independent completion review; **S07 DONE is not yet
+claimed**. Full quality is NOT_RUN_DOC_ONLY for these report edits.
+
+## Current WSL listener qualification — S440O-07 / TA04 (2026-11-12)
+
+This is the historical TA04 checkpoint, superseded as the current listener-pair
+state by the accepted C7 pair above. Its earlier results and gate states remain
+dated evidence; the native-pending statements below describe TA04 only.
+
+**Bounded WSL listener subcell: PASS**, independently accepted. Root executed the
+existing C fixture serially on the qualified root-owned source-identical WSL
+runtime clone after the actual complete TSW reset and root-disk preparation.
+The runtime matched all 1811 source files and the C tree with zero mismatches;
+C `77a3356075925edee037bfe009a1f3dfb94cf5d8` remained unchanged. Actual Incus
+client/server were 6.0.5; Python 3.14.4 ran this standalone fixture only. This
+result is not Python 3.12 product/full-suite qualification.
+
+The actual fixture exited 0 with status PASS and 155 command records, all exit
+0. The independent test/evidence reviewer accepted nonce-bound HTTP, attributed
+Incus PID/listener timing and effective devices, receipt-bound exact owned
+cleanup and all eight before/after equality checks. The preservation baseline
+includes the prepared root disk in the default profile, not the earlier empty
+device map. Default profile/config/consumers, route10001, Windows rules/routes
+and foreign/project state were preserved against that admitted baseline.
+
+Root's independent post-run readback found zero instances, the default profile
+with zero consumers, zero volumes in the provider pool and DNS-only TCP
+listeners. No application listener or owned fixture object remained. The raw
+initial ownership receipt is retained in the archive; a final PASS is not used
+as a substitute for that ownership chain.
+
+| Artifact | SHA-256 |
+|---|---|
+| Actual WSL result | `e976a194df2691117aa31323d82c166f6c4d3303f8c5db1e65f40cbd56e2dd22` |
+| Actual final GO | `0c21df1670190d394650040e2ee678f702c1947da0d67ac17c5be271bac5d10b` |
+| Raw evidence archive | `20ad74cf26de2a1c68783d05829edb9da2e7327fe4aa84c788cc8a2d8bc48617` |
+
+Exact host/run/resource identifiers and raw evidence remain private. This
+checkpoint documents the executed result; its isolated S07 evidence worktree
+was created afterward and is not backdated as the live execution environment.
+
+| Qualification cell | State at historical TA04 checkpoint |
+|---|---|
+| Fresh exact-C WSL standalone listener | PASS, independently accepted within the scope above |
+| Fresh native same-runner listener | OPEN; native pause/restore admission pending, no native mutation |
+| Paired capability K and later component/product cases | OPEN; WSL-only success does not admit them |
+
+Global S06/S07 and parent P03/P04/P09/P12 remain OPEN/PARTIAL. Existing public
+CLI paths can operate the actual original WSL environment after legitimate K
+admission; a private harness's distro restriction is not a product-CLI
+restriction. No source change or second orchestrator is required at this stage;
+actual operator cases still need their own complete preservation/recovery proof.
+The required designated SSH/WSL documentation gate is PASS for this new
+snapshot. Full quality is NOT_RUN_DOC_ONLY: no source/test delta. No product,
+recovery, Sonar or EPIC PASS follows from this bounded listener result.
+
+## Current source freeze and host admission — S440O-06 (2026-11-12)
+
+This section retains the earlier S06 reset/preparation checkpoint; the later
+executed WSL listener result is recorded above.
+
+Common integration I05 `5a800f8b2d4cedab2e7dcea9edf2ec04011064a8` remains
+candidate-only. The isolated unpublished source C
+`77a3356075925edee037bfe009a1f3dfb94cf5d8` is frozen after both prescribed
+precommit and clean-commit targeted/full gates, Registry metadata evidence and
+independent source acceptance. Each private run passed 89 targeted tests and
+4120 full-suite tests with 37 declared skips. This is source acceptance, not
+current-host or live qualification; the capability asset remains empty.
+
+TA440-20261112-02 continues the same four-role reviewed YES path after the
+operator explicitly confirmed complete reset of the old TSW test installation.
+The earlier target question is resolved. At 2026-11-12T06:06:40.626653+00:00,
+Root recorded `TSW_INSTALLATION_RESET_COMPLETE`: all four TSW instances and
+associated data were deleted, followed by two installation-owned profiles and
+one installation-owned network/project. Source checkouts, evidence, the WSL
+distribution and the Incus prerequisite/provider were retained.
+
+Independent post-reset checks found zero remaining instances, only the default
+profile with no consumers and no storage volumes in the provider's default pool.
+Required ports 80/443/10001/16080/16081 were free. Remaining TCP listeners were
+DNS helpers/resolvers, with no application listeners. The approved operational
+script SHA-256 is `66960fb46a4d8c836d1cfaad28b5ddb170796ace90e1a3e699f427c727f33c27`;
+the private root-owned journal and detailed resource identities are retained
+separately. This is actual clean-test preparation, not fixture, product or
+restoration qualification.
+
+The old-installation preservation restriction is superseded for that expressly
+disposable workload. It does not protect those deleted TSW resources from the
+confirmed reset or require a fabricated historical restoration receipt. Foreign
+resources, source/evidence, provider and Windows boundaries remain protected.
+The former `LIVE_CONSENT_MISSING` and target-clarification stops are historical;
+Slice06 remains `ADMISSION_IN_PROGRESS / LIVE_PREREQUISITE_MISSING` pending
+exact fixture admission, not another reset-target answer.
+
+Root is preparing a source-identical root-owned runtime clone for direct
+listener qualification while preserving frozen C unchanged. Fresh runtime-source,
+listener/ownership and current fixture-GO checks precede that run. Later product
+cases still require their real supported identity/coordinator and data/recovery
+baselines. No identity spoof or clean-reset result can fill those acceptance cells.
+
+Historical preparation: the earlier separate stopped test-distribution reset at
+2026-11-12T05:35:28.5676553Z completed without process kills and preserved the
+then-existing workload. Its receipt remains valid for that earlier scope; the
+later explicit full-reset grant supersedes preservation of the old TSW workload.
+Earlier read-only Incus client/server 6.0.5 and driver/source observations retain
+their captured scope. Occupied-port observations before the full reset are
+historical; current required-port observations are empty as recorded above.
+
+The required designated SSH/WSL `git diff --check` passed for this new final
+snapshot; file hashes matched the remote checkout. Full quality is
+`NOT_RUN_DOC_ONLY`: no production, test or frozen campaign source changed.
+No paired fixture, K, product/recovery, Sonar or parent PASS is claimed.
+
+## New campaign source contract — S440O-05 (2026-11-12)
+
+This section defines the current I05 candidate under review, based on verified
+prerequisite checkpoint `437ca3a84b6ab6dcf22ce7f966bac2bd10537df2`. It records no
+I05 quality-gate result, frozen C, admitted K, registry availability or new live
+scenario. All executed rows below retain their historical source/host limits.
+The shipped Swagger/Traefik catalog remains `candidate-transition`; the shipped
+capability matrix remains empty. Local fixtures cannot grant live capability.
+
+I05 contains the common guards and tests. A separate private C must contain
+exact I05 plus the independently reviewed finite qualification change for
+`swagger-ui-5-32-7` and `traefik-3-7-5` and its explicit shipped-catalog test
+expectation. Fixed candidate-denial fixtures remain unconditional on both hosts
+for singles and the selected batch; private positive fixtures assert the exact
+bundles and retained siblings. No runtime, environment or JSON policy override
+is introduced. The private delta needs targeted/full verification and D8 review
+before its unpublished artifact commit; the resulting clean exact C needs a
+second targeted/full gate before freeze or preparation. Integration bookkeeping
+and private campaign evidence stay outside the immutable C/K commit chain.
+
+Both actual host fixture receipts and the matrix fixture reference must name C.
+K must be one direct single-parent child of C, changing only the regular
+`incus-profile-capabilities.json` asset from the closed empty C matrix to the
+exact reviewed K bytes. Read-only guards disable replacement objects, inspect
+literal commit parents and the complete tree delta, and reject dirty/untracked
+source, ignored index flags, changed modes, merges, intervening commits and
+same-fixture-byte source substitution. The clean C==K context sentinel grants
+no product/capability admission. An actual admitted WSL preparation must name C,
+even when its K preparation receipt has an otherwise matching envelope/hash.
+Unknown client/server pairs remain denied.
+
+Before C is frozen, capture clean source/package origin, workflow/helper/runner/
+test/policy/input hashes, exact command arguments, and the existing budgets.
+The seven component child manifests/configs and six declared tag roots need
+independent bounded RegistryV2 read-only verification for linux/amd64; this
+section makes no current availability claim. Actual paired admission, fresh
+scenario GO, ownership, usable backup, exercise and restoration remain later
+workflow gates.
+
+### Existing budget capture (seconds, source inspection only)
+
+| Existing supervisor | Base phase budgets | Recipe-specific case budget |
+|---|---|---|
+| Native `preserving_product_acceptance.py` | prepare1200, pause600, approval180, case5400, teardown900, restore600 | implemented upgrade/refusal9000; engine recovery3300 |
+| WSL `wsl_product_acceptance.py` | prepare1200, admit300, case5400, disposal900, final300, recover900 | implemented upgrade/refusal9000; engine recovery3300 |
+
+`product_upgrade_cases.budgets` supplies those recipe overrides. Historical
+product-v1 helper budgets18000/10800 do not make those unavailable helpers
+executable. Native normal GO covers the sum of the selected phases; paused GO
+covers case+teardown+restore; original-recovery GO covers1500. WSL run/engine GO
+covers admit+case+disposal+final; case-recovery GO covers900. Each existing GO
+validator permits at most300 seconds beyond its required coverage. These are
+existing bounds, not extensions granted by this document.
+
+The listener fixture's existing inventory totals are native300 with60 cleanup
+reserve and WSL650 with300 cleanup reserve. Global ceilings remain256 commands,
+16MiB aggregate command output,10000 entities,2MiB per stdout/stderr stream
+(subject to the shared aggregate cap),8MiB per artifact,
+and30 seconds per host command; cleanup reserves110 commands,8MiB and5000
+entities. `_inventory_budgets` and `_inventory_budget_profile` in the frozen
+fixture are the authority for active/cleanup accounting. Qualification Git reads
+retain the existing10-second per-command bound within the owning phase.
 
 ## Executed native boundary
 

@@ -35,11 +35,11 @@ CONSENT = LiveConsent(True, confirmed=True)
 
 def native_installation(*, promote_candidates=False):
     catalog = NativeComponentCatalog(ROOT).load()
-    if promote_candidates:
-        # Exercise qualified execution without promoting the shipped policy.
-        catalog = catalog.model_copy(update={"services": tuple(
+    # These independent fixtures keep candidate denial unconditional even when
+    # a separately reviewed private candidate changes the shipped expectations.
+    catalog = catalog.model_copy(update={"services": tuple(
             service.model_copy(update={"update_targets": tuple(
-                target.model_copy(update={"qualification": "qualified-transition"})
+                target.model_copy(update={"qualification": "qualified-transition" if promote_candidates else "candidate-transition"})
                 if target.target_id in {"traefik-3-7-5", "swagger-ui-5-32-7"} else target
                 for target in service.update_targets
             )}) for service in catalog.services
@@ -62,6 +62,11 @@ def native_installation(*, promote_candidates=False):
 
 
 class NativeTransitionPlanningTests(unittest.TestCase):
+    def test_shipping_policy_expectation_is_explicit_and_separate_from_fixed_candidates(self):
+        catalog = NativeComponentCatalog(ROOT).load()
+        targets = {target.target_id: target.qualification for service in catalog.services
+                   for target in service.update_targets if target.target_id in {'traefik-3-7-5', 'swagger-ui-5-32-7'}}
+        self.assertEqual(targets, {'traefik-3-7-5': 'candidate-transition', 'swagger-ui-5-32-7': 'candidate-transition'})
     def test_unqualified_catalog_candidates_cannot_be_planned(self):
         catalog, manifest = native_installation()
         for host in ("native-linux", "wsl2"):
@@ -122,6 +127,8 @@ class NativeTransitionPlanningTests(unittest.TestCase):
 
     def test_exact_native_bundle_and_only_changed_images_for_both_hosts(self):
         catalog, manifest = native_installation(promote_candidates=True)
+        self.assertEqual({target.target_id for service in catalog.services if service.service_id in {'swagger', 'traefik'} for target in service.update_targets
+                          if target.qualification == 'qualified-transition'}, {'traefik-3-7-5', 'swagger-ui-5-32-7'})
         for host in ("native-linux", "wsl2"):
             plan = plan_component_updates(catalog, manifest.model_copy(update={"host": host}), ("traefik", "swagger"))
             self.assertEqual(plan.status, "preview")
@@ -131,6 +138,15 @@ class NativeTransitionPlanningTests(unittest.TestCase):
             self.assertEqual(sum(len(s.components) for s in plan.services), 5)
             self.assertFalse(any(s.backup_required or s.migrations for s in plan.services))
             self.assertTrue(all(c.target.image_digest for s in plan.services for c in s.components))
+            retained = {change.component_id for service in plan.services for change in service.components if not change.desired_change}
+            self.assertEqual(retained, {'swagger-editor', 'swagger-api', 'swagger-nginx'})
+            policies = {service.service_id: service.update_transitions[0] for service in catalog.services
+                        if service.service_id in {'swagger', 'traefik'}}
+            targets = {service.service_id: next(target for target in service.update_targets
+                       if target.target_id == policies[service.service_id].target_id) for service in catalog.services
+                       if service.service_id in policies}
+            for name in retained:
+                self.assertEqual(targets['swagger'].versions[name], policies['swagger'].source_versions[name])
 
     def test_native_digest_drift_unknown_source_and_retained_sibling_drift_block(self):
         catalog, manifest = native_installation(promote_candidates=True)

@@ -1,0 +1,11 @@
+# S440O-04 distribution
+
+Workflow issue-440-open-acceptance v2.0, sliceS440O-04, Implement SIGINT and API-down qualification contracts. Rollback451876a3b4508121f6b3d0de969e41afb9efd49b. IMPLEMENTATION_IN_PROGRESS; final13-pathS3D ACCEPT, sole open_python writer admitted. Historical prior-workflow evidence remains in Git history.
+
+- Areas: Python core runtime cancellation/lease safety, qualification producers/transport/reporter, WSL return-proof consumer, tests, security/runtime/recovery evidence and root metadata.
+- Mode sequential: one admitted writer open_python owns13declared code/test paths in isolated issue440-open-slice04-runtime, branchdocs/workflow-issue440-open-20261111-slice-04-runtime. Root owns four workflow/coordination paths, private evidence, integration, SSH checks and checkpoint. Real five-owner+workflowarchitect reviews; no fallback.
+- Parallel code rejected: core settlement correction precedes meaningful SIGINT contract; shared producers/reporters/consumer and same fault/lease/source/GO/backup schema make independent concurrent streams unsafe despite different files. No second writer.
+- Scope: original8helper/test paths +3guest-switchconsumer/regressions +portainer_runtime.py/matchingtest; no newfile or helper primitive/policy/CLI/reader/provider change. Source scopes/locks and21governing hashes amended by reviewedS3_DOC after03checkpoint.
+- Closed four newfault IDs preserve oldSIGTERM and03refusals. Existing settled_blocking mustretain lease+journal until worker completes; exact ordinary-intentclassifier excludesfaultintent. API-down requires actual owner/up-down/coldbackup/publicmanagerrestore/preservation/repeat proof, not generic missingreply.
+- Checks afterfreeze: nearest Portainer runtime regression first, then nativecase/nativeSupervisor/WSLSupervisor/reporter/guest-switch suites; fullQUALITYunchanged, all onlyprescribedSSHUbuntuWSL with source/package match. Currentauthorization coversdeterministicfakes/harmlessownedchildren, never liveplatform faults.
+- Consolidation: rootintegratesonlyapproved13-filefreeze, requiredchecks, independentboundedissueaudit/D8, oneSlice04checkpointpush, noPR/merge/cleanup/live/parentcompletion. FinalS3D passed before source writer admission.

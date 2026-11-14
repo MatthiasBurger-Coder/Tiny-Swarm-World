@@ -49,7 +49,7 @@ FILES = (
     'modules/tsw_core/tools/linux/qualification/native_lxd_snap_provenance.py',
     'modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py',
     'modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py',
-    'documentation/handbook/05-development/workflow/issues/issue-449/workflow.md',
+    fixture.ACTIVE_WORKFLOW,
     'modules/tsw_core/tools/linux/qualification/native_resource_admission.py',
     'modules/tsw_native_linux/tests/tools/test_native_resource_admission.py',
     'modules/tsw_native_linux/tests/tools/test_native_runtime_inventory.py',
@@ -938,6 +938,9 @@ def source_pins() -> tuple[str, dict[str, str]]:
         blob = bounded(['/usr/bin/git', '--no-optional-locks', 'show', head + ':' + relative], 10)
         require(blob == path.read_bytes(), 'SOURCE_BLOB_DRIFT')
         pins[relative] = digest(blob)
+    require(bounded(['/usr/bin/git', '--no-optional-locks', 'rev-parse', 'HEAD'], 10).decode('ascii').strip() == head,
+            'SOURCE_HEAD_DRIFT')
+    require(not bounded(['/usr/bin/git', '--no-optional-locks', 'status', '--porcelain', '--untracked-files=all'], 10), 'SOURCE_DIRTY')
     return head, pins
 
 

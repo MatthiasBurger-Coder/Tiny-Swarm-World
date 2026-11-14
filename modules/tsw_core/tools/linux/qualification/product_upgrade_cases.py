@@ -1,16 +1,20 @@
 """Closed, unpublished upgrade qualification recipes using the actual public CLI.
 
 This module never promotes compatibility, creates a catalog, or accepts commands
-from JSON. Host adapters retain the maintenance/identity/lease authority. Official
-legacy product cases are deliberately unavailable until the separate S-U2 slice.
+from JSON. Host adapters retain the maintenance/identity/lease authority. Historical schema1 product cases retain their original supported scope; the
+legacy live helpers remain unavailable. Current negatives prove only their actual
+public refusal and preservation contract.
 """
 from __future__ import annotations
 
 import argparse
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import hashlib
 import importlib
+from importlib.metadata import version
 import json
 import os
 from pathlib import Path
@@ -24,9 +28,33 @@ from uuid import uuid4
 
 SCRIPT = 'modules/tsw_core/tools/linux/qualification/product_upgrade_cases.py'
 CATALOG = 'modules/tsw_core/src/infrastructure/adapters/lifecycle/component_transitions.py'
+CLI_MAIN = 'modules/tsw_core/src/__main__.py'
+CLI_RELEASE = 'pyproject.toml'
+CLI_BOOTSTRAP = (
+    "import importlib.metadata, importlib.util, pathlib, runpy, tomllib\n"
+    "spec = importlib.util.find_spec('tiny_swarm_world')\n"
+    "expected = pathlib.Path('modules/tsw_core/src/__init__.py').resolve(strict=True)\n"
+    "if not spec or not spec.origin or pathlib.Path(spec.origin).resolve(strict=True) != expected:\n"
+    "    raise SystemExit('CASE_CLI_ORIGIN')\n"
+    "main = importlib.util.find_spec('tiny_swarm_world.__main__')\n"
+    "if not main or not main.origin or pathlib.Path(main.origin).resolve(strict=True) != expected.with_name('__main__.py'):\n"
+    "    raise SystemExit('CASE_CLI_ENTRYPOINT')\n"
+    "release = tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version']\n"
+    "if importlib.metadata.version('tiny-swarm-world') != release:\n"
+    "    raise SystemExit('CASE_CLI_PACKAGE_VERSION')\n"
+    "runpy.run_module('tiny_swarm_world', run_name='__main__')"
+)
+VERSION_TEXT = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.+-]{0,99}\Z')
 ROOT = Path(__file__).resolve().parents[5]
 FRESH_NAMES = ('minimal', 'swagger-internal', 'swagger-published', 'swagger-traefik-swarm',
                'swagger-traefik-portainer', 'swagger-add-traefik', 'full-swarm', 'full-portainer')
+PROCESS_INTENT = re.compile(r'child-[0-9a-f]{32}-intent\.json\Z')
+FAULT_INTENT = re.compile(r'(child-[0-9a-f]{32})-cli-fault-intent\.json\Z')
+FAULT_KEYS = {'checkpoint_sha256', 'predicate', 'process_group', 'signal'}
+INTERRUPT_KEYS = {'authority_sha256', 'process', 'operation_id', 'phase', 'backup_digest'}
+CLI_BINDING_KEYS = ('platform', 'run_id', 'case', 'source_commit', 'workflow_sha256', 'entrypoint_sha256',
+                    'release_sha256', 'proposal_sha256', 'before_sha256', 'host_sha256', 'approval',
+                    'activation', 'incus_client', 'incus_server', 'package_version')
 
 
 class UpgradeError(Exception):
@@ -35,6 +63,10 @@ class UpgradeError(Exception):
 
 class FaultObserved(UpgradeError):
     """A real durable checkpoint was observed before signaling our own child."""
+
+    def __init__(self, reason: str, receipt: dict[str, Any] | None = None):
+        super().__init__(reason)
+        self.receipt = receipt
 
 
 def require(value: Any, code: str) -> None:
@@ -57,6 +89,516 @@ def digest(value: Any) -> str:
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+def utc_stamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def cli_args(argv: list[str]) -> list[str] | None:
+    return argv[6:] if argv[1:6] == ['-E', '-s', '-B', '-c', CLI_BOOTSTRAP] else None
+
+
+def cli_is_effect(args: list[str]) -> bool:
+    return '--live' in args and '--approve-live' in args
+
+
+def approval_receipt(raw: bytes, value: dict[str, Any], accepted_at: str) -> dict[str, str]:
+    return {'phase': value['phase'], 'sha256': hashlib.sha256(raw).hexdigest(), 'accepted_at': accepted_at}
+
+
+def cli_incus_versions(raw: bytes) -> tuple[str, str]:
+    value = raw.decode('ascii')
+    client = re.findall(r'^Client version: ([0-9.]+)$', value, re.M)
+    server = re.findall(r'^Server version: ([0-9.]+)$', value, re.M)
+    require(len(client) == len(server) == 1, 'CASE_CLI_INCUS_VERSION_INVALID')
+    return client[0], server[0]
+
+
+def cli_binding(port: Any, platform: str, workflow: str) -> dict[str, Any]:
+    proposal = port.proposal
+    pins = proposal['pins'] if proposal is not None else port.cli_pins
+    host = None if proposal is None else proposal['host_id_sha256'] if platform == 'native' else digest(proposal['identity'])
+    client, server = port.cli_versions
+    package_version = version('tiny-swarm-world')
+    require(VERSION_TEXT.fullmatch(package_version), 'CASE_CLI_PACKAGE_VERSION')
+    return {'platform': platform, 'run_id': port.intent.run_id, 'case': port.intent.case,
+            'source_commit': port.intent.source_commit, 'workflow_sha256': pins[workflow],
+            'entrypoint_sha256': pins[CLI_MAIN], 'release_sha256': pins[CLI_RELEASE],
+            'proposal_sha256': digest(proposal) if proposal is not None else None,
+            'before_sha256': digest(proposal['baseline']) if proposal is not None else None,
+            'host_sha256': host, 'approval': port.cli_approval, 'activation': port.cli_activation,
+            'incus_client': client, 'incus_server': server, 'package_version': package_version}
+
+
+def selection_evidence(manifest: Any, manifest_sha: str) -> dict[str, Any]:
+    return {'requested': sorted(manifest.requested_services), 'resolved': sorted(manifest.resolved_services),
+            'product_release': manifest.product.release, 'product_revision': manifest.product.revision,
+            'manifest_sha256': manifest_sha}
+
+
+def save_cli_case_result(port: Any, result: dict[str, Any]) -> None:
+    require(port.cli_approval is not None and port.cli_final is not None and port.cli_selection is not None,
+            'CASE_CLI_FINAL_UNAVAILABLE')
+    go_sha = port.cli_approval['sha256']
+    port.journal.save('cli-after-' + go_sha + '.json', port.cli_final)
+    port.journal.save('cli-result-' + go_sha + '.json', {
+        'schema_version': 1, 'case': port.intent.case, 'run_id': port.intent.run_id,
+        'source_commit': port.intent.source_commit, 'approval_sha256': go_sha,
+        'before_sha256': digest(port.proposal['baseline']), 'after_sha256': digest(port.cli_final),
+        'result_sha256': digest(result), 'selection': port.cli_selection, 'finished_at': utc_stamp(),
+        'finished_monotonic_ns': time.monotonic_ns(),
+    })
+
+
+@dataclass(frozen=True)
+class RefusalSpec:
+    """Closed public commands; never an operator-provided expected-error policy."""
+    args: tuple[str, ...]
+    exit_code: int
+    cause: str
+    stdin_mode: str = 'EOF'
+
+
+_PRODUCT = ('product', 'upgrade', '--to', '0.5.0')
+REFUSALS = {
+    'refuse-product-target': RefusalSpec(('product', 'upgrade', '--to', '0.4.0', '--preview', '--json'), 2, 'TARGET_SYNTAX'),
+    'refuse-product-syntax': RefusalSpec((*_PRODUCT, '--preview', '--live', '--json'), 2, 'TARGET_SYNTAX'),
+    'refuse-product-source': RefusalSpec((*_PRODUCT, '--preview', '--json'), 1, 'SOURCE'),
+    'refuse-product-checkpoint': RefusalSpec((*_PRODUCT, '--recover', '--preview', '--json'), 1, 'CHECKPOINT_ABSENT'),
+    'refuse-product-consent-eof': RefusalSpec((*_PRODUCT, '--live', '--json'), 2, 'CONSENT'),
+    'refuse-product-consent-n': RefusalSpec((*_PRODUCT, '--live', '--json'), 2, 'CONSENT', 'DECLINE_N'),
+    'refuse-product-recovery-consent-eof': RefusalSpec((*_PRODUCT, '--recover', '--live', '--json'), 2, 'CONSENT'),
+    'refuse-product-recovery-consent-n': RefusalSpec((*_PRODUCT, '--recover', '--live', '--json'), 2, 'CONSENT', 'DECLINE_N'),
+}
+SOURCE_REFUSALS = {
+    'Dirty checkout or unrelated untracked files; preserve operator work and commit or move it before upgrading.': 'SOURCE_DIRTY',
+    'Product anchor must be the actual prepared checkout root.': 'SOURCE_ROOT',
+    'Source checkout must identify the official product repository without embedded credentials.': 'SOURCE_ORIGIN',
+    'Installation inventory differs from actual source revision/lock/release; inspect explicit adoption.': 'SOURCE_INVENTORY',
+}
+PROTECTED_PATHS = ('installation/manifest.json', 'installation/product-upgrade.json', 'product',
+                   'product/active', 'product/.active-next', 'product/tiny-swarm-world',
+                   'product/activations', 'product/staging', 'product/inputs', 'product/releases', 'product/infra')
+
+
+def unavailable_product(case: str) -> dict[str, Any]:
+    require(case in RECIPES and RECIPES[case].kind == 'product', 'UPGRADE_CASE_UNKNOWN')
+    return {'status': 'QUALIFICATION_HELPER_UNAVAILABLE', 'case': case, 'requires': 'S-U2',
+            'command_executed': False, 'product_result': None, 'epic_complete': False,
+            'historical_scope': 'OFFICIAL_SCHEMA1_0.4.0_TO_0.5.0_UNCHANGED'}
+
+
+def validate_unexecuted(value: Any, case: str, run: str, source: str) -> None:
+    old = {'status', 'case', 'run_id', 'source_commit', 'epic_complete'}
+    new = old | {'command_executed', 'product_result'}
+    require(type(value) is dict and set(value) in (old, new) and value['case'] == case
+            and value['run_id'] == run and value['source_commit'] == source and value['epic_complete'] is False,
+            'UPGRADE_UNEXECUTED_UNPROVEN')
+    if set(value) == new:
+        require(value['command_executed'] is False and value['product_result'] is None, 'UPGRADE_UNEXECUTED_UNPROVEN')
+    if value['status'] == 'QUALIFICATION_HELPER_UNAVAILABLE':
+        require(case in {'upgrade-product-v1', 'recover-product-v1'} and set(value) == new, 'UPGRADE_UNEXECUTED_UNPROVEN')
+    elif value['status'] == 'CASE_NOT_IMPLEMENTED':
+        require(case in ALL_NAMES, 'UPGRADE_UNEXECUTED_UNPROVEN')
+    else:
+        require(value['status'] == 'CASE_NOT_EXECUTED' and case in ALL_NAMES, 'UPGRADE_UNEXECUTED_UNPROVEN')
+
+
+def refusal_spec(case: str, args: list[str]) -> RefusalSpec:
+    require(case in REFUSALS and tuple(args) == REFUSALS[case].args and '--approve-live' not in args,
+            'REFUSAL_COMMAND_NOT_ADMITTED')
+    return REFUSALS[case]
+
+
+def parser_refusal(args: list[str]) -> bytes:
+    """Exact current public parser output, with the actual -c CLI program name."""
+    from contextlib import redirect_stderr
+    import io
+    import sys
+    from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
+    stream = io.StringIO()
+    previous = sys.argv
+    try:
+        sys.argv = ['-c']
+        with redirect_stderr(stream):
+            try:
+                parse_args(args)
+            except SystemExit as exc:
+                require(exc.code == 2, 'REFUSAL_PARSER_CONTRACT')
+            else:
+                raise UpgradeError('REFUSAL_PARSER_CONTRACT')
+    finally:
+        sys.argv = previous
+    raw = stream.getvalue().encode()
+    require(raw.startswith(b'usage: -c ') and raw.endswith(
+        b'-c: error: product upgrade requires --to 0.5.0 and exactly one of --preview or --live\n'),
+        'REFUSAL_PARSER_CONTRACT')
+    return raw
+
+
+def validate_refusal(case: str, args: list[str], code: int, output: bytes, error: bytes) -> dict[str, Any]:
+    spec = refusal_spec(case, args)
+    require(type(code) is int and code == spec.exit_code and len(output) + len(error) <= 65536,
+            'REFUSAL_RESULT_UNPROVEN')
+    if spec.cause == 'TARGET_SYNTAX':
+        require(output == b'' and error == parser_refusal(args), 'REFUSAL_PARSER_OUTPUT')
+        return {'status': 'parser_refused', 'cause': spec.cause}
+    require(not error, 'REFUSAL_UNEXPECTED_STDERR')
+    body = output
+    if spec.cause == 'CONSENT':
+        from tiny_swarm_world.domain.preflight import LIVE_CONSENT_PROMPT
+        prefix = (LIVE_CONSENT_PROMPT + ' ').encode()
+        require(body.startswith(prefix), 'REFUSAL_PROMPT_UNPROVEN')
+        body = body[len(prefix):]
+    try:
+        value = json.loads(body)
+        require(type(value) is dict and body == json.dumps(value, sort_keys=True).encode() + b'\n',
+                'REFUSAL_OUTPUT_FRAMING')
+    except (ValueError, UnicodeError):
+        raise UpgradeError('REFUSAL_OUTPUT_FRAMING') from None
+    if spec.cause == 'CONSENT':
+        require(value == {'status': 'refused', 'diagnostics': ['missing live confirmation']}, 'REFUSAL_CONSENT_UNPROVEN')
+        cause = 'CONSENT_DECLINED_N' if spec.stdin_mode == 'DECLINE_N' else 'CONSENT_EOF'
+    else:
+        require(set(value) == {'status', 'diagnostics', 'recovery'} and value['status'] == 'blocked'
+                and value['recovery'] == 'preserve source/checkpoint; use product upgrade --to 0.5.0 --recover --preview from management checkout'
+                and type(value['diagnostics']) is list and len(value['diagnostics']) == 1,
+                'REFUSAL_CAUSE_UNPROVEN')
+        diagnostic = value['diagnostics'][0]
+        if spec.cause == 'CHECKPOINT_ABSENT':
+            require(diagnostic == 'No matching product checkpoint; inspect the original target.', 'REFUSAL_CHECKPOINT_UNPROVEN')
+            cause = 'CHECKPOINT_ABSENT'
+        else:
+            require(type(diagnostic) is str and diagnostic in SOURCE_REFUSALS, 'REFUSAL_SOURCE_UNPROVEN')
+            cause = SOURCE_REFUSALS[diagnostic]
+    return {'status': value['status'], 'cause': cause}
+
+
+def require_refusal_binding(receipt: Any, case: str) -> None:
+    binding = receipt.binding
+    require(binding['case'] == case and binding['proposal_sha256'] is not None
+            and type(binding['approval']) is dict, 'REFUSAL_GO_REQUIRED')
+    if binding['platform'] == 'native':
+        require(binding['approval']['phase'] == 'native-product-maintenance'
+                and type(binding['activation']) is dict and binding['activation']['phase'] == 'paused-product-case',
+                'REFUSAL_GO_REQUIRED')
+    else:
+        require(binding['platform'] == 'wsl' and binding['approval']['phase'] == 'wsl-case-run'
+                and binding['activation'] is None, 'REFUSAL_GO_REQUIRED')
+
+
+def expected_refusal_environment(case: str, root: Path, infra: Path, operator: Path) -> dict[str, str]:
+    require(case in REFUSALS and root.is_absolute() and infra.is_absolute() and operator == infra / 'operator.env',
+            'REFUSAL_ENVIRONMENT_UNPROVEN')
+    official = case == 'refuse-product-source'
+    return {'infra_mode': 'OFFICIAL_INFRA_READ_ONLY' if official else 'CAMPAIGN_INFRA',
+            'repository_root': str(root), 'campaign_infra_root': str(infra), 'operator_file': str(operator),
+            'infra_root': str(root / 'modules/tsw_core/infra') if official else str(infra)}
+
+
+def select_refusal_environment(case: str, args: list[str], env: dict[str, str], root: Path,
+                               infra: Path, operator: Path) -> dict[str, str]:
+    refusal_spec(case, args)
+    require(env.get('TSW_REPOSITORY_ROOT') == str(root) and env.get('TSW_INFRA_ROOT') == str(infra)
+            and env.get('TSW_INSTALL_ENV_FILE') == str(operator), 'REFUSAL_ENVIRONMENT_SUBSTITUTED')
+    expected = expected_refusal_environment(case, root, infra, operator)
+    # This dictionary belongs to one validated public child. The parent,
+    # operator source, baseline and observer environments remain unchanged.
+    env['TSW_INFRA_ROOT'] = expected['infra_root']
+    return expected
+
+
+def capture_refusal_inputs(root: Path, infra: Path, operator: Path, pinned_infra: str,
+                           pinned_operator: str) -> dict[str, Any]:
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import read_tree
+    require(operator == infra / 'operator.env', 'REFUSAL_OPERATOR_REFERENCE')
+    def capture(path: Path, *, private: bool) -> dict[str, Any]:
+        tree = read_tree(path, private=private)
+        return {'path': str(path), 'metadata': tree.metadata(),
+                'files': {name: hashlib.sha256(raw).hexdigest() for name, raw in sorted(tree.files.items())}}
+    official = capture(root / 'modules/tsw_core/infra', private=False)
+    campaign = capture(infra, private=True)
+    files = campaign['files']
+    require(digest(list(files.items())) == pinned_infra and files.get('operator.env') == pinned_operator,
+            'REFUSAL_PRIVATE_INPUT_DRIFT')
+    operator_identity = campaign['metadata']['members'].get('operator.env')
+    require(type(operator_identity) is list and len(operator_identity) == 8
+            and stat.S_IMODE(operator_identity[3]) == 0o600, 'REFUSAL_OPERATOR_UNSAFE')
+    return {'schema_version': 1, 'official': official, 'campaign': campaign,
+            'operator': {'path': str(operator), 'identity': operator_identity, 'sha256': pinned_operator}}
+
+
+def validate_refusal_inputs(value: Any, root: Path, infra: Path, operator: Path,
+                            pinned_infra: str, pinned_operator: str | None = None) -> None:
+    require(type(value) is dict and set(value) == {'schema_version', 'official', 'campaign', 'operator'}
+            and type(value['schema_version']) is int and value['schema_version'] == 1, 'REFUSAL_INPUT_RECEIPT')
+    for name, path in (('official', root / 'modules/tsw_core/infra'), ('campaign', infra)):
+        row = value[name]
+        require(type(row) is dict and set(row) == {'path', 'metadata', 'files'} and row['path'] == str(path)
+                and type(row['metadata']) is dict and set(row['metadata']) == {'root', 'members'}
+                and type(row['files']) is dict and type(row['metadata']['members']) is dict
+                and 0 < len(row['metadata']['members']) <= 4096, 'REFUSAL_INPUT_RECEIPT')
+        entries = row['metadata']['members']
+        for member, identity in [('', row['metadata']['root']), *entries.items()]:
+            require(type(member) is str and not Path(member).is_absolute() and '..' not in Path(member).parts
+                    and len(Path(member).parts) <= 16 and type(identity) is list and len(identity) == 8
+                    and all(type(item) is int and item >= 0 for item in identity) and identity[1] > 0
+                    and identity[2] == 0 and not identity[3] & 0o022
+                    and (stat.S_ISREG(identity[3]) or stat.S_ISDIR(identity[3])), 'REFUSAL_INPUT_RECEIPT')
+        require(stat.S_ISDIR(row['metadata']['root'][3]), 'REFUSAL_INPUT_RECEIPT')
+        require(all(identity[7] == 1 and identity[4] <= 16 * 1024 * 1024 for identity in entries.values() if stat.S_ISREG(identity[3]))
+                and sum(identity[4] for identity in entries.values() if stat.S_ISREG(identity[3])) <= 64 * 1024 * 1024, 'REFUSAL_INPUT_RECEIPT')
+        files = {member for member, identity in entries.items() if stat.S_ISREG(identity[3])}
+        require(set(row['files']) == files and all(type(sha) is str and re.fullmatch('[0-9a-f]{64}', sha)
+                for sha in row['files'].values()), 'REFUSAL_INPUT_RECEIPT')
+    campaign = value['campaign']
+    require(digest(sorted(campaign['files'].items())) == pinned_infra, 'REFUSAL_PRIVATE_INPUT_DRIFT')
+    row = value['operator']
+    require(type(row) is dict and set(row) == {'path', 'identity', 'sha256'} and row['path'] == str(operator)
+            and operator == infra / 'operator.env' and row['identity'] == campaign['metadata']['members'].get('operator.env')
+            and row['sha256'] == campaign['files'].get('operator.env') and (pinned_operator is None or row['sha256'] == pinned_operator)
+            and type(row['identity']) is list and stat.S_IMODE(row['identity'][3]) == 0o600,
+            'REFUSAL_OPERATOR_UNSAFE')
+
+
+def fixed_stdin(case: str, args: list[str], child: Any, receipt: Any) -> None:
+    """Deliver only the reviewed literal decline, after releasing our own child."""
+    spec = refusal_spec(case, args)
+    require(receipt is not None and receipt.released and receipt.process is not None
+            and child.pid == receipt.process['pid'] and receipt.args == args
+            and receipt.binding['case'] == case and type(receipt.environment) is dict
+            and type(receipt.inputs_sha256) is str and re.fullmatch('[0-9a-f]{64}', receipt.inputs_sha256), 'REFUSAL_INPUT_NOT_RELEASED')
+    delivered = 0
+    if spec.stdin_mode == 'DECLINE_N':
+        require(child.stdin is not None, 'REFUSAL_INPUT_PIPE_MISSING')
+        delivered = child.stdin.write(b'n\n')
+        require(delivered == 2, 'REFUSAL_INPUT_INCOMPLETE')
+        delivered_at = time.monotonic_ns()
+        child.stdin.flush()
+        child.stdin.close()
+    else:
+        require(spec.stdin_mode == 'EOF' and child.stdin is None, 'REFUSAL_INPUT_MODE')
+        delivered_at = time.monotonic_ns()
+    closed_at = time.monotonic_ns()
+    receipt.journal.save(receipt.key + '-cli-stdin.json', {
+        'schema_version': 1, 'case': case, 'binding_sha256': digest(receipt.binding),
+        'args_sha256': digest(args), 'child': receipt.process, 'mode': spec.stdin_mode,
+        'delivered_bytes': delivered, 'writer_closed': True, 'released': True,
+        'delivered_monotonic_ns': delivered_at, 'closed_monotonic_ns': closed_at,
+        'environment': receipt.environment, 'inputs_sha256': receipt.inputs_sha256,
+    })
+
+
+def save_refusal(receipt: Any, case: str, code: int, output: bytes, error: bytes) -> None:
+    import base64
+    require(receipt is not None and receipt.released and receipt.process is not None, 'REFUSAL_CHILD_MISSING')
+    result = validate_refusal(case, receipt.args, code, output, error)
+    receipt.journal.save(receipt.key + '-cli-refusal.json', {
+        'schema_version': 1, 'case': case, 'binding_sha256': digest(receipt.binding),
+        'args_sha256': digest(receipt.args), 'child': receipt.process, 'return_code': code,
+        'stdout_base64': base64.b64encode(output).decode(), 'stderr_base64': base64.b64encode(error).decode(),
+        'stdout_sha256': hashlib.sha256(output).hexdigest(), 'stderr_sha256': hashlib.sha256(error).hexdigest(),
+        'product_result': result, 'command_executed': True, 'positive_upgrade': False,
+    })
+
+
+def protected_state(root: Path) -> dict[str, Any]:
+    """Private, bounded, no-follow byte comparison; never exported as public input hashes."""
+    root = root / '.tiny-swarm-world'
+    rows: dict[str, Any] = {}
+    total = 0
+    def identity(info: os.stat_result) -> tuple[int, ...]:
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
+                info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+    def visit(path: Path, *, recursive: bool) -> None:
+        nonlocal total
+        name = path.relative_to(root).as_posix()
+        require(len(rows) < 1024, 'REFUSAL_STATE_ENTRY_BOUND')
+        # Prove every existing ancestor rather than treating an escaping or
+        # unreadable parent as an absent leaf.
+        for parent in reversed((path.parent, *path.parent.parents)):
+            if parent == root or root in parent.parents:
+                try:
+                    parent_info = parent.lstat()
+                except FileNotFoundError:
+                    continue
+                require(stat.S_ISDIR(parent_info.st_mode) and parent_info.st_uid == 0
+                        and not parent_info.st_mode & 0o022, 'REFUSAL_STATE_PARENT')
+        try:
+            before = path.lstat()
+        except FileNotFoundError:
+            rows[name] = {'kind': 'absent'}
+            return
+        require(before.st_uid == 0 and (stat.S_ISLNK(before.st_mode) or not before.st_mode & 0o022), 'REFUSAL_STATE_TYPE')
+        if name in {'installation/manifest.json', 'installation/product-upgrade.json'}:
+            require(not before.st_mode & 0o077, 'REFUSAL_STATE_PRIVATE')
+        if stat.S_ISLNK(before.st_mode):
+            target = Path(os.readlink(path))
+            allowed = name in {'product/active', 'product/.active-next'} or (name.startswith('product/activations/') and path.name in {'code', 'infra'})
+            require(allowed and target.is_absolute() and '..' not in target.parts and target.is_relative_to(root / 'product'), 'REFUSAL_STATE_LINK')
+            rows[name] = {'kind': 'symlink', 'identity': list(identity(before)), 'target_sha256': hashlib.sha256(os.fsencode(target)).hexdigest()}
+        elif stat.S_ISDIR(before.st_mode):
+            rows[name] = {'kind': 'directory', 'identity': list(identity(before))}
+            if recursive:
+                children = []
+                with os.scandir(path) as entries:
+                    for child in entries:
+                        require(len(children) < 1024 - len(rows), 'REFUSAL_STATE_ENTRY_BOUND')
+                        children.append(child)
+                children.sort(key=lambda item: item.name)
+                for child in children:
+                    visit(path / child.name, recursive=True)
+        else:
+            require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size <= 1024 * 1024,
+                    'REFUSAL_STATE_TYPE')
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            try:
+                require(identity(os.fstat(fd)) == identity(before), 'REFUSAL_STATE_CAS')
+                raw = os.read(fd, before.st_size + 1)
+                total += len(raw)
+                require(total <= 8 * 1024 * 1024 and len(raw) == before.st_size
+                        and identity(os.fstat(fd)) == identity(before), 'REFUSAL_STATE_CAS')
+            finally:
+                os.close(fd)
+            rows[name] = {'kind': 'regular', 'identity': list(identity(before)), 'sha256': hashlib.sha256(raw).hexdigest()}
+        require(identity(path.lstat()) == identity(before), 'REFUSAL_STATE_CAS')
+    try:
+        for name in PROTECTED_PATHS:
+            visit(root / name, recursive=name in {'product/activations', 'product/staging', 'product/inputs', 'product/releases', 'product/infra'})
+    except OSError:
+        raise UpgradeError('REFUSAL_STATE_UNREADABLE') from None
+    value = {'schema_version': 1, 'paths': rows}
+    validate_protected(value)
+    return value
+
+
+def validate_protected(value: Any) -> None:
+    require(type(value) is dict and set(value) == {'schema_version', 'paths'} and type(value['schema_version']) is int
+            and value['schema_version'] == 1 and type(value['paths']) is dict
+            and set(PROTECTED_PATHS) <= set(value['paths']) and len(value['paths']) <= 1024, 'REFUSAL_STATE_RECEIPT')
+    recursive = ('product/activations/', 'product/staging/', 'product/inputs/', 'product/releases/', 'product/infra/')
+    for name, row in value['paths'].items():
+        require(type(name) is str and len(name) <= 2048 and not Path(name).is_absolute() and '..' not in Path(name).parts
+                and (name in PROTECTED_PATHS or name.startswith(recursive)) and type(row) is dict, 'REFUSAL_STATE_RECEIPT')
+        kind = row.get('kind')
+        if kind == 'absent':
+            require(name in PROTECTED_PATHS and row == {'kind': 'absent'}, 'REFUSAL_STATE_RECEIPT')
+            continue
+        keys = {'kind', 'identity'} | ({'sha256'} if kind == 'regular' else {'target_sha256'} if kind == 'symlink' else set())
+        require(kind in {'regular', 'directory', 'symlink'} and set(row) == keys, 'REFUSAL_STATE_RECEIPT')
+        info = row['identity']
+        require(type(info) is list and len(info) == 8 and all(type(item) is int and item >= 0 for item in info)
+                and info[1] > 0 and info[3] == 0 and info[4] > 0, 'REFUSAL_STATE_RECEIPT')
+        if kind == 'symlink':
+            require(stat.S_ISLNK(info[2]) and (name in {'product/active', 'product/.active-next'}
+                or name.startswith('product/activations/') and Path(name).name in {'code', 'infra'}), 'REFUSAL_STATE_RECEIPT')
+        else:
+            require(not info[2] & 0o022 and (stat.S_ISREG(info[2]) if kind == 'regular' else stat.S_ISDIR(info[2])),
+                    'REFUSAL_STATE_RECEIPT')
+        if kind == 'regular':
+            require(info[4] == 1 and info[5] <= 1024 * 1024, 'REFUSAL_STATE_RECEIPT')
+        for key in keys - {'kind', 'identity'}:
+            require(type(row[key]) is str and re.fullmatch('[0-9a-f]{64}', row[key]), 'REFUSAL_STATE_RECEIPT')
+
+
+def run_refusal(port: Any, value: Any) -> None:
+    require(not getattr(port, 'engine_recovery', False), 'REFUSAL_NOT_ENGINE_RECOVERY')
+    port.upgrade_validate_inputs()
+    # Current schema2 baseline only; historical schema1 acceptance is untouched.
+    port.public(value.args(), timeout=5250)
+    before = observe(port, 'source')
+    protected = protected_state(ROOT)
+    inputs = port.refusal_inputs()
+    if REFUSALS[port.intent.case].cause == 'CHECKPOINT_ABSENT':
+        require(protected['paths']['installation/product-upgrade.json'] == {'kind': 'absent'}, 'REFUSAL_CHECKPOINT_PRESENT')
+    binding = {'schema_version': 1, 'case': port.intent.case, 'run_id': port.intent.run_id,
+               'source_commit': port.intent.source_commit, 'root': str(ROOT)}
+    port.journal.save('product-refusal-before.json', binding | {'protected': protected,
+        'runtime': before, 'inputs': inputs, 'captured_monotonic_ns': time.monotonic_ns()})
+    port.public_refusal(list(REFUSALS[port.intent.case].args), timeout=120)
+    require(port.worker_settled, 'REFUSAL_CHILD_UNSETTLED')
+    after = observe(port, 'noop')
+    preserve(before, after, no_op=True)
+    current = protected_state(ROOT)
+    require(current == protected, 'REFUSAL_PROTECTED_STATE_CHANGED')
+    current_inputs = port.refusal_inputs()
+    require(current_inputs == inputs, 'REFUSAL_INPUTS_CHANGED')
+    port.journal.save('product-refusal-after.json', binding | {'protected': current,
+        'runtime': after, 'inputs': current_inputs, 'captured_monotonic_ns': time.monotonic_ns()})
+    event(port, 'product-refusal-verified', {'status': 'REFUSAL_PRESERVED', 'case': port.intent.case,
+        'command_executed': True, 'positive_upgrade': False, 'historical_scope': 'UNCHANGED',
+        'recovery_performed': False, 'epic_complete': False})
+
+
+@dataclass
+class CliReceipt:
+    journal: Any
+    key: str
+    binding: dict[str, Any]
+    argv: list[str]
+    args: list[str]
+    released: bool = False
+    fault: dict[str, Any] | None = None
+    process: dict[str, int] | None = None
+    environment: dict[str, str] | None = None
+    inputs_sha256: str | None = None
+
+    def require_approval(self) -> None:
+        if not cli_is_effect(self.args):
+            return
+        approval = self.binding['approval']
+        activation = self.binding['activation']
+        require(self.binding['proposal_sha256'] is not None and approval is not None, 'CASE_CLI_GO_REQUIRED')
+        if self.binding['platform'] == 'native':
+            require((approval['phase'] == 'native-product-maintenance' and activation is not None
+                     and activation['phase'] == 'paused-product-case')
+                    or (approval['phase'] == 'native-product-engine-recovery' and activation is None),
+                    'CASE_CLI_GO_REQUIRED')
+        else:
+            require(approval['phase'] in {'wsl-case-run', 'wsl-engine-recovery'} and activation is None,
+                    'CASE_CLI_GO_REQUIRED')
+
+    def start(self, process: dict[str, int], parent_start: int) -> None:
+        executable = Path(self.argv[0]).resolve(strict=True)
+        with executable.open('rb') as stream:
+            info = os.fstat(stream.fileno())
+            require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o022
+                    and 0 < info.st_size <= 64 * 1024 * 1024, 'CASE_CLI_EXECUTABLE_BOUND')
+            raw = stream.read(info.st_size + 1)
+            after = os.fstat(stream.fileno())
+            require(len(raw) == info.st_size and (info.st_dev, info.st_ino, info.st_mtime_ns, info.st_ctime_ns)
+                    == (after.st_dev, after.st_ino, after.st_mtime_ns, after.st_ctime_ns), 'CASE_CLI_EXECUTABLE_DRIFT')
+            executable_sha = hashlib.sha256(raw).hexdigest()
+        self.journal.save(self.key + '-cli-start.json', self.binding | {
+            'schema_version': 1, 'argv_sha256': digest(self.argv), 'args': self.args,
+            'effect': cli_is_effect(self.args), 'executable': self.argv[0], 'executable_sha256': executable_sha,
+            'parent': {'pid': os.getpid(), 'start_time': parent_start}, 'child': process,
+            'started_at': utc_stamp(), 'started_monotonic_ns': time.monotonic_ns(),
+        })
+        self.process = process
+
+    def release(self) -> None:
+        self.released = True
+        self.journal.save(self.key + '-cli-released.json', {
+            'released_at': utc_stamp(), 'released_monotonic_ns': time.monotonic_ns(),
+        })
+
+    def prepare_fault(self, intent: dict[str, Any]) -> None:
+        self.journal.save(self.key + '-cli-fault-intent.json', intent | {'process': self.process})
+
+    def settle(self, pid: int, return_code: int, output_complete: bool, output_sha: str, error_sha: str) -> None:
+        self.journal.save(self.key + '-cli-settled.json', {
+            'pid': pid, 'return_code': return_code, 'released': self.released, 'group_absent': True,
+            'output_complete': output_complete, 'stdout_sha256': output_sha, 'stderr_sha256': error_sha,
+            'fault': self.fault, 'settled_at': utc_stamp(), 'settled_monotonic_ns': time.monotonic_ns(),
+        })
+
+
+def cli_fault_candidate(port: Any, receipt: CliReceipt | None) -> bool:
+    if receipt is None or not port.upgrade_fault_armed:
+        return False
+    selected = RECIPES.get(port.intent.case)
+    return selected is not None and selected.kind != 'product' and selected.fault and receipt.args == selected.update()
+
 @dataclass(frozen=True)
 class UpgradeRecipe:
     services: tuple[str, ...]
@@ -66,15 +608,21 @@ class UpgradeRecipe:
     kind: str = 'component'
     fault: bool = False
     add_traefik: bool = False
+    interrupt: bool = False
+    api_down: bool = False
 
     def args(self, *, preview: bool = False, add: bool = False) -> list[str]:
         require(not add and self.kind != 'product', 'UPGRADE_PRODUCT_NOT_IMPLEMENTED')
+        if self.kind == 'refusal':
+            return ['setup', 'run', '--minimal', *(('--preview', '--json') if preview else ('--live', '--approve-live', '--json')),
+                    '--node-provider', 'lxc_native', '--lxc-backend', 'incus']
         return ['setup', 'run', '--services', ','.join(self.services), '--service-profile', self.preset,
                 '--stack-owner', self.owner, *(['--swagger-exposure', self.exposure] if 'swagger' in self.services else []),
                 *(('--preview', '--json') if preview else ('--live', '--approve-live', '--json')),
                 '--node-provider', 'lxc_native', '--lxc-backend', 'incus']
 
     def update(self, *, preview: bool = False, recover: bool = False) -> list[str]:
+        require(self.kind != 'refusal', 'REFUSAL_COMMAND_NOT_ADMITTED')
         services = ('portainer',) if self.kind == 'portainer' else self.services
         args = ['services', 'update', '--services', ','.join(services)]
         if recover:
@@ -102,6 +650,13 @@ RECIPES |= {
     'upgrade-product-v1': UpgradeRecipe((), preset='service-access', kind='product'),
     'recover-product-v1': UpgradeRecipe((), preset='service-access', kind='product', fault=True),
 }
+RECIPES |= {name: UpgradeRecipe((), kind='refusal') for name in REFUSALS}
+RECIPES |= {
+    'recover-batch-swarm-sigint': UpgradeRecipe(('swagger', 'traefik'), exposure='internal', fault=True, interrupt=True),
+    'recover-batch-portainer-sigint': UpgradeRecipe(('swagger', 'traefik'), owner='portainer', fault=True, interrupt=True),
+    'recover-portainer-sigint': UpgradeRecipe(('swagger',), owner='portainer', kind='portainer', fault=True, interrupt=True),
+    'recover-portainer-api-down': UpgradeRecipe(('swagger',), owner='portainer', kind='portainer', fault=True, interrupt=True, api_down=True),
+}
 ALL_NAMES = (*FRESH_NAMES, *RECIPES)
 
 
@@ -113,6 +668,7 @@ def recipe(case: str) -> UpgradeRecipe:
 
 
 def budgets(case: str, host: str, *, engine_recovery: bool = False) -> dict[str, int]:
+    require(not engine_recovery or case not in REFUSALS, 'REFUSAL_NOT_ENGINE_RECOVERY')
     if case not in RECIPES:
         require(not engine_recovery, 'UPGRADE_ENGINE_RECOVERY_CASE')
         return ({'prepare': 1200, 'pause': 600, 'approval': 180, 'case': 5400, 'teardown': 900, 'restore': 600}
@@ -126,6 +682,8 @@ def budgets(case: str, host: str, *, engine_recovery: bool = False) -> dict[str,
 
 def baseline_environment(case: str) -> dict[str, str]:
     value = recipe(case)
+    if value.kind == 'refusal':
+        return {}
     module = importlib.import_module('tiny_swarm_world.infrastructure.adapters.lifecycle.catalog')
     catalog = module.NativeComponentCatalog(ROOT).load()
     names = importlib.import_module('tiny_swarm_world.infrastructure.adapters.repositories.compose_file_repository_yaml').IMAGE_OVERRIDE_ENVIRONMENT_BY_CONTEXT
@@ -258,7 +816,7 @@ def checkpoint(port: Any) -> Any:
         raise FileNotFoundError(path)
     raw = private_json(path)
     module = importlib.import_module('tiny_swarm_world.domain.lifecycle.' + ('portainer_upgrade' if value.kind == 'portainer' else 'update_execution'))
-    return (module.PortainerCheckpoint if value.kind == 'portainer' else module.UpdateBatch).model_validate(raw)
+    return (module.PortainerCheckpoint if value.kind == 'portainer' else module.UpdateBatch).model_validate_json(canonical(raw))
 
 
 def original_proof(port: Any) -> dict[str, Any]:
@@ -313,7 +871,73 @@ def private_json_bytes(path: Path) -> bytes:
     return canonical(private_json(path))
 
 
-def poll_fault(port: Any, child: subprocess.Popen) -> None:
+def process_identity(pid: int) -> dict[str, int]:
+    raw = Path('/proc/' + str(pid) + '/stat').read_text()
+    fields = raw.rsplit(')', 1)[1].split()
+    require(len(fields) > 19 and fields[19].isdigit(), 'UPGRADE_FAULT_PROCESS_IDENTITY')
+    return {'pid': pid, 'start_time': int(fields[19])}
+
+
+def ordinary_intents(directory: Path, bound: int) -> list[Path]:
+    """Fault intents describe a public child, never a second process to settle."""
+    paths = []
+    faults = []
+    for path in directory.glob('child-*-intent.json'):
+        require(len(paths) + len(faults) < bound, 'CASE_CHILD_EVENT_BOUND')
+        if PROCESS_INTENT.fullmatch(path.name):
+            paths.append(path)
+        else:
+            require(FAULT_INTENT.fullmatch(path.name), 'CASE_CHILD_INTENT_NAME')
+            faults.append(path)
+    for path in faults:
+        key = path.name.removesuffix('-cli-fault-intent.json')
+        require(directory / (key + '-intent.json') in paths, 'CASE_FAULT_ORPHAN')
+        prepared = private_json(path)
+        start = private_json(directory / (key + '-cli-start.json'))
+        process = private_json(directory / (key + '-pid.json'))
+        selected = recipe(start['case'])
+        extra = INTERRUPT_KEYS if selected.interrupt else set()
+        require(set(prepared) == FAULT_KEYS | extra | {'process', 'prepared_at', 'prepared_monotonic_ns'}
+                and selected.fault and start['args'] == selected.update() and start['child'] == process == prepared['process']
+                and prepared['process_group'] == process['pid']
+                and type(prepared['signal']) is int and prepared['signal'] == (2 if selected.interrupt else 15)
+                and prepared['predicate'] == ('CHECKED_BACKUP' if selected.kind == 'portainer' else 'PARTIAL_BATCH')
+                and bool(re.fullmatch('[0-9a-f]{64}', prepared['checkpoint_sha256'])), 'CASE_FAULT_INTENT_INVALID')
+        if selected.interrupt:
+            require(prepared['authority_sha256'] == digest({key: start[key] for key in CLI_BINDING_KEYS})
+                    and bool(re.fullmatch('[0-9a-f]{32}', prepared['operation_id']))
+                    and prepared['phase'] in ({'backed_up', 'upgrading'} if selected.kind == 'portainer' else {'apply'})
+                    and (bool(re.fullmatch('sha256:[0-9a-f]{64}', prepared['backup_digest'])) if selected.kind == 'portainer'
+                         else prepared['backup_digest'] is None), 'CASE_FAULT_AUTHORITY_INVALID')
+    return paths
+
+
+def fault_binding(port: Any, child: subprocess.Popen, receipt: CliReceipt, current: Any) -> dict[str, Any]:
+    """Fresh authority for this launched child; retained PIDs never authorize signals."""
+    require(receipt.released and receipt.process is not None and receipt.args == recipe(port.intent.case).update(),
+            'UPGRADE_FAULT_CHILD_NOT_RELEASED')
+    receipt.require_approval()
+    require(child.poll() is None and process_identity(child.pid) == receipt.process
+            and os.getpgid(child.pid) == child.pid and os.getsid(child.pid) == child.pid,
+            'UPGRADE_FAULT_PROCESS_CHANGED')
+    require(time.monotonic() < port.deadline, 'UPGRADE_FAULT_AUTHORITY_EXPIRED')
+    if hasattr(port, 'fresh_source'):
+        port.fresh_source()
+        port.budget()
+    else:
+        port.reserve(1)
+        require(port.proposal is not None and port.source() == port.proposal['pins']
+                and port.identity() == port.proposal['identity'], 'UPGRADE_FAULT_SOURCE_DRIFT')
+    gateway = recipe(port.intent.case).kind == 'portainer'
+    require(gateway or current.profile_intent is not None, 'UPGRADE_FAULT_SCOPED_OPERATION_REQUIRED')
+    return {'authority_sha256': digest(receipt.binding), 'process': receipt.process,
+            'operation_id': current.operation_id if gateway else current.profile_intent.operation_id,
+            'phase': current.stage if gateway else current.direction,
+            'backup_digest': current.backup_digest if gateway else None}
+
+
+def poll_fault(port: Any, child: subprocess.Popen, *, before_signal: Callable[[dict[str, Any]], None] | None = None,
+               receipt: CliReceipt | None = None) -> None:
     """Called only by the existing owning supervisor, before its next wait."""
     if not getattr(port, 'upgrade_fault_armed', False) or child.poll() is not None:
         return
@@ -330,28 +954,219 @@ def poll_fault(port: Any, child: subprocess.Popen) -> None:
     ready = (current.backup_digest is not None and current.stage in {'backed_up', 'upgrading'} if value.kind == 'portainer'
              else current.direction == 'apply' and any(stage.outcome == 'committed' and stage.source != stage.target for stage in current.stages)
              and any(stage.outcome == 'applying' and stage.source != stage.target for stage in current.stages))
+    if value.api_down:
+        ready = ready and current.stage == 'upgrading'
     if ready:
-        event(port, 'upgrade-fault-intent', {'checkpoint_sha256': digest(current.model_dump(mode='json')),
-             'installation_id': baseline['installation_id'], 'predicate': 'CHECKED_BACKUP' if value.kind == 'portainer' else 'PARTIAL_BATCH'})
+        checkpoint_sha = digest(current.model_dump(mode='json'))
+        predicate = 'CHECKED_BACKUP' if value.kind == 'portainer' else 'PARTIAL_BATCH'
+        identity = {'checkpoint_sha256': checkpoint_sha, 'predicate': predicate, 'process_group': child.pid,
+                    'signal': int(signal.SIGINT if value.interrupt else signal.SIGTERM)}
+        if value.interrupt:
+            require(receipt is not None and before_signal == receipt.prepare_fault, 'UPGRADE_FAULT_RECEIPT_REQUIRED')
+            if receipt is None:
+                raise UpgradeError('UPGRADE_FAULT_RECEIPT_REQUIRED')
+            identity |= fault_binding(port, child, receipt, current)
+            port.upgrade_fault_binding = dict(receipt.binding)
+            if digest(checkpoint(port).model_dump(mode='json')) != checkpoint_sha:
+                return
+        event(port, 'upgrade-fault-intent', {'checkpoint_sha256': checkpoint_sha,
+             'installation_id': baseline['installation_id'], 'predicate': predicate}
+             | ({'checkpoint': current.model_dump(mode='json')} if value.interrupt else {}))
+        if before_signal is not None:
+            before_signal(identity | {'prepared_at': utc_stamp(), 'prepared_monotonic_ns': time.monotonic_ns()})
         port.upgrade_fault_armed = False
+        if value.interrupt:
+            require(receipt is not None and process_identity(child.pid) == receipt.process
+                    and child.poll() is None and os.getpgid(child.pid) == child.pid
+                    and os.getsid(child.pid) == child.pid
+                    and digest(checkpoint(port).model_dump(mode='json')) == checkpoint_sha,
+                    'UPGRADE_FAULT_PROCESS_CHANGED')
+        os.killpg(child.pid, identity['signal'])
         port.upgrade_fault_observed = True
-        os.killpg(child.pid, signal.SIGTERM)
-        raise FaultObserved('UPGRADE_ACTUAL_FAULT_OBSERVED')
+        raise FaultObserved('UPGRADE_ACTUAL_FAULT_OBSERVED', identity | {
+            'sent_at': utc_stamp(), 'sent_monotonic_ns': time.monotonic_ns()})
+
+
+def settle_interrupt(child: subprocess.Popen, deadline: float) -> tuple[bytes, bytes]:
+    """Drain while the public cancellation settles its bounded worker, within its original budget."""
+    import selectors
+    streams = (bytearray(), bytearray())
+    selector = selectors.DefaultSelector()
+    try:
+        for index, stream in enumerate((child.stdout, child.stderr)):
+            if stream is not None:
+                selector.register(stream, selectors.EVENT_READ, index)
+        while selector.get_map():
+            require(time.monotonic() < deadline, 'UPGRADE_INTERRUPT_SETTLEMENT_TIMEOUT')
+            for key, _ in selector.select(min(.2, max(.001, deadline - time.monotonic()))):
+                data = os.read(key.fd, 65536)
+                streams[key.data].extend(data)
+                require(sum(map(len, streams)) <= 2 * 1024 * 1024, 'UPGRADE_INTERRUPT_OUTPUT_BOUND')
+                if not data:
+                    selector.unregister(key.fileobj)
+        child.wait(timeout=max(.001, deadline - time.monotonic()))
+        return bytes(streams[0]), bytes(streams[1])
+    finally:
+        selector.close()
+
+
+def api_fault_steps(runtime: Any, current: Any, guard: Callable[[], None], save: Callable[[dict[str, Any]], None],
+                    down: Callable[[], bool], read_only: bool = False) -> dict[str, Any]:
+    """One explicit owned stop; restoration is exclusively the public recover command."""
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_topology import inspect_topology
+    guard()
+    runtime.backups.check_backup(current)
+    directory = runtime.backups.directory(current)
+    runtime.state.run('test "$(tar -xOf ' + directory + '/state.tar ./portainer.db | wc -c)" -gt 0')
+    if not read_only:
+        before = runtime.inspection.inspect(prepare_upgrade=False)
+        require((before.server_id, before.agent_id, before.swarm_id, before.volume, before.endpoints, before.ownership)
+                == (current.before.server_id, current.before.agent_id, current.before.swarm_id, current.before.volume,
+                    current.before.endpoints, current.before.ownership), 'UPGRADE_API_FAULT_OWNER_DRIFT')
+        guard()
+        save({'action': 'STOP_OWNED_SERVER', 'api_up': True, 'observation_sha256': digest(before.model_dump(mode='json')),
+              'backup_digest': current.backup_digest, 'prepared_monotonic_ns': time.monotonic_ns()})
+        runtime.state.stop()
+    services, volume, swarm = inspect_topology(runtime.state, before=current.before, allow_stopped=True)
+    require(services['portainer_portainer']['Spec']['Mode']['Replicated']['Replicas'] == 0
+            and volume == current.before.volume and swarm == current.before.swarm_id and down(),
+            'UPGRADE_API_DOWN_UNPROVEN')
+    guard()
+    return {'status': 'UPGRADE_API_DOWN_VERIFIED', 'api_down': True, 'read_only': read_only,
+            'server_id': current.before.server_id, 'agent_id': current.before.agent_id,
+            'swarm_id': swarm, 'volume': volume, 'backup_digest': current.backup_digest,
+            'observed_monotonic_ns': time.monotonic_ns()}
+
+
+def portainer_api_fault(case: str, *, read_only: bool = False) -> dict[str, Any]:
+    """Fixed case-private fault authority, fresh profile admission and all production locks."""
+    import logging
+    import socket
+    from urllib.parse import urlsplit
+    from types import SimpleNamespace
+    from tiny_swarm_world.infrastructure.composition_lifecycle import build_installation_lifecycle_service
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_runtime import ClassicPortainerUpgradeRuntime
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_journal import JsonPortainerJournal
+    from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_setup import for_runtime
+    from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.manager_shell_gateway import LxcManagerShellGateway
+    from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_http_client import LxcPortainerHttpClient
+    from tiny_swarm_world.infrastructure.composition_configuration import _required_operator_secret_value
+    from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
+    from tiny_swarm_world.domain.preflight import LiveConsent
+    from tiny_swarm_world.application.services.portainer_upgrade import PortainerUpgradeService
+    from tiny_swarm_world.domain.lifecycle.portainer_upgrade import PortainerCheckpoint
+    require(case == 'recover-portainer-api-down', 'UPGRADE_API_FAULT_CASE_DENIED')
+    directory = Path(os.environ['TSW_LIVE_EVIDENCE_ROOT'])
+    intent = private_json(directory / 'api-down-intent.json')
+    require(set(intent) == {'binding', 'checkpoint_sha256', 'source_proof_sha256', 'deadline_monotonic_ns', 'boot_id_sha256'}
+            and intent['binding']['case'] == case and set(intent['binding']) == set(CLI_BINDING_KEYS), 'UPGRADE_API_FAULT_INTENT')
+    prefix = __package__ + '.' if __package__ else ''
+    journals = importlib.import_module(prefix + 'wsl_product_acceptance')
+    journal = journals.Journal(directory)
+    lifecycle = build_installation_lifecycle_service(ROOT)
+    manifest = lifecycle.manifests.load().manifest
+    require(manifest is not None and manifest.service_preset == recipe(case).preset
+            and set(manifest.requested_services) == set(recipe(case).services)
+            and all(owner.owner == 'portainer' for owner in manifest.effective_stack_ownership().values()),
+            'UPGRADE_API_FAULT_MANIFEST_SCOPE')
+    state = ROOT / '.tiny-swarm-world/installation'
+    def guard() -> None:
+        require(intent == private_json(directory / 'api-down-intent.json')
+                and type(intent['deadline_monotonic_ns']) is int
+                and (15 if read_only or (directory / 'api-down-prepared.json').exists() else 90) * 1_000_000_000
+                    < intent['deadline_monotonic_ns'] - time.monotonic_ns() <= 180_000_000_000
+                and intent['boot_id_sha256'] == hashlib.sha256(Path('/proc/sys/kernel/random/boot_id').read_bytes().strip()).hexdigest()
+                and lifecycle.manifests.load().manifest == manifest, 'UPGRADE_API_FAULT_AUTHORITY_EXPIRED')
+        matches = []
+        for path in directory.glob('child-*-cli-start.json'):
+            start = private_json(path)
+            if start['case'] == case and start['args'] == recipe(case).update():
+                matches.append((path, start))
+        require(len(matches) == 1, 'UPGRADE_API_FAULT_CHILD_AMBIGUOUS')
+        path, start = matches[0]
+        key = path.name.removesuffix('-cli-start.json')
+        settled = private_json(directory / (key + '-cli-settled.json'))
+        require({key: start[key] for key in CLI_BINDING_KEYS} == intent['binding']
+                and settled['pid'] == start['child']['pid'] and settled['group_absent'] is True
+                and settled['released'] is True and settled['return_code'] == -2
+                and settled['fault']['checkpoint_sha256'] == intent['checkpoint_sha256']
+                and settled['fault']['authority_sha256'] == digest(intent['binding']), 'UPGRADE_API_FAULT_CHILD_UNSETTLED')
+        try:
+            os.killpg(start['child']['pid'], 0)
+        except ProcessLookupError:
+            pass
+        else:
+            raise UpgradeError('UPGRADE_API_FAULT_CHILD_UNSETTLED')
+    async def execute():
+        # JsonPortainerJournal itself owns the shared component execution lock.
+        with JsonInstallationOperationLock(ROOT).exclusive('portainer-upgrade') as lease, \
+                JsonPortainerJournal(state / 'portainer-upgrade.json').exclusive():
+            guard()
+            current = PortainerCheckpoint.model_validate_json(private_json_bytes(state / 'portainer-upgrade.json'))
+            require(current.stage == 'upgrading' and digest(current.model_dump(mode='json')) == intent['checkpoint_sha256'],
+                    'UPGRADE_API_FAULT_CHECKPOINT_CHANGED')
+            PortainerUpgradeService._validate_manifest(current, manifest)
+            original_paths = list(directory.glob('upgrade-proof-source-*.json'))
+            require(len(original_paths) == 1, 'UPGRADE_API_FAULT_SOURCE_AMBIGUOUS')
+            original = private_json(original_paths[0])
+            require(digest(original) == intent['source_proof_sha256'] and original['case'] == case
+                    and original['source_commit'] == intent['binding']['source_commit']
+                    and original['run_id'] == intent['binding']['run_id']
+                    and original['installation_id'] == str(current.installation_id), 'UPGRADE_API_FAULT_SOURCE_DRIFT')
+            operation = await for_runtime(ROOT, lifecycle, lease, 'portainer-upgrade', LiveConsent(True, confirmed=True))
+            require(operation.intent.profile.controller_revision == original['source_commit'], 'UPGRADE_API_FAULT_SOURCE_DRIFT')
+            await operation.admit_runtime(); await operation.verify_effective_routes()
+            shell = LxcManagerShellGateway(backend=ManagedLxcBackend.INCUS, manager_node='swarm-manager',
+                timeout_seconds=15, logger=logging.getLogger('qualification_api_fault'))
+            client = LxcPortainerHttpClient(backend=ManagedLxcBackend.INCUS, username='admin',
+                password=_required_operator_secret_value('TSW_PORTAINER_ADMIN_PASSWORD'), timeout_seconds=5)._client()
+            def bounded_shell(script: str, **kwargs: Any) -> Any:
+                remaining = intent['deadline_monotonic_ns'] / 1_000_000_000 - time.monotonic()
+                require(remaining > 20, 'UPGRADE_API_FAULT_EXECUTION_RESERVE')
+                kwargs['timeout_seconds'] = min(15, kwargs.get('timeout_seconds', 15), remaining - 20)
+                return shell.run_manager_shell(script, **kwargs)
+            runtime = ClassicPortainerUpgradeRuntime(SimpleNamespace(run_manager_shell=bounded_shell), client, managed_stacks=tuple(
+                name for name, owner in manifest.effective_stack_ownership().items() if owner.owner == 'portainer'),
+                managed_ownership=manifest.effective_stack_ownership(), timeout_seconds=60)
+            address = urlsplit(client.base_url)
+            require(address.scheme == 'http' and address.hostname is not None and address.port == 10001,
+                    'UPGRADE_API_FAULT_ADDRESS')
+            if address.hostname is None or address.port is None:
+                raise UpgradeError('UPGRADE_API_FAULT_ADDRESS')
+            target = (address.hostname, address.port)
+            def down() -> bool:
+                try:
+                    with socket.create_connection(target, timeout=3):
+                        return False
+                except ConnectionRefusedError:
+                    return True
+            def save(value: dict[str, Any]) -> None:
+                journal.save('api-down-prepared.json', value | {'intent_sha256': digest(intent),
+                    'checkpoint_sha256': intent['checkpoint_sha256'], 'binding_sha256': digest(intent['binding'])})
+            result = await runtime._stage(api_fault_steps, runtime, current, guard, save, down, read_only)
+            journal.save('api-down-observed.json' if read_only else 'api-down-applied.json', result | {'intent_sha256': digest(intent)})
+            return result
+    return asyncio.run(execute())
 
 
 def observe(port: Any, stage: str) -> dict[str, Any]:
     value = port.upgrade_helper(stage)
     require(isinstance(value, dict) and value.get('status') == 'UPGRADE_RUNTIME_VERIFIED', 'UPGRADE_PROOF_UNAVAILABLE')
-    event(port, 'upgrade-proof-' + stage, value)
+    port.cli_selection = value.get('selection')
+    event(port, 'upgrade-proof-' + stage, value | ({'captured_monotonic_ns': time.monotonic_ns()}
+        if recipe(port.intent.case).interrupt else {}))
     return value
 
 
 def preserve(before: dict[str, Any], after: dict[str, Any], *, no_op: bool = False) -> None:
     for name in ('installation_id', 'node_ids', 'swarm_id', 'service_ids', 'mounts', 'data', 'owner_ids', 'preset', 'exposure'):
         require(before[name] == after[name], 'UPGRADE_PRESERVATION_' + name.upper())
+    require(before.get('unrelated_resources') == after.get('unrelated_resources'), 'UPGRADE_UNRELATED_RESOURCES_CHANGED')
     if no_op:
         for name in ('service_versions', 'tasks', 'managed_journals', 'backup_journal', 'stack_updates', 'manifest_sha256', 'manifest_token', 'component_journal_sha256'):
             require(before[name] == after[name], 'UPGRADE_NOOP_MUTATION_' + name.upper())
+        require(before.get('backup_evidence') == after.get('backup_evidence'), 'UPGRADE_NOOP_BACKUP_MUTATION')
 
 
 def cache_contracts():
@@ -715,6 +1530,10 @@ def reconcile_cache(port: Any) -> None:
 
 def run(port: Any, *, engine_recovery: bool = False) -> None:
     value = recipe(port.intent.case)
+    if value.kind == 'refusal':
+        require(not engine_recovery, 'REFUSAL_NOT_ENGINE_RECOVERY')
+        run_refusal(port, value)
+        return
     port.upgrade_validate_inputs()
     if engine_recovery:
         require(port.worker_settled, 'UPGRADE_CHILD_UNSETTLED')
@@ -765,6 +1584,19 @@ def run(port: Any, *, engine_recovery: bool = False) -> None:
         finally:
             port.upgrade_fault_armed = False
         require(port.upgrade_fault_observed and port.worker_settled, 'UPGRADE_NOT_EXERCISED')
+        if value.api_down:
+            require(port.upgrade_children_settled(), 'UPGRADE_API_FAULT_CHILD_UNSETTLED')
+            current = checkpoint(port)
+            port.journal.save('api-down-intent.json', {'binding': port.upgrade_fault_binding,
+                'checkpoint_sha256': digest(current.model_dump(mode='json')),
+                'source_proof_sha256': digest(original_proof(port)),
+                'deadline_monotonic_ns': int(min(port.deadline, time.monotonic() + 180,
+                    port.authorized_until if port.authorized_until is not None else port.deadline) * 1_000_000_000),
+                'boot_id_sha256': hashlib.sha256(Path('/proc/sys/kernel/random/boot_id').read_bytes().strip()).hexdigest()})
+            for stage in ('api-down', 'api-down-observe'):
+                result = port.upgrade_helper(stage)
+                require(result.get('status') == 'UPGRADE_API_DOWN_VERIFIED' and result.get('api_down') is True,
+                        'UPGRADE_API_DOWN_UNPROVEN')
         port.public(value.update(preview=True, recover=True), timeout=120)
         result = json.loads(port.public(value.update(recover=True), timeout=900))
         require(result.get('status') == 'recovered', 'UPGRADE_RECOVERY_FAILED')
@@ -918,28 +1750,70 @@ def read_runtime(case: str, stage: str) -> dict[str, Any]:
         managed = {path.name: digest(private_json(path)) for path in state.glob('managed-stack-*.json')}
         backup = state / 'portainer-upgrade.json'
         manifest_hash = private_file_hash(state / 'manifest.json')
-        require(manifest_hash == snapshot.token, 'UPGRADE_MANIFEST_CHANGED_DURING_PROOF')
+        if manifest_hash is None or manifest_hash != snapshot.token:
+            raise UpgradeError('UPGRADE_MANIFEST_CHANGED_DURING_PROOF')
         component_hash = private_file_hash(state / 'component-update.json', optional=True)
-        return {'status': 'UPGRADE_RUNTIME_VERIFIED', 'installation_id': str(manifest.installation_id),
+        result = {'status': 'UPGRADE_RUNTIME_VERIFIED', 'installation_id': str(manifest.installation_id),
             'preset': manifest.service_preset, 'exposure': manifest.effective_exposure(),
             'node_ids': node_inventory(shell, node_names), 'swarm_id': swarm, 'service_ids': service_ids,
             'service_versions': service_versions, 'mounts': mounts, 'tasks': tasks, 'data': data,
             'owner_ids': owners, 'stack_updates': stack_updates, 'managed_journals': managed,
             'backup_journal': digest(private_json(backup)) if backup.exists() else None,
-            'manifest_sha256': manifest_hash, 'manifest_token': snapshot.token, 'component_journal_sha256': component_hash}
+            'manifest_sha256': manifest_hash, 'manifest_token': snapshot.token, 'manifest_schema': manifest.schema_version, 'component_journal_sha256': component_hash,
+            'selection': selection_evidence(manifest, manifest_hash)}
+        if value.api_down:
+            unrelated = {}
+            formats = {
+                'service': '{"id":{{json .ID}},"name":{{json .Name}},"mode":{{json .Mode}},"replicas":{{json .Replicas}},"image":{{json .Image}},"ports":{{json .Ports}}}',
+                'network': '{"id":{{json .ID}},"name":{{json .Name}},"driver":{{json .Driver}},"scope":{{json .Scope}}}',
+                'volume': '{"name":{{json .Name}},"driver":{{json .Driver}},"scope":{{json .Scope}}}',
+                'config': '{"id":{{json .ID}},"name":{{json .Name}}}',
+                'secret': '{"id":{{json .ID}},"name":{{json .Name}}}',
+            }
+            for command, template in formats.items():
+                raw_rows = read('docker ' + command + ' ls --format ' + shlex.quote(template)).splitlines()
+                require(len(raw_rows) <= 1024, 'UPGRADE_UNRELATED_RESOURCE_BOUND')
+                rows = [json.loads(row) for row in raw_rows]
+                if command == 'service':
+                    rows = [row for row in rows if row.get('name') not in names]
+                unrelated[command] = digest(sorted(rows, key=lambda row: canonical(row)))
+            result['unrelated_resources'] = unrelated
+            result['backup_evidence'] = None
+            if stage in {'recovered', 'noop'}:
+                from tiny_swarm_world.domain.lifecycle.portainer_upgrade import PortainerCheckpoint
+                from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_backup import PortainerColdBackup
+                from tiny_swarm_world.infrastructure.adapters.lifecycle.portainer_manager import PortainerManagerState
+                current = PortainerCheckpoint.model_validate_json(private_json_bytes(backup))
+                require(current.stage == 'recovered' and current.backup_digest is not None, 'UPGRADE_API_RECOVERY_CHECKPOINT')
+                cold = PortainerColdBackup(PortainerManagerState(shell, timeout_seconds=15))
+                cold.check_backup(current)
+                archive = cold.directory(current)
+                read('test "$(tar -xOf ' + archive + '/state.tar ./portainer.db | wc -c)" -gt 0')
+                failed = read('find ' + archive + " -mindepth 1 -maxdepth 1 -type d -name 'failed-state.*' -printf '%f\\n'").splitlines()
+                require(0 < len(failed) <= 32 and all(re.fullmatch(r'failed-state\.[A-Za-z0-9]{6}', name) for name in failed),
+                        'UPGRADE_FAILED_DATA_NOT_RETAINED')
+                for name in failed:
+                    count = read('find ' + archive + '/' + name + ' -type f | wc -l')
+                    require(count.isdigit() and 0 < int(count) <= 1024, 'UPGRADE_FAILED_DATA_BOUND')
+                fingerprints = {name: digest(read('find ' + archive + '/' + name + ' -type f -exec sha256sum -- {} + | LC_ALL=C sort').encode())
+                                for name in sorted(failed)}
+                result['backup_evidence'] = {'operation_id': current.operation_id, 'backup_digest': current.backup_digest,
+                    'failed_data': fingerprints, 'source_version': current.before.version, 'admin_reauthenticated': True}
+        return result
     return asyncio.run(verify())
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--case', choices=tuple(RECIPES), required=True)
-    parser.add_argument('--stage', choices=('source', 'cache-source', 'cache-targets', 'cache-reconcile', 'single-target', 'target', 'recovered', 'noop', 'persistent'), required=True)
+    parser.add_argument('--stage', choices=('source', 'cache-source', 'cache-targets', 'cache-reconcile', 'single-target', 'target', 'recovered', 'noop', 'persistent', 'api-down', 'api-down-observe'), required=True)
     args = parser.parse_args()
     require(os.geteuid() == 0, 'UPGRADE_ROOT_REQUIRED')
     import sys
     sys.path.insert(0, str(ROOT / 'modules/tsw_core/src'))
     signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-    print(json.dumps(prepare_target_cache(args.case, read_only=args.stage == 'cache-reconcile')
+    print(json.dumps(portainer_api_fault(args.case, read_only=args.stage == 'api-down-observe')
+        if args.stage in {'api-down', 'api-down-observe'} else prepare_target_cache(args.case, read_only=args.stage == 'cache-reconcile')
         if args.stage in {'cache-targets', 'cache-reconcile'} else read_runtime(args.case, args.stage)))
 
 

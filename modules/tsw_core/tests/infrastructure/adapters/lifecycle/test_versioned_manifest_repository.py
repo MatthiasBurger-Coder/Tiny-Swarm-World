@@ -87,6 +87,25 @@ class VersionedStagingTests(unittest.TestCase):
         self.assertIs(self.write(first, initial.token).status, WriteStatus.SUCCESS)
         self.assertIs(self.write(second, initial.token).status, WriteStatus.CONFLICT)
 
+    def test_token_subclass_and_forged_class_identity_block_before_filesystem_access(self) -> None:
+        class TokenSubclass(CasToken):
+            pass
+
+        class TokenLookalike:
+            kind = TokenKind.ABSENT
+            digest = None
+
+            def __getattribute__(self, name: str) -> object:
+                if name == '__class__':
+                    return CasToken
+                return super().__getattribute__(name)
+
+        for token in (TokenSubclass(TokenKind.ABSENT), TokenLookalike()):
+            with self.subTest(actual_type=type(token).__name__), patch.object(adapter.fs, 'staging') as staging:
+                self.assertIs(self.write(self.record, token).status, WriteStatus.BLOCKED)
+            staging.assert_not_called()
+            self.assertFalse(self.path.exists())
+
     def test_concurrent_processes_share_stable_lock_and_only_one_wins(self) -> None:
         initial = self.write(self.record, ABSENT_TOKEN)
         context = multiprocessing.get_context("fork")

@@ -16,8 +16,10 @@ Tiny Swarm World now separates three repository roles explicitly.
   repositories, YAML handling, dependency wiring, logging, and local file
   access.
 
-The canonical development import root is `src`, and commands that execute the
-Python package use `PYTHONPATH=.`.
+The canonical Python package is `tiny_swarm_world`, installed from
+`modules/tsw_core/src` through the repository's package mapping.
+`PYTHONPATH=.` remains a compatibility surface for repository tests; install
+the package before running development checks, as specified in `QUALITY.md`.
 
 `modules/tsw_core/src/infrastructure/composition.py` is the stable public
 composition facade for the Python automation. It routes construction to

@@ -80,8 +80,10 @@ async def prepare_profile_change(state, setup_manifest, consent, lease, *, recov
 
     lease.require_active()
     journal = JsonProfileChangeJournal(state.root)
-    service = InstallationProfileService(IncusProfileCapabilityRepository(state.root),
-        IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner()).for_preparation(lease), JsonProfileLifecycleJournal(state.root),
+    capabilities = IncusProfileCapabilityRepository(state.root)
+    service = InstallationProfileService(capabilities,
+        IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner(), capabilities=capabilities).for_preparation(lease),
+        JsonProfileLifecycleJournal(state.root),
         state.lifecycle.manifests, state.lifecycle.operation_lock)
     matrix = admitted_matrix(service.capabilities, consent)
     snapshot = state.lifecycle.manifests.load()
