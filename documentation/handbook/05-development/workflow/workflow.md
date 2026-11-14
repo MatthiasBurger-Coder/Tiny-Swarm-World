@@ -4,7 +4,7 @@ Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
 Status: EXECUTING; TA81 checkpoint published and C8 source gate accepted; native backup/reset scope approved, backup verification and K8/live acceptance pending; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
-Branch: `docs/workflow-issue440-open-20261111`
+Branch: `docs/workflow-issue440-open-20261111` (historical execution branch; branch consolidation recorded below)
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
 Execution profile: FULL_PATH
 Process strand: workflow execute; current consultation run and scope amendment recorded below. Original authoring facts remain historical.
@@ -3936,3 +3936,28 @@ NOT_RUN; later execution requires fresh prerequisites and a new GO. No fixture
 or product-effect GO is granted. Frozen C8 provenance, the expired campaign,
 all-three usable-backup/deletion gates and Hyper-V exclusion remain unchanged.
 K8/live, reset and parent #440 acceptance remain incomplete.
+
+
+## Branch consolidation — 2026-11-14
+
+The operator explicitly requested investigation, merge and deletion of the
+remaining branches. This is source integration and branch maintenance; the
+EXECUTING status, outstanding live acceptance and incomplete parent #440 remain
+unchanged. Further execution requires a dedicated continuation branch.
+
+- Integration baseline: `b23242ea`; older acceptance tip: `9520dd64`.
+- Retain the newer runtime, tests, workflow v2 and current evidence. The older
+  `3897a44b` repair is superseded by this runtime; its original source and
+  verification records remain accessible through the merged commit history.
+- Preserve the additional AGENTS efficiency instruction from `9520dd64`.
+- Slice-06 tips `f5ecdf21` / `f3c9a9f5` and slice-07 tip `865404f4` are
+  patch-equivalent to already integrated changes. Preserve their ancestry
+  without replaying their effects or overwriting newer evidence.
+- Merge publication requires the designated SSH/Ubuntu WSL quality gate and
+  successful PR CI/Sonar results for the integration head. Historical receipts
+  do not replace these results.
+- Delete branch refs only after GitHub confirms the PR merge and ancestry proves
+  their inclusion in `main`. Retain unfinished execution worktrees and preserve
+  the separate uncommitted setup-contract work in the primary worktree.
+- This record is integration scope, not a new executable slice, live approval,
+  completed acceptance scenario, issue closure or EPIC completion.
