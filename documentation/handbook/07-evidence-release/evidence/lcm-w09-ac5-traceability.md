@@ -32,9 +32,54 @@ requirements; the parent checklist and W10 owner acceptance remain open. The
 external issues were not edited, and no parent acceptance item was marked
 complete by this document.
 
+## Current S440O-07 C7 native/WSL listener pair (2026-11-14)
+
+The actual bounded C7 listener pair is **PASS**, independently accepted: native
+qualification plus independent preservation preceded the WSL fixture and its
+independent Linux preservation check. Both actual client/server pairs were
+6.0.5 and bind C7 `c976ed379f73b6fc4f29226f1516d8e7c9f781cd` with identical
+runner/test/qualification-workflow hashes. See the
+[current C7 result, identity and artifact hashes](lcm-w09-qualification.md#current-c7-nativewsl-listener-pair--s440o-07-2026-11-14).
+
+| Independent acceptance | SHA-256 |
+|---|---|
+| Native final | `6113e712db651c8da9155ef770ac8887368b8c98675bee453ee99c6b3647e5b0` |
+| WSL final | `03fbc95f3858ee2c5f6c463c062f7b020d1cb3354c2779fb16172607174ac821` |
+| Paired receipt | `0662db998bc718549545b38ec81c84bd1f3c18d1577eb8e9140e9c922332680e` |
+
+Native evidence preserves four original UUID/semantic configurations/states,
+eight prior snapshot full-metadata hashes and the retained owned ninth, nineteen
+full service IDs/Specs and prior replica floors, captured Docker identity,
+profiles/pool/listeners and admitted complete routes/boot. It does not establish
+universal service health, node membership or a data-recovery scenario. WSL
+postchecks preserve zero original instances, the default plus two pre-existing
+profiles and owned cleanup. Windows/kernel preservation remains scoped to the
+raw fixture's protected before/after route/rule/certificate evidence, not an
+independent Windows/kernel query by the Linux postcheck.
+
+| Parent row | C7 pair closes | Still open / separate |
+|---|---|---|
+| P03 | Listener qualification prerequisite on both hosts | Portainer endpoint/upgrade and remaining product acceptance |
+| P04 | Same-runner listener prerequisite and bounded owned cleanup | Complete fresh/minimal/optional product-installation criteria |
+| P09 | Listener/manager preservation prerequisite | Remaining interruption, product recovery and data-recovery variants |
+| P12 | Exact paired source/runner/test/workflow/version evidence and independent listener acceptance | Complete per-scenario ledger, remaining traceability and owner acceptance |
+
+This replaces the earlier current native-pending/WSL-only listener status; it
+preserves earlier attempts in their original dispositions. Accepted C6/K6
+evidence remains historical and is not retargeted to C7.
+Qualification applies to C7, not the differing whole current public tree.
+Product health is NOT_VERIFIED; no endpoint/product/data-recovery PASS, complete
+parent checkbox or EPIC completion is claimed. K7 remains a separate S08
+admission/write. This report's designated SSH/WSL documentation gate and
+independent completion review are pending; S07 DONE is not yet claimed.
+
 ## S440O-07 bounded WSL listener result (2026-11-12)
 
-The current exact-C WSL standalone listener subcell is **PASS**, independently
+Historical TA04 checkpoint: the accepted C7 pair above supersedes the
+native-pending/WSL-only state here. The following status and gate statements
+retain their original 2026-11-12 scope.
+
+At TA04, the exact-C WSL standalone listener subcell was **PASS**, independently
 accepted after the actual TA04 fixture: exit0, 155 commands all exit0,
 nonce-bound HTTP, PID/effective-device/timing attribution, exact owned cleanup
 and eight preservation equalities. The admitted default-profile baseline
@@ -49,10 +94,10 @@ recorded versions. Raw ownership/command/result/GO/archive and the independent
 audit remain private; no host identifiers are published here.
 
 This advances only the WSL listener prerequisite within P03/P04/P09/P12. Those
-parent rows, global S06/S07 and the EPIC remain OPEN/PARTIAL. The native host
-still has running old Incus nodes and a stopped historical node; pause/restore
-admission is pending and no native mutation is recorded. PairK requires both
-accepted same-runner hosts. Actual component/product/public-CLI cases follow
+parent rows, global S06/S07 and the EPIC remained OPEN/PARTIAL at that
+checkpoint. Native pause/restore admission was then pending with no native
+mutation recorded. The later C7 pair above supplies the two-host listener
+evidence; K7 admission remains separate. Actual component/product/public-CLI cases follow
 legitimate K and their full operator preservation/recovery evidence; the private
 harness's identity rule is not imposed on the public CLI. No new source or
 orchestrator is required merely to record this listener result.
@@ -136,16 +181,16 @@ protected raw live records.
 |---|---|---|---|---|---|
 | P01 / PARENT-AC01 | Upgrade a supported TSW release and distinguish product, dependencies, configuration and service images. | LCM-01-01–11 | LCM-W01-AC2 | LCM-S01–S03 | Q14–Q15 provide bounded native and WSL product transition/recovery/repeat evidence. WSL R35 remains a non-pass because its later completion state is not linked to a unique invocation or actor. See [qualification Q14–Q15](lcm-w09-qualification.md). |
 | P02 / PARENT-AC02 | Discover installed/supported component versions and converge/persist single and selected-batch updates. | LCM-02-01–11 | LCM-W01-AC2 | LCM-S04–S06 | Q07–Q10 provide bounded Swagger/Traefik transition evidence. Exact WSL operation attribution and applicable Q16 source/task variants remain open. See [transition proposal](lcm-w09-transition-proposal.md) and [qualification Q07–Q10](lcm-w09-qualification.md). |
-| P03 / PARENT-AC03 | Qualify a Portainer upgrade while retaining access/endpoints and proving managed deployment. | LCM-03-01–07 | LCM-W01-AC1/AC3 | LCM-S07 | Native LIVE-4 is bounded verified. WSL Q12 candidate attribution is insufficient; Q13 remains partial; WSL LIVE-4 is open. R53 limits the accepted `RemoteAddress=Any` consent to the existing port 10001 route and records Q12 NO-GO pending product design. See [qualification Q12–Q13](lcm-w09-qualification.md), the [Q12 design proposal](lcm-w09-q12-design-proposal.md), and private `three-amigos-r53-q12-route-consent-gate.md`. |
-| P04 / PARENT-AC04 | Verify fresh minimal Classic installation and two distinct optional selections. | LCM-04-01–08 | LCM-W01-AC3 | LCM-S08 | Native minimal/optional selections and WSL Q02–Q04 are bounded evidence. WSL Q02 uses a synthetic source identity; protected raw Q03/Q04 records are not reproduced here. The bounded results do not imply every S08 clause. See [qualification Q02–Q04](lcm-w09-qualification.md). |
+| P03 / PARENT-AC03 | Qualify a Portainer upgrade while retaining access/endpoints and proving managed deployment. | LCM-03-01–07 | LCM-W01-AC1/AC3 | LCM-S07 | C7 paired listener prerequisite PASS; complete parent row remains OPEN/PARTIAL. Native LIVE-4 is bounded verified. WSL Q12 candidate attribution is insufficient; Q13 remains partial; WSL LIVE-4 is open. R53 limits the accepted `RemoteAddress=Any` consent to the existing port 10001 route and records Q12 NO-GO pending product design. See [qualification Q12–Q13](lcm-w09-qualification.md), the [Q12 design proposal](lcm-w09-q12-design-proposal.md), and private `three-amigos-r53-q12-route-consent-gate.md`. |
+| P04 / PARENT-AC04 | Verify fresh minimal Classic installation and two distinct optional selections. | LCM-04-01–08 | LCM-W01-AC3 | LCM-S08 | C7 paired listener prerequisite PASS; complete parent row remains OPEN/PARTIAL. Native minimal/optional selections and WSL Q02–Q04 are bounded evidence. WSL Q02 uses a synthetic source identity; protected raw Q03/Q04 records are not reproduced here. The bounded results do not imply every S08 clause. See [qualification Q02–Q04](lcm-w09-qualification.md). |
 | P05 / PARENT-AC05 | Reject disabling mandatory foundations and unsupported combinations before mutation. | LCM-04-03–07, LCM-04-12; LCM-02-11 for downgrade/migration negatives | W01-REQ08; LCM-W01-AC3 | LCM-S08, LCM-S10 | Q17/Q18 contain representative refusal/control evidence. Optional-service removal and remaining unsupported combinations are open. See [qualification Q17–Q18](lcm-w09-qualification.md). |
 | P06 / PARENT-AC06 | Add optional services while retaining existing identities, data and effective credentials. | LCM-01-07, LCM-03-04, LCM-04-08–09, LCM-04-11 | LCM-W01-AC3 | LCM-S09 | Native add/preservation and WSL Q05–Q06 are bounded for recorded fixtures. Direct WSL Q05/Q06 artifact attribution remains incomplete; disposed former WSL instances are not claimed preserved. See [qualification Q05–Q06](lcm-w09-qualification.md). |
 | P07 / PARENT-AC07 | Ensure routes, access output and verification follow persisted selection and omit unselected services. | LCM-04-02, LCM-04-08, LCM-04-11–12 | LCM-W01-AC3 | LCM-S08–S09 | Q02–Q06 provide bounded results for recorded selections. Full cross-host selection/status applicability reconciliation remains open. See [qualification Q02–Q06](lcm-w09-qualification.md). |
 | P08 / PARENT-AC08 | Test help, argument validation, preview and explicit consent for mutating entry points. | LCM-05-01–06 | W01-REQ08 | LCM-S11 | Q17/Q18 provide representative controls. Checkpoint-specific consent and broader entrypoint, input and failure variants remain open. See [qualification Q17–Q18](lcm-w09-qualification.md). |
-| P09 / PARENT-AC09 | Verify no-op repeats, interruption, partial-batch failure and supported recovery. | LCM-01-10–11, LCM-02-07–10, LCM-05-04–06 | LCM-W01-AC4 | LCM-S03, LCM-S05–S06, LCM-S11 | Q06/Q09–Q11/Q15/Q19 provide bounded evidence for some applicable cases; Q19 is setup retry evidence, and R35 is not a recovery pass. Remaining Q11/Q19 variants and Q16/Q18 cross-requirement cases remain open. Portainer API-loss recovery under LCM-03-06/AC03 is adjacent evidence, not a direct PARENT-AC09 scenario; WSL Q12/Q13 attribution remains partial. See [qualification](lcm-w09-qualification.md). |
+| P09 / PARENT-AC09 | Verify no-op repeats, interruption, partial-batch failure and supported recovery. | LCM-01-10–11, LCM-02-07–10, LCM-05-04–06 | LCM-W01-AC4 | LCM-S03, LCM-S05–S06, LCM-S11 | C7 paired listener prerequisite PASS; complete parent row remains OPEN/PARTIAL. Q06/Q09–Q11/Q15/Q19 provide bounded evidence for some applicable cases; Q19 is setup retry evidence, and R35 is not a recovery pass. Remaining Q11/Q19 variants and Q16/Q18 cross-requirement cases remain open. Portainer API-loss recovery under LCM-03-06/AC03 is adjacent evidence, not a direct PARENT-AC09 scenario; WSL Q12/Q13 attribution remains partial. See [qualification](lcm-w09-qualification.md). |
 | P10 / PARENT-AC10 | Reject unsupported stateful downgrade/data migration and distinguish image rollback from data restoration. | LCM-02-11; LCM-04-10 is adjacent deselection/removal-preview coverage, not the direct downgrade requirement | W01-REQ08; LCM-W01-AC4 | LCM-S10 | Q16–Q18 contain representative refusal evidence. Remaining downgrade, source and entrypoint combinations plus cross-host trace are open. No image rollback is represented as data restoration. See [qualification Q16–Q18](lcm-w09-qualification.md). |
 | P11 / PARENT-AC11 | Make configuration/runtime drift visible and prevent false success. | LCM-01-01, LCM-01-04, LCM-01-11, LCM-02-07, LCM-02-09 | LCM-W01-AC2/AC4 | LCM-S01, LCM-S05, LCM-S11 | Dirty-checkout and unofficial-origin source refusals have bounded native preview evidence. WSL R52 adds dirty+official-origin and clean+unofficial-origin preview refusals. R54 is a relocated-checkout characterization consistent with source admission before a missing-adoption-manifest block, but omitted root-value/runner evidence prevents independent path binding. Moved-source semantics, other source variants, live runtime drift and old/mixed task cases remain open. See [R52](lcm-w09-q16-wsl-r52.md), [R54](lcm-w09-q16-wsl-r54.md), and private R54 review/archive. |
-| P12 / PARENT-AC12 | Record exact native Linux/WSL2 versions, host/profile, selection, hashes, commands and redacted evidence. | W01-REQ10 is the direct version/host/profile/selection/command/evidence authority; LCM-01-01/03 and LCM-01-08 cover installed identity and redaction; LCM-05-06 covers failure/recovery evidence | W01-REQ10 | LCM-S12 | Many rows have exact identity/hash evidence, but a complete cross-host per-scenario ledger, Q16–Q20 applicability, R35 attribution and cleanup mapping remain outstanding. R54 raw output and fixture are retained, but command-root binding is not independently proven. See [qualification Q01–Q20](lcm-w09-qualification.md) and the private R54 archive/review. |
+| P12 / PARENT-AC12 | Record exact native Linux/WSL2 versions, host/profile, selection, hashes, commands and redacted evidence. | W01-REQ10 is the direct version/host/profile/selection/command/evidence authority; LCM-01-01/03 and LCM-01-08 cover installed identity and redaction; LCM-05-06 covers failure/recovery evidence | W01-REQ10 | LCM-S12 | C7 paired listener prerequisite PASS; complete parent row remains OPEN/PARTIAL. Many rows have exact identity/hash evidence, but a complete cross-host per-scenario ledger, Q16–Q20 applicability, R35 attribution and cleanup mapping remain outstanding. R54 raw output and fixture are retained, but command-root binding is not independently proven. See [qualification Q01–Q20](lcm-w09-qualification.md) and the private R54 archive/review. |
 | P13 / PARENT-AC13 | Pass architecture, targeted tests and applicable quality/security gates; separate live from mock/local evidence. | Cross-cutting W01 quality/evidence requirements | W01-REQ06/07/09/11; LCM-W01-AC1 | LCM-S12 | Current-candidate local quality and bounded independent reviews are recorded; aggregate live coverage is incomplete. External CI/SonarQube status is unavailable or unverified and is not claimed successful. See [qualification](lcm-w09-qualification.md). |
 | P14 / PARENT-AC14 | Document lifecycle commands, foundations, backups and recovery. | LCM-01-10, LCM-02-11, LCM-03-03/06, LCM-04-10, LCM-05-06 | LCM-W01-AC1–AC4 | LCM-S12 | CLI syntax, supported-scope wording, backup and recovery boundaries have bounded documentation review. Parent checklist reconciliation and final W10 audit remain open. See [lifecycle contract](../../01-product/contracts/lifecycle.md), [component updates](../../03-user-guide/user_guide/component-updates.md), [product upgrades](../../03-user-guide/user_guide/product-upgrades.md), and [selective setup](../../03-user-guide/user_guide/selective-setup.md). |
 | P15 / PARENT-AC15 | Complete independent requirement, architecture and test/evidence review before closure. | Cross-cutting completion gate | W01-REQ06/11; LCM-W01-AC4 | LCM-S12 | Independent audit is INCOMPLETE. Q13, WSL LIVE-4, remaining Q16–Q18 variants, WSL R35 attribution, AC1–AC4, AC5 and W10 remain incomplete/open. Do not close #449 until all applicable requirements are verified and the independent auditor returns PASS. See [qualification](lcm-w09-qualification.md). |

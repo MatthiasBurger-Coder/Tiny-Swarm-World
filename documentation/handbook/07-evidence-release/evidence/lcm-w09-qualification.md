@@ -1,6 +1,6 @@
 # LCM-W09 qualification matrix — issue #449
 
-Status: **INCOMPLETE**. Historical baseline updated 2026-10-28; bounded WSL listener update recorded 2026-11-12 below. Historical native Linux and WSL2 installation,
+Status: **INCOMPLETE**. Historical baseline updated 2026-10-28; accepted bounded C7 native/WSL listener pair recorded 2026-11-14 below. Historical native Linux and WSL2 installation,
 component-update, Portainer recovery and product recovery scenarios have executed
 successfully. The WSL four-stage Swagger and two-service interrupted-batch paths
 and selective `incus+portainer` fresh installation are verified. Remaining
@@ -32,12 +32,89 @@ Sources: [#449](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/
 parent #440 and [W01 scenarios LCM-S01–S12](../../01-product/contracts/lifecycle.md).
 Management baseline: `6d2f25ee843a01066fcdcfe4855666849513ff06` plus the
 recorded candidate file hashes. That historical publication recorded no new live
-runs; the S440O-07 section below records the later actual WSL TA04 fixture.
+runs; the S440O-07 sections below record the historical WSL TA04 fixture and
+the later accepted C7 pair.
 The generic component transition runner has changed since its historical live
 run; see the transition proposal for both source hashes and the applicability
 limits. #449 remains incomplete.
 
+## Current C7 native/WSL listener pair — S440O-07 (2026-11-14)
+
+**The bounded C7 native and WSL listener pair is PASS, independently accepted.**
+Native qualification and independent preservation completed before WSL execution;
+each host had its own actual context, six-role admission and explicit Root GO.
+The paired receipt binds the same frozen C7 source, runner, test, qualification
+workflow and actual Incus client/server 6.0.5. This supersedes the earlier
+native-pending/WSL-only state for this listener prerequisite. Earlier attempts retain their original dispositions. Accepted C6/K6 evidence
+remains historical and is not retargeted to C7.
+
+| Shared executed identity | Value / SHA-256 |
+|---|---|
+| C7 commit | `c976ed379f73b6fc4f29226f1516d8e7c9f781cd` |
+| C7 tree | `6a9b0e678b071915aa2d53c4c9974cf454e6055e` |
+| All 1811 source files and modes | `416f656405519476185e4f6fa3ded5c4dacea7fbc9f57df081235394e0a93abb` |
+| Frozen fixture runner | `b7876225a7d516633e801abae4d3582272aca5ad86245e482572d2fca0cec4bf` |
+| Frozen fixture test | `259311531762ca5dcdb62c8e7e0de4c78915b068eb8aecbc20f47700c27a53b7` |
+| Frozen qualification workflow | `8608ca69d1e7b222f79d62599a81a9f0f510c8c961a8c37ed900bf97ca496833` |
+
+Standalone fixture runtimes used Python 3.14.4. Their accepted source identity
+is separate from the prescribed Python 3.12 source/full-suite gates. Neither
+Python 3.14 product/full-suite qualification nor whole-public-tree equivalence
+is asserted. Reporting checkpoint `78741b3ab70d595b1b3d7036bbe6740cd342279b`
+already differs from C7 in workflow/evidence documents, the capability asset,
+and the component-transition adapter/test; these report edits add documentation
+differences. The pair does not qualify those differing public product bytes.
+
+Native independent evidence verifies four original UUID/semantic-configuration/
+state restorations, profile/pool/all-listener and captured Docker identity
+preservation, all eight prior snapshot full-metadata hashes, and positive cold
+creation/retention of the owned ninth snapshot. All nineteen service full IDs,
+complete Specs, array ordering, modes, desired counts and prior replica floors
+were preserved without overshoot. One pre-existing 0/1 service remained 0/1;
+no universal service-health or Docker node-membership claim follows. The pinned
+independent postchecker executed complete admitted IPv4/IPv6 route and boot
+checks; no separately retained full after-route JSON body is claimed. The older
+route-baseline mismatch remains recorded as an unattributed historical change.
+
+WSL independent Linux postchecks verify zero all-project instances, the exact
+default and two pre-existing profiles, no owned instance/profile/volume, and no
+owned 61080 or 10001 listener. The fixture's protected before/after Windows
+route/rule/certificate hashes were preserved. The Linux postcheck did not
+independently re-query Windows or kernel state. Source/environment/READY
+preservation and settled caller/process/daemon evidence are recorded separately.
+
+| Actual artifact | SHA-256 |
+|---|---|
+| Native fixture result | `71ca934914e57fef67972d537076972094285389548784a6cd432b2fae224a16` |
+| Native fixture GO | `038b484b7b475e7e0ae666fed2b6784990f86677ad5b56bf398b649eb90fbdfe` |
+| Native Root live GO | `a44950d25e4c0fb3e5be30c129cc7bdf2d1edcc5b33ff9ef14b32642103549ba` |
+| Native independent final acceptance | `6113e712db651c8da9155ef770ac8887368b8c98675bee453ee99c6b3647e5b0` |
+| Native execution / independent-after archives | `9800be068b099d3f75da331a351dfa41d17e7804a2277f314429bffda8080cd7` / `dc7fc11a20e4d046dd575186bf5518087a11f1148880456743f733f6033f9f31` |
+| WSL fixture result | `159b149ef52442933bae1e2cdcaae434901351bc56cf3b0175eef808575694de` |
+| WSL fixture GO | `09e7284463f253980b35538db604e08844a8fb1b48efe7ec3478de4a6a598e5f` |
+| WSL Root live GO | `ec872ffb448165e45ba74df0a95ae22908d5edb5fe3dc80f7e28f10ad2b87805` |
+| WSL independent final acceptance | `03fbc95f3858ee2c5f6c463c062f7b020d1cb3354c2779fb16172607174ac821` |
+| WSL complete / independent-post archives | `c17b51aff19c71b23b4c65f5c2c7b886652b679de3a253e813e2d48074ebbf87` / `4d2aafd14cbfe8f44df5630abd3c40a04e2f08f6b12c407285bdf95ad970ac23` |
+| Accepted paired receipt | `0662db998bc718549545b38ec81c84bd1f3c18d1577eb8e9140e9c922332680e` |
+
+Raw Specs, API responses, exact host/run identifiers and closed manifests remain
+private. These hashes identify executed evidence, not a new run or retrospective
+qualification of earlier attempts. Both hosts' **product health remains
+NOT_VERIFIED**. No endpoint, component/product transition or data-recovery PASS
+is added; bounded manager restoration is not a product/data-recovery scenario.
+
+Only the listener prerequisites within P03/P04/P09/P12 are closed by this pair.
+Those complete parent rows, W09/AC5/W10 and the EPIC remain OPEN/PARTIAL. K7
+capability admission/write remains a separate S440O-08 decision and has not been
+granted. This S07 report implementation awaits the designated SSH/WSL
+documentation gate and independent completion review; **S07 DONE is not yet
+claimed**. Full quality is NOT_RUN_DOC_ONLY for these report edits.
+
 ## Current WSL listener qualification — S440O-07 / TA04 (2026-11-12)
+
+This is the historical TA04 checkpoint, superseded as the current listener-pair
+state by the accepted C7 pair above. Its earlier results and gate states remain
+dated evidence; the native-pending statements below describe TA04 only.
 
 **Bounded WSL listener subcell: PASS**, independently accepted. Root executed the
 existing C fixture serially on the qualified root-owned source-identical WSL
@@ -71,7 +148,7 @@ Exact host/run/resource identifiers and raw evidence remain private. This
 checkpoint documents the executed result; its isolated S07 evidence worktree
 was created afterward and is not backdated as the live execution environment.
 
-| Qualification cell | Current state |
+| Qualification cell | State at historical TA04 checkpoint |
 |---|---|
 | Fresh exact-C WSL standalone listener | PASS, independently accepted within the scope above |
 | Fresh native same-runner listener | OPEN; native pause/restore admission pending, no native mutation |
