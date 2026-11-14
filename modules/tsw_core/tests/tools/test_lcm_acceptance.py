@@ -626,7 +626,7 @@ class NegativeAttributionTests(unittest.TestCase):
 
 
 class FixtureExecutableOwner:
-    """Inject only ownership for this explicitly synthetic executable boundary."""
+    """Inject trusted metadata for this explicitly synthetic executable boundary."""
     def __init__(self, info: os.stat_result):
         self._info = info
 
@@ -634,11 +634,29 @@ class FixtureExecutableOwner:
     def st_uid(self) -> int:
         return 0
 
+    @property
+    def st_mode(self) -> int:
+        return self._info.st_mode & ~0o022
+
     def __getattr__(self, name: str) -> Any:
         return getattr(self._info, name)
 
 
 class ActualRefusalTransportTests(unittest.TestCase):
+    def test_real_receipt_rejects_untrusted_executable_owner_or_write_permissions(self):
+        import sys
+        info = Path(sys.executable).resolve(strict=True).stat()
+        for uid, write_permissions in ((1, 0), (0, 0o020), (0, 0o002)):
+            with self.subTest(uid=uid, write_permissions=write_permissions):
+                journal = Mock()
+                receipt = upgrades.CliReceipt(journal, 'child-test', {}, [sys.executable], [])
+                metadata = SimpleNamespace(st_uid=uid, st_mode=(info.st_mode & ~0o022) | write_permissions,
+                                           st_size=info.st_size)
+                with patch.object(upgrades.os, 'fstat', return_value=metadata):
+                    with self.assertRaisesRegex(upgrades.UpgradeError, 'CASE_CLI_EXECUTABLE_BOUND'):
+                        receipt.start({'pid': 1, 'start_time': 1}, 1)
+                journal.save.assert_not_called()
+
     def test_real_owned_public_children_bind_eof_and_n_on_both_transports(self):
         import sys
         from contextlib import ExitStack
