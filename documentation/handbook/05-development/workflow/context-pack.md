@@ -2,7 +2,7 @@
 
 Workflow: [workflow.md](workflow.md), issue-440-open-acceptance, version2.0, FULL_PATH.
 Branch: docs/workflow-issue440-open-20261111. Committed baseline: c40d87ed81101dd582a112fe8b427d84372f36e2.
-Status: EXECUTING; R56 source verification ACCEPTED/corrected policy+all7QUALITY PASS; source checkpoint and installed-bundle/live admission pending; S09 PAUSED; EPIC incomplete.
+Status: EXECUTING; TA61 R56 installed-bundle/network preparation ACCEPTED; C7 live pair/K7/product/data recovery pending; EPIC incomplete.
 
 Read [requirements](requirement-matrix.md), [inventory](requirements.json),
 [prerequisites](prerequisite-ledger.md), [scenario/source contract](scenario-plan.md),
@@ -594,7 +594,7 @@ Original14metadata+R56twoPSlocks unchanged. Sourcecheckpoint/lineage/installedbu
 and laterdeployment/liveRootGO pending; C6/K6proofs unchanged, installedversion not
 updated. S09/product/liveapplicationdatarestorePAUSED/NOT_RUN; EPICincomplete.
 
-## Current R56 final source verification
+## Historical R56 final source verification
 
 Actual2bb496e4…/treee5ff9fce… correctedpolicy+all7QUALITY PASS:4156tests/352.501s/
 37declared skips, architecture44/4.027s. Independent40cfcfb0… verifies22closedraw/
@@ -604,3 +604,22 @@ policyNONPASS retained. R56codeverification complete/sourcecheckpointpending.
 Final4docstatus mapping requires designatedDOC_ONLYgate, no unjustified fullrepeat.
 All15metadata/twoPSlocks unchanged; installedversion/lineage/deployment/liveRootGO
 pending, S09/product/datarestore/EPIC incomplete; no new C7 authority.
+
+## Current R56 installed-bundle result — TA61
+
+Independent5db91f6a… accepts unchanged normalapply enable+windowsinstall READY0/
+emptyverifiedpostplan/uncertain[]; newcheckpointddb6b761… vsretainedhistoricd2….
+Pre-effect tuple/list comparison failure/raw preserved; strictcanonical shape-only
+fix retained guards and threeactualplans equal before authorizedapply. Actual6f0…
+installedbundle67C70954…/serviceRunning/coherentinventory routing+agent+bridgetrue;
+account/right/3directory+8leafACLownerpaths/XML/registration/routes/firewall/hosts
+preserved/sourceenvdonor unchanged. UnitENABLED/inactive-dead/no-start. Kernel
+readiness is normalproductionpostplan evidence, not a separate rawdump claim.
+Endpoints/login/services/productstillUNVERIFIED; priorfailedhistory retained.
+
+PrivateC7gates07ca51…4156/37+fixture205/bridge3 exactsource only, not wholepublictree.
+WSLsourceproof643d30…/acceptance2734d9… four-local-file SOURCE_ONLY transport,
+not independentremoteclosure enumeration or qualification. C7livepairNOT_RUN/K7
+NOT_CONSTRUCTED/productmatrix/applicationdatarestore/EPICOPEN; separate native
+productVMapprovalpending. ExistingR56codegates/15metadata unchanged; this4DOC_ONLY
+statusmapping needs finaldesignatedSSHWSLdocpolicy+diffchecks PLANNED/notpassed.

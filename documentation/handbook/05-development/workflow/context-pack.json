@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_R56_SOURCE_VERIFICATION_ACCEPTED_CORRECTED_POLICY_ALL7_QUALITY_PASS_SOURCE_CHECKPOINT_INSTALLED_BUNDLE_LIVE_ADMISSION_PENDING_S09_PAUSED_EPIC_INCOMPLETE",
+  "status": "EXECUTING_R56_NORMAL_INSTALLED_BUNDLE_NETWORK_PREPARATION_ACCEPTED_C7_LIVE_PAIR_K7_PRODUCT_DATA_RECOVERY_PENDING_EPIC_INCOMPLETE",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "c509a85d3af6e5162e75d85241f2fa8c0c97a9c112430a220ba36bb26933e4f8",
-    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "a145412ad5a7e92856dac51e763776711a60870cba54e82020fff6e896e62aa3",
+    "documentation/handbook/05-development/workflow/context-pack.md": "3910d40457df6f842d079abfa55b671750dfdbbe4b3be1fda20f8f9c61660a6c",
+    "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "7d548bb8fbc40281b643a400b4881a30bfa873ea82d8f59beab89e974056ad77",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "080ef78eb250edee3e6ab9b1461ac81b65ae62c0dee916896989485968f79184"
+    "documentation/handbook/05-development/workflow/workflow.md": "c3b444a924f16f0c5617abc9ebb344a1a607322a0884fe73a58efea73e649e23"
   },
   "slices": [
     "S440O-01",
@@ -196,7 +196,7 @@
       "fixture_stub": "NOT_RUN"
     }
   },
-  "current_workflow_run": "TA440-20261113-56",
+  "current_workflow_run": "TA440-20261114-61",
   "active_native_attempt": {
     "id": "TA440-20261112-05",
     "state": "FAILED_RESTORED",
@@ -356,108 +356,82 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261113-56",
+    "id": "TA440-20261114-61",
     "slice_id": "S440O-R56-01",
-    "record_type": "BOUNDED_R56_POSTVERIFICATION_DOCUMENTATION_STATUS_CONSOLIDATION",
-    "state": "R56_CODE_VERIFICATION_COMPLETE_SOURCE_CHECKPOINT_PENDING_NO_INSTALLED_LIVE_ACCEPTANCE",
-    "named_expected_RED": {
-      "acceptance_sha256": "95fffe473116220c9732940b60a18633668c943ac2629a81a2311c3b6e16ba6c",
-      "tests": 1,
-      "failures": 1,
-      "skips": 0,
-      "assertion": "R56 inventory waits for busy writer and samples completed heartbeat under reconcile lock",
-      "import_parse_failure": false
-    },
-    "exact_repair_source": {
-      "production_sha256": "6f0c2a7a5ce2bcefda7eebc99a9849cefcdd518aef7362cf6df3d72d4acf8f49",
-      "test_sha256": "d8c6732e03e724631bcbff1eddb3105e9efc636276ef5b43446d1433124af57c",
-      "private_GREEN_artifact": "ed7770c24de9958c08f70e413e9a248242d62843",
-      "tree": "1a0c0851188d0db85386390269470f5fd039412a",
-      "source_entries": 1817,
-      "mode_manifest": "b47cac23515f597a5e8edaad9435000d78e025a63db4c376d08e2368f062ebbb",
-      "original_snapshot_body_byte_identical": true,
-      "mutex": "EXISTING_RECONCILE_EXPLICIT_30S_FINALLY_BUFFER_UNTIL_RELEASE",
-      "guards": "UNCHANGED"
-    },
-    "actual_nearest": {
-      "native_tests": 1,
-      "native_seconds": 4.06,
-      "native_status": "PASS",
-      "asset_tests": 16,
-      "asset_seconds": 14.972,
-      "asset_status": "PASS",
-      "independent_acceptance_sha256": "8bdca6bd8e680950b4bdabc19f4c3d5dd3ef6d39009528e04c5a919c8fa7f198",
-      "closed_raw_files": 29,
-      "transport_manifest_sha256": "e6428ab6a04038d415209bcdaf778f6a5eb03436b622759006973741e3a2b1e2",
-      "source_environment_donor_unchanged": true,
-      "dependencies": 31
-    },
-    "required_full_QUALITY": {
-      "status": "PASS",
-      "candidate": "2bb496e4de7396a98beec107441419a5668ddf1a",
-      "tree": "e5ff9fce7aa529b1021697142493b1d38cdfb5c8",
-      "source_entries": 1817,
-      "source_mode_manifest": "6b14dba043057a3f01187c6b865abc56708cf7c5e84bccb2c50265e5aa7c7bb2",
-      "all_required_stages": [
-        "verification-policy",
-        "complexity",
-        "lint",
-        "arch-lint",
-        "arch-tests",
-        "typecheck",
-        "test"
+    "record_type": "R56_DOC_ONLY_ACTUAL_INSTALLED_BUNDLE_FOLLOW_THROUGH",
+    "state": "CANONICAL_PREPARATION_AND_INDEPENDENT_EXTERNAL_POSTAUDIT_ACCEPTED_NOT_PRODUCT_ACCEPTANCE",
+    "independent_acceptance_sha256": "5db91f6ac2abd6bb31aacb75e8795fcb37daf72ff84e721d87484048c52c1f03",
+    "normal_apply": {
+      "unchanged_production_services": true,
+      "completed": [
+        "forwarding:enable",
+        "windows:install"
       ],
+      "status": "READY",
       "exit": 0,
-      "tests": 4156,
-      "test_seconds": 352.501,
-      "declared_skips": 37,
-      "architecture_tests": 44,
-      "architecture_seconds": 4.027,
-      "quality_total_seconds": 376.0269351110037,
-      "quality_result_sha256": "39b8fc14699018cee2769e4a288b7512ba886e2c2a7e48eb8439de73ac97e64e",
-      "quality_stage_manifest_sha256": "3e436ad1bcf724cac31b4feae39b6490c9999807a092daec48f21c597415bbab",
-      "independent_acceptance_sha256": "40cfcfb0df623beafdc1471cb5c2266e79b478f3a7ca0ade003166ef4f5ecc22",
-      "closed_raw_files": 22,
-      "closed_raw_manifest_sha256": "986391fbf249f479f0a7a747ce5784a61fb5c5dc142fd4d057afe9b124628df8",
-      "source_environment_donor_before_after": "UNCHANGED",
-      "native1_assets16_mapping": "EXACT_BOTH_PS_AND_OTHER_1813_PATHS_MODES_UNCHANGED_NO_STANDALONE_REPEAT",
-      "historical_policy_NONPASS": "IMMUTABLE_RETAINED_NOT_RELABELED"
+      "post_plan_verified_empty": true,
+      "uncertain": [],
+      "services_verified": false,
+      "new_checkpoint_sha256": "ddb6b761f5aa01be643227921d892a9551a48d0e83e99d64f9f8808465299cd3",
+      "historical_partial_checkpoint_sha256": "d2d9864ed9f8cdd229e980b896be8e5235a776792e087352ac03ffc28fb8e5fe",
+      "unit_enabled_inactive_dead_no_start": true
     },
-    "TA55_timing_limit": "READYgeneratedAtprecedesevaluation; actualatomicpublicationtimeisNOTindependentlymeasured, finalreadisafterevaluation. DonotclaimREADYwasalreadywrittenatheartbeat.",
-    "original_14_metadata": "BYTE_IDENTICAL",
-    "R56_allowed_product_locks": [
-      "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1",
-      "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1"
-    ],
-    "C7_authority_change": false,
-    "source_lineage_installed_bundle_and_later_live_deployment": "SEPARATE_PENDING_NO_INSTALLED_VERSION_CHANGE",
-    "S09_product_live_application_data_restore": "PAUSED_NOT_RUN",
-    "product_EPIC_DONE": false,
-    "historical_first_required_full_QUALITY_NONPASS": {
-      "status": "NONPASS_STOP",
-      "exit": 1,
-      "failed_first_stage": "verification-policy",
-      "diagnostic_location": "documentation/handbook/05-development/workflow/prerequisite-ledger.md:419",
-      "cause": "PLANNING_ROW_MIXED_RUNTIME_AVAILABILITY_REQUIREMENT_AND_VERIFICATION_INTENT",
-      "downstream_full_suite_executed": false,
-      "original_failure": "RETAINED",
-      "correction": "OWNED_DOCUMENTATION_WORDING_ONLY_SEPARATE_RUNTIME_AVAILABILITY_REQUIREMENT",
-      "next": "NEW_EXACT_DOC_SOURCE_ARTIFACT_DESIGNATED_REQUIRED_GATE_RERUN_AND_INDEPENDENT_ACCEPTANCE",
-      "full_PASS_claim": false
+    "private_helper_history": {
+      "original_attempt": "NONPASS_PRE_EFFECT_TUPLE_LIST_EXACT_COMPARISON_SHAPE_DEFECT_RAW_RETAINED",
+      "repair": "SAVE_ACTUAL_BEFORE_ASSERT_STRICT_CANONICAL_DUMP_EQUALITY_ONLY",
+      "actual_three_plans": "EQUAL_UNDER_ALL_ORIGINAL_FINGERPRINT_INVARIANT_ACTION_TIMEOUT_BLOCKER_GUARDS",
+      "historical_failed_attempts_old_bundle_archive_and_d2": "RETAINED"
     },
-    "final_documentation_mapping": {
-      "scope": "FOUR_CANONICAL_STATUS_ONLY_FILES",
-      "both_PS_sha256": {
-        "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1": "6f0c2a7a5ce2bcefda7eebc99a9849cefcdd518aef7362cf6df3d72d4acf8f49",
-        "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1": "d8c6732e03e724631bcbff1eddb3105e9efc636276ef5b43446d1433124af57c"
+    "installed_bridge": {
+      "source_script_sha256": "6f0c2a7a5ce2bcefda7eebc99a9849cefcdd518aef7362cf6df3d72d4acf8f49",
+      "bundle_id": "67C70954BC18B5F6B571006F1ED1A407CF59C56C17071BD6F50DD15E71689F27",
+      "service": "RUNNING",
+      "inventory": {
+        "action": null,
+        "agent_ready": true,
+        "blockers": [],
+        "bridge_ready": true,
+        "ownership": "owned",
+        "routing_ready": true
       },
-      "all_15_metadata": "BYTE_IDENTICAL",
-      "designated_DOC_ONLY_gate": "REQUIRED",
-      "new_full_source_gate": "NOT_REQUIRED_WITHOUT_NEW_REASON",
-      "source_checkpoint": "PENDING",
-      "installed_bundle_version_lineage_deployment_live_Root_GO": "PENDING",
-      "new_C7_authority": false
-    }
+      "account_right_wrapper_XML_registration": "PRESERVED",
+      "protected_directory_owner_ACLs": 3,
+      "canonical_leaf_owner_ACL_paths": 8,
+      "routes_firewall_hosts": "PRESERVED",
+      "source_environment_donor": "UNCHANGED",
+      "kernel_evidence": "ACTUAL_NORMAL_PRIVILEGED_PRODUCTION_POSTPLAN_PREDICATES_NO_SEPARATE_RAW_FIREWALL_DUMP_CLAIM",
+      "endpoints_login_services_product_health": "UNVERIFIED"
+    },
+    "private_C7_source": {
+      "commit": "c976ed379f73b6fc4f29226f1516d8e7c9f781cd",
+      "tree": "6a9b0e678b071915aa2d53c4c9974cf454e6055e",
+      "entries": 1811,
+      "mode_manifest": "416f656405519476185e4f6fa3ded5c4dacea7fbc9f57df081235394e0a93abb",
+      "gates_acceptance_sha256": "07ca51e5298deca132e15a5a2192ce0f2dcf1aac774be62dcdb5d464b646e079",
+      "full_quality_tests": 4156,
+      "declared_skips": 37,
+      "fixture_tests": 205,
+      "bridge_tests": 3,
+      "whole_public_tree_claim": false
+    },
+    "new_WSL_source_only": {
+      "proof_sha256": "643d30d184157778558a7089d87ea927f6c8ab167cffe9797cce31e27e35def3",
+      "acceptance_sha256": "2734d908ed7ec1845817df0af9289f50254652d6bbe231e964559733dc7956c7",
+      "local_files": 4,
+      "classification": "SOURCE_ONLY_LOCAL_TRANSPORT_PROOF",
+      "remote_child_closure_independently_enumerated": false,
+      "live_qualification_credit": false
+    },
+    "C7_native_WSL_pair": "NOT_RUN",
+    "K7": "NOT_CONSTRUCTED",
+    "native_product_VM_approval": "SEPARATE_PENDING",
+    "product_matrix_application_data_restore_EPIC": "OPEN_UNVERIFIED",
+    "original_failure_history": "RETAINED_NOT_RELABELED",
+    "quality_classification": "DOC_ONLY_FINAL_FOUR_CANONICAL_STATUS_FILES_UNCHANGED_ACCEPTED_CODE_AND_CODE_GATES",
+    "final_designated_SSH_WSL_doc_policy_and_diff": "REQUIRED_PLANNED_NOT_PASSED",
+    "canonical_metadata": "ALL_15_BYTE_IDENTICAL",
+    "governing_map_shape": "EXISTING_21_UNCHANGED",
+    "product_EPIC_DONE": false
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -1669,5 +1643,109 @@
     "canonical_metadata": "14_ORIGINAL_BYTE_IDENTICAL_PLUS_ONE_EXPLICIT_REPAIR",
     "governing_file_map_shape": "EXISTING_21_PRESERVED",
     "product_EPIC_DONE": false
+  },
+  "R56_source_verification_checkpoint_history": {
+    "id": "TA440-20261113-56",
+    "slice_id": "S440O-R56-01",
+    "record_type": "BOUNDED_R56_POSTVERIFICATION_DOCUMENTATION_STATUS_CONSOLIDATION",
+    "state": "R56_CODE_VERIFICATION_COMPLETE_SOURCE_CHECKPOINT_PENDING_NO_INSTALLED_LIVE_ACCEPTANCE",
+    "named_expected_RED": {
+      "acceptance_sha256": "95fffe473116220c9732940b60a18633668c943ac2629a81a2311c3b6e16ba6c",
+      "tests": 1,
+      "failures": 1,
+      "skips": 0,
+      "assertion": "R56 inventory waits for busy writer and samples completed heartbeat under reconcile lock",
+      "import_parse_failure": false
+    },
+    "exact_repair_source": {
+      "production_sha256": "6f0c2a7a5ce2bcefda7eebc99a9849cefcdd518aef7362cf6df3d72d4acf8f49",
+      "test_sha256": "d8c6732e03e724631bcbff1eddb3105e9efc636276ef5b43446d1433124af57c",
+      "private_GREEN_artifact": "ed7770c24de9958c08f70e413e9a248242d62843",
+      "tree": "1a0c0851188d0db85386390269470f5fd039412a",
+      "source_entries": 1817,
+      "mode_manifest": "b47cac23515f597a5e8edaad9435000d78e025a63db4c376d08e2368f062ebbb",
+      "original_snapshot_body_byte_identical": true,
+      "mutex": "EXISTING_RECONCILE_EXPLICIT_30S_FINALLY_BUFFER_UNTIL_RELEASE",
+      "guards": "UNCHANGED"
+    },
+    "actual_nearest": {
+      "native_tests": 1,
+      "native_seconds": 4.06,
+      "native_status": "PASS",
+      "asset_tests": 16,
+      "asset_seconds": 14.972,
+      "asset_status": "PASS",
+      "independent_acceptance_sha256": "8bdca6bd8e680950b4bdabc19f4c3d5dd3ef6d39009528e04c5a919c8fa7f198",
+      "closed_raw_files": 29,
+      "transport_manifest_sha256": "e6428ab6a04038d415209bcdaf778f6a5eb03436b622759006973741e3a2b1e2",
+      "source_environment_donor_unchanged": true,
+      "dependencies": 31
+    },
+    "required_full_QUALITY": {
+      "status": "PASS",
+      "candidate": "2bb496e4de7396a98beec107441419a5668ddf1a",
+      "tree": "e5ff9fce7aa529b1021697142493b1d38cdfb5c8",
+      "source_entries": 1817,
+      "source_mode_manifest": "6b14dba043057a3f01187c6b865abc56708cf7c5e84bccb2c50265e5aa7c7bb2",
+      "all_required_stages": [
+        "verification-policy",
+        "complexity",
+        "lint",
+        "arch-lint",
+        "arch-tests",
+        "typecheck",
+        "test"
+      ],
+      "exit": 0,
+      "tests": 4156,
+      "test_seconds": 352.501,
+      "declared_skips": 37,
+      "architecture_tests": 44,
+      "architecture_seconds": 4.027,
+      "quality_total_seconds": 376.0269351110037,
+      "quality_result_sha256": "39b8fc14699018cee2769e4a288b7512ba886e2c2a7e48eb8439de73ac97e64e",
+      "quality_stage_manifest_sha256": "3e436ad1bcf724cac31b4feae39b6490c9999807a092daec48f21c597415bbab",
+      "independent_acceptance_sha256": "40cfcfb0df623beafdc1471cb5c2266e79b478f3a7ca0ade003166ef4f5ecc22",
+      "closed_raw_files": 22,
+      "closed_raw_manifest_sha256": "986391fbf249f479f0a7a747ce5784a61fb5c5dc142fd4d057afe9b124628df8",
+      "source_environment_donor_before_after": "UNCHANGED",
+      "native1_assets16_mapping": "EXACT_BOTH_PS_AND_OTHER_1813_PATHS_MODES_UNCHANGED_NO_STANDALONE_REPEAT",
+      "historical_policy_NONPASS": "IMMUTABLE_RETAINED_NOT_RELABELED"
+    },
+    "TA55_timing_limit": "READYgeneratedAtprecedesevaluation; actualatomicpublicationtimeisNOTindependentlymeasured, finalreadisafterevaluation. DonotclaimREADYwasalreadywrittenatheartbeat.",
+    "original_14_metadata": "BYTE_IDENTICAL",
+    "R56_allowed_product_locks": [
+      "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1",
+      "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1"
+    ],
+    "C7_authority_change": false,
+    "source_lineage_installed_bundle_and_later_live_deployment": "SEPARATE_PENDING_NO_INSTALLED_VERSION_CHANGE",
+    "S09_product_live_application_data_restore": "PAUSED_NOT_RUN",
+    "product_EPIC_DONE": false,
+    "historical_first_required_full_QUALITY_NONPASS": {
+      "status": "NONPASS_STOP",
+      "exit": 1,
+      "failed_first_stage": "verification-policy",
+      "diagnostic_location": "documentation/handbook/05-development/workflow/prerequisite-ledger.md:419",
+      "cause": "PLANNING_ROW_MIXED_RUNTIME_AVAILABILITY_REQUIREMENT_AND_VERIFICATION_INTENT",
+      "downstream_full_suite_executed": false,
+      "original_failure": "RETAINED",
+      "correction": "OWNED_DOCUMENTATION_WORDING_ONLY_SEPARATE_RUNTIME_AVAILABILITY_REQUIREMENT",
+      "next": "NEW_EXACT_DOC_SOURCE_ARTIFACT_DESIGNATED_REQUIRED_GATE_RERUN_AND_INDEPENDENT_ACCEPTANCE",
+      "full_PASS_claim": false
+    },
+    "final_documentation_mapping": {
+      "scope": "FOUR_CANONICAL_STATUS_ONLY_FILES",
+      "both_PS_sha256": {
+        "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1": "6f0c2a7a5ce2bcefda7eebc99a9849cefcdd518aef7362cf6df3d72d4acf8f49",
+        "modules/tsw_windows_wsl/tests/windows/bridge-preparation.Tests.ps1": "d8c6732e03e724631bcbff1eddb3105e9efc636276ef5b43446d1433124af57c"
+      },
+      "all_15_metadata": "BYTE_IDENTICAL",
+      "designated_DOC_ONLY_gate": "REQUIRED",
+      "new_full_source_gate": "NOT_REQUIRED_WITHOUT_NEW_REASON",
+      "source_checkpoint": "PENDING",
+      "installed_bundle_version_lineage_deployment_live_Root_GO": "PENDING",
+      "new_C7_authority": false
+    }
   }
 }

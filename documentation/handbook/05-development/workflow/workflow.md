@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; R56 source verification ACCEPTED, corrected policy/all7 QUALITY PASS; source checkpoint and installed-bundle/live admission pending; S09 PAUSED; EPIC incomplete
+Status: EXECUTING; R56 normal installed-bundle/network preparation independently ACCEPTED TA61; C7 live pair/K7/product/recovery acceptance pending; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -3412,7 +3412,7 @@ bundle deployment/live Root GO remain separate; installed version is not updated
 by checkout edits. Frozen C6/K6 and prior accepted proofs remain immutable. S09
 and product/live application-data recovery stay PAUSED/NOT_RUN, EPIC incomplete.
 
-## R56 final source verification — accepted, source checkpoint pending
+## Historical R56 source-verification checkpoint
 
 Actual corrected-doc candidate2bb496e4de7396a98beec107441419a5668ddf1a/treee5ff9fce…
 passes verification-policy and all seven required QUALITY stages:4156tests in
@@ -3429,3 +3429,39 @@ verification is required, not another full-source run without a new reason.
 All15metadata blocks and the two product locks stay unchanged. Installed bundle/
 version, source-lineage/deployment admission and subsequent live Root GO remain
 pending; S09/product/application-data restoration/EPIC acceptance are not complete.
+
+## R56 installed-bundle follow-through — TA61 independently accepted
+
+Actual normal, unchanged production apply completed forwarding:enable and
+windows:install: READY/exit0, verified empty postplan, uncertain[]. Independent
+external acceptance5db91f6a… binds new production READY checkpointddb6b761…;
+historic PARTIALd2d9864e…, old bundle archive and failed attempts remain retained.
+The first private-helper attempt was blocked before effects by tuple/list exact-
+comparison shape; original raw retained. Its narrow strict-canonical comparison/
+save-before-validation correction produced three identical actual plans, without
+weakening fingerprint/invariant/action/timeout/blocker guards, before authorized apply.
+
+Installed bridge6f0c2a7a… now matches actual protected bundle
+67C70954BC18B5F6B571006F1ED1A407CF59C56C17071BD6F50DD15E71689F27;
+service Running and coherent inventory routing/agent/bridge predicates are true.
+Actual account/logon right, three protected directory ACLs, eight canonical leaf
+owner/ACL/paths, wrapper XML/registration and routes/firewall/hosts preservation
+are independently accepted; source/environment/donor guards match. Forwarding
+unit is ENABLED but inactive/dead: no start was requested. Kernel readiness uses
+actual normal production postplan predicates; no separate raw firewall dump is
+claimed. Endpoints/login/services/product health remain UNVERIFIED.
+
+Private C7 source/gates07ca51e5… cover exact1811source/4156tests/37declared skips,
+fixture205 and bridge3; they do not verify an entire differing public tree.
+Public source checkpoint02de2947… and prior R56 code results remain historical.
+New root-owned WSL C7 source proof643d30d1…/acceptance2734d908… is SOURCE_ONLY:
+four-file local transport proof, not independent enumeration of its remote child
+closure or live pair credit. C7 native/WSL qualification is NOT_RUN; K7 has not
+been constructed, and product matrix/application-data recovery/EPIC remain open. Native
+product-VM approval is separate and pending, not implied by old maintenance consent.
+
+This R56 DOC_ONLY follow-through updates four canonical status files after actual
+installation acceptance. Code/gates and all15metadata blocks remain unchanged;
+existing21governing-map shape/hashes are refreshed. Final designated SSH/WSL doc
+policy/diff verification is REQUIRED/PLANNED, not yet passed; no code gate replay
+or further live permission follows from this documentation update.

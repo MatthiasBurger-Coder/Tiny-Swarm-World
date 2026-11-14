@@ -436,10 +436,20 @@ workflow/authority or implementation/live/EPIC success from this planning addend
 | Required QUALITY | NONPASS/exit1 at firstverification-policy stage/ledger419 planningwording | No downstreamfullsuite ran; originalfailure retained; this doc-only correction requires newexactartifact/designatedrequiredgate rerun and independentacceptance |
 | Product/release | Original14metadata/R56twoPSlocks unchanged; no source-lineage/deployment authority advanced | S09PAUSED; sourcecheckpoint/installedbundle/laterliveRootGO pending; installedversion/product/datarestore/EPICnotcomplete |
 
-## Current R56 accepted source verification
+## Historical R56 accepted source verification
 
 | Evidence | Actual accepted result | Remaining boundary |
 |---|---|---|
 | Corrected exact source |2bb496e4…/treee5ff9fce…/1817mode6b14dba0…; policy+all7QUALITY PASS4156tests/352.501s/37declared skips; architecture44/4.027s | Independent40cfcfb0…/22closedraw/986391fb…; source/env/donorunchanged |
 | Native/assets mapping | Prior1native+16assets map through unchangedPS6f0c2a7a…/testd8c6732e… | No standalone repeats; historicalpolicyNONPASS remains retained |
 | R56/release | Codeverification complete,15metadata/twoPSlocks unchanged | Sourcecheckpoint/publication and designated4DOC_ONLYmapping gate pending; installedversion/lineage/deployment/liveRootGO/S09/product/datarestore/EPIC notcomplete |
+
+## Current R56 installed-bundle acceptance — TA61
+
+| Evidence | Actual accepted result | Remaining boundary |
+|---|---|---|
+| Canonical preparation | Independent5db91f6a… normalenable+windowsinstall READY0/verifiedemptyplan/uncertain[]; checkpointddb6b761… | Historicd2/oldbundlearchive/failedattempts retained; tuple/list pre-effect defect corrected by strictcanonical equality/threeplans equal, no guard weakening |
+| Installed bridge | Actual6f0…/bundle67C70954…/serviceRunning/inventoryrouting-agent-bridgetrue; account/right/3dir8leafACLownerpaths/XML/registration/routes/firewall/hosts preserved | Source/env/donor guards match; unitENABLED/inactive-dead/no-start; normalproductionkernelpostplan predicates, not separate rawdump |
+| Product state | Preparation only; endpoints/login/services UNVERIFIED | C7livepairNOT_RUN/K7NOT_CONSTRUCTED/productmatrix/application-datarestore/EPICOPEN; nativeproductVMapproval separatelypending |
+| Source qualification | PrivateC7proof07ca51…4156/37+205fixture+3bridge exactsource; newWSL643d30…/2734d9… SOURCE_ONLY4localfiles | Not wholepublictree/fullremoteclosure enumeration or livepair credit |
+| Documentation | ExistingR56codegates/15metadata/21mapshape unchanged, fourDOC_ONLYstatus update | FinaldesignatedSSHWSLdocpolicy/diffgate PLANNED/notpassed; no extra codegate or liveGO inferred |
