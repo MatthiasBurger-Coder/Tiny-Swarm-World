@@ -4,6 +4,11 @@ Contract version: 1. Issue: [#453](https://github.com/MatthiasBurger-Coder/Tiny-
 parent [#452](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/452).
 Source baseline: `346f4a43dbdc43380e7bc703ab185bc06746965b`.
 
+The next combined preparation/install interface is specified separately in
+[UX-01 one-command setup](one-command-setup.md). Its proposed wrappers are not
+implemented; this existing bootstrap contract and its qualification guards remain
+authoritative for delivered preparation behavior.
+
 ## Current delivery status — BOOT-W10 audit, 2026-10-17
 
 The W01 baseline inventory and target definitions below are historical planning

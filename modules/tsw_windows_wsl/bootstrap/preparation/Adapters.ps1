@@ -12,6 +12,32 @@ public static class TswPreparationOemCodePage {
     if($codePage -le 0){throw 'invalid_oem_code_page'}
     return [Text.Encoding]::GetEncoding($codePage,[Text.EncoderExceptionFallback]::new(),[Text.DecoderExceptionFallback]::new())
 }
+function ConvertTo-PreparationProcessArguments([string[]]$Arguments) {
+    $encoded=foreach ($arg in $Arguments) {
+        if($arg -cmatch '\A[A-Za-z0-9_./:=+-]+\z') {$arg}
+        else {'"'+([regex]::Replace(([regex]::Replace($arg,'(\\*)"','$1$1\"')),'(\\+)$','$1$1'))+'"'}
+    }
+    return $encoded -join ' '
+}
+function Invoke-GuidedLinuxInstallation($Handoff,$Profile) {
+    $script='cd -- "$1" && ./modules/tsw_native_linux/boostrap/prepare_linux.sh --service-profile "$2" && exec ./modules/tsw_native_linux/boostrap/install.sh --service-profile "$2"'
+    $info=New-Object Diagnostics.ProcessStartInfo
+    $info.FileName=Get-PreparationExecutable 'wsl.exe'
+    $info.UseShellExecute=$false
+    # Inherit console streams for Linux consent/sudo prompts; preserve argv even
+    # under Windows PowerShell 5.1's legacy native argument marshalling.
+    $info.Arguments=ConvertTo-PreparationProcessArguments @('--distribution',$Handoff.distro,'--user',$Handoff.account,'--exec','/bin/bash','-lc',$script,'setup-wsl',$Handoff.checkout,$Profile)
+    $process=New-Object Diagnostics.Process
+    $process.StartInfo=$info
+    try {
+        [void]$process.Start()
+        $process.WaitForExit()
+        return [int]$process.ExitCode
+    } catch [Management.Automation.PipelineStoppedException] {
+        try{if(!$process.HasExited){$process.Kill()}}catch{}
+        return 130
+    } finally {$process.Dispose()}
+}
 function Invoke-PreparationProcess {
     param([string]$File, [string[]]$Arguments, [int]$TimeoutSeconds, [string]$InputText='')
     if ($TimeoutSeconds -le 0) {throw 'invalid_timeout'}
@@ -29,11 +55,7 @@ function Invoke-PreparationProcess {
     }
     # WSL parses raw option tokens; quoting every flag turns --version into a Linux command.
     # Quote other arguments using CommandLineToArgvW, preserving quotes/trailing slashes.
-    $encoded=foreach ($arg in $Arguments) {
-        if($arg -cmatch '\A[A-Za-z0-9_./:=+-]+\z') {$arg}
-        else {'"'+([regex]::Replace(([regex]::Replace($arg,'(\\*)"','$1$1\"')),'(\\+)$','$1$1'))+'"'}
-    }
-    $info.Arguments=$encoded -join ' '
+    $info.Arguments=ConvertTo-PreparationProcessArguments $Arguments
     $process=New-Object Diagnostics.Process
     $process.StartInfo=$info
     $processDeadline=[Diagnostics.Stopwatch]::StartNew()
@@ -68,7 +90,7 @@ function Invoke-PreparationProcess {
     } finally {$process.Dispose()}
 }
 function Get-PreparationSource($Options) {
-    $assets=@('modules/tsw_native_linux/boostrap/install.sh','modules/tsw_native_linux/boostrap/prepare_linux.sh','modules/tsw_windows_wsl/bootstrap/preparation/Handoff.ps1','modules/tsw_windows_wsl/bootstrap/preparation/linux-handoff.sh','modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Preparation.psm1','modules/tsw_windows_wsl/bootstrap/preparation/Policy.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Application.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Adapters.ps1','modules/tsw_windows_wsl/bootstrap/preparation/linux-config.sh','modules/tsw_windows_wsl/bootstrap/preparation/Download.ps1','modules/tsw_windows_wsl/bootstrap/preparation/SourceProof.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Resources.ps1','modules/tsw_windows_wsl/bootstrap/preparation/ResourceAdapters.ps1','modules/tsw_windows_wsl/bootstrap/preparation/ResourceHost.ps1','modules/tsw_windows_wsl/bootstrap/preparation/linux-resources.sh','modules/tsw_windows_wsl/bootstrap/preparation/resource-projection.json','modules/tsw_core/src/domain/preflight/resources.py','modules/tsw_core/src/domain/host_environment.py','modules/tsw_core/infra/config/node-providers/provider_config.yaml','modules/tsw_windows_wsl/tools/build_wsl_resource_projection.py','modules/tsw_windows_wsl/bootstrap/preparation/Bridge.ps1','modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1','modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge-service.ps1','modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.config.json','modules/tsw_core/infra/config/ports.yaml','modules/tsw_windows_wsl/tools/qualification/windows_firewall_snapshot.ps1','modules/tsw_windows_wsl/tools/qualification/windows_firewall_certificate.ps1')
+    $assets=@('modules/tsw_windows_wsl/bootstrap/preparation/GuidedSetup.ps1','modules/tsw_native_linux/boostrap/install.sh','modules/tsw_native_linux/boostrap/prepare_linux.sh','modules/tsw_windows_wsl/bootstrap/preparation/Handoff.ps1','modules/tsw_windows_wsl/bootstrap/preparation/linux-handoff.sh','modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Preparation.psm1','modules/tsw_windows_wsl/bootstrap/preparation/Policy.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Application.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Adapters.ps1','modules/tsw_windows_wsl/bootstrap/preparation/linux-config.sh','modules/tsw_windows_wsl/bootstrap/preparation/Download.ps1','modules/tsw_windows_wsl/bootstrap/preparation/SourceProof.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Resources.ps1','modules/tsw_windows_wsl/bootstrap/preparation/ResourceAdapters.ps1','modules/tsw_windows_wsl/bootstrap/preparation/ResourceHost.ps1','modules/tsw_windows_wsl/bootstrap/preparation/linux-resources.sh','modules/tsw_windows_wsl/bootstrap/preparation/resource-projection.json','modules/tsw_core/src/domain/preflight/resources.py','modules/tsw_core/src/domain/host_environment.py','modules/tsw_core/infra/config/node-providers/provider_config.yaml','modules/tsw_windows_wsl/tools/build_wsl_resource_projection.py','modules/tsw_windows_wsl/bootstrap/preparation/Bridge.ps1','modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1','modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge-service.ps1','modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.config.json','modules/tsw_core/infra/config/ports.yaml','modules/tsw_windows_wsl/tools/qualification/windows_firewall_snapshot.ps1','modules/tsw_windows_wsl/tools/qualification/windows_firewall_certificate.ps1')
     if(Test-Path -LiteralPath (Join-Path $Options.RepositoryRoot 'modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1') -PathType Leaf){$assets+=@('modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1')}
     $hashes=[ordered]@{}
     foreach($asset in $assets){$path=Join-Path $Options.RepositoryRoot $asset

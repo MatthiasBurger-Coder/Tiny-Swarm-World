@@ -44,17 +44,27 @@ PowerShell:
 
 [source,powershell]
 ----
-./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Distro Ubuntu-26.04
+./setup_wsl.ps1 -Distro Ubuntu-26.04
 ----
 
-The second command is the printed `handoff.operator_command`: copy it into the
-interactive PowerShell console. It selects the observed ordinary user and matching
-Linux-native checkout, runs Linux preparation, then installation only on success.
-Windows never runs product Python. Ordinary Windows Apply currently blocks as
-unqualified: these are command/handoff contracts, not a qualified clean-host
-walkthrough. Do not add qualification flags simply to bypass a blocker. Follow
+The guided entrypoint shows the selected distro, observed ordinary user and matching
+Linux-native checkout before requesting installation consent. Once Windows
+prerequisites are ready, it runs Linux preparation, then installation only on
+success; both retain their own consent and verification. Windows never runs
+product Python. Missing Windows prerequisites delegate to existing guarded
+preparation, whose ordinary Apply currently blocks as unqualified. This entrypoint
+does not establish a qualified clean-host walkthrough. Do not add qualification
+flags simply to bypass a blocker. Follow
 link:{user-guide-prefix}windows-preparation.md[Windows preparation] for the exact
 authorized-target, source proof and recovery requirements.
+
+Use `-Help` without host probes or dependencies, `-Preflight` for read-only
+readiness, or `-DryRun` for the preparation plan. `-Json` is read-only inventory
+output; JSON Apply is blocked without prompting. `-Profile default` and
+`-Profile service-access` delegate existing preparation/installer presets;
+minimal/custom remain blocked until the shared selective setup boundary exists.
+No reset or qualification bypass is exposed. Delegated exit codes, including
+restart-required 3 and partial 4, propagate unchanged.
 
 Select the exact registered Ubuntu distro; custom names require matching
 `-UbuntuRelease 24.04` or `26.04`. If missing, a canonical selected distribution
@@ -68,8 +78,10 @@ a command to the short path; it is not hidden automatic Windows execution.
 
 Expect pauses for Windows feature activation, selected-distro/systemd restart,
 capacity changes or new Incus group membership. Perform the reported scoped
-restart or full logout/login, then rerun the same preparation selection with fresh
-consent. Use WSL-wide shutdown only when the reviewed resource plan explicitly
+restart or full logout/login, then rerun `./setup_wsl.ps1` with the same target,
+release, profile and checkout options plus `-Resume`. Resume reobserves the
+existing protected preparation state and requests fresh consent; it does not
+reuse saved approval. Use WSL-wide shutdown only when the reviewed resource plan explicitly
 reports that scope; it affects all WSL2 registrations. Otherwise use the reported
 selected-distro restart. Never delete state to force readiness.
 Preserve reviewed configuration and credential overrides between terminals.
