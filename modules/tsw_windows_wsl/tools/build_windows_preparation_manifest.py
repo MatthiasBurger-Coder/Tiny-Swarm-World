@@ -18,6 +18,7 @@ MAX_TREE_OBJECTS = 144  # Physical module and compatibility-path ancestors.
 ASSETS = (
     "modules/tsw_native_linux/boostrap/install.sh",
     "modules/tsw_native_linux/boostrap/prepare_linux.sh",
+    "modules/tsw_windows_wsl/bootstrap/preparation/GuidedSetup.ps1",
     "modules/tsw_windows_wsl/bootstrap/preparation/Handoff.ps1",
     "modules/tsw_windows_wsl/bootstrap/preparation/linux-handoff.sh",
     "modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1",
