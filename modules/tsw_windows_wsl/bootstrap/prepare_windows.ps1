@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference='Stop'
 $RepositoryRoot=[IO.Path]::GetFullPath((Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../../..')).ProviderPath)
 $requiredAssets=@(
+    'modules/tsw_windows_wsl/bootstrap/preparation/GuidedSetup.ps1',
     'modules/tsw_windows_wsl/bootstrap/preparation/Preparation.psm1','modules/tsw_windows_wsl/bootstrap/preparation/Policy.ps1',
     'modules/tsw_windows_wsl/bootstrap/preparation/Application.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Adapters.ps1',
     'modules/tsw_windows_wsl/bootstrap/preparation/SourceProof.ps1','modules/tsw_windows_wsl/bootstrap/preparation/Download.ps1',
