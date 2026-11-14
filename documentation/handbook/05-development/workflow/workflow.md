@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; R56 normal installed-bundle/network preparation independently ACCEPTED TA61; C7 live pair/K7/product/recovery acceptance pending; EPIC incomplete
+Status: EXECUTING; TA80 scoped listener repair VERIFIED_LOCAL; C8/K8 and lifecycle live acceptance pending; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -3465,3 +3465,144 @@ installation acceptance. Code/gates and all15metadata blocks remain unchanged;
 existing21governing-map shape/hashes are refreshed. Final designated SSH/WSL doc
 policy/diff verification is REQUIRED/PLANNED, not yet passed; no code gate replay
 or further live permission follows from this documentation update.
+
+
+## TA80 — scoped listener observation repair, 2026-11-14
+
+The user assigned this session exclusive continuation after stopping the other
+session. Actual TA78 minimal setup on immutable K7 returned CLI exit 1,
+selection_admission_blocked, executed=false; its wrapper exit 0 records collection
+only. The CLI child was fully reaped. Read-only poststate confirms no instances,
+operations, manifest or creation journal; only the empty operation lock exists.
+
+Actual source-bound read-only inspection localizes the failure to the strict
+stderr check for `ss -H -O -ltnpe`. iproute2 6.19.0 emits
+`Failed to open cgroup2 by ID` despite exit 0. The exact comparison without `-e`
+has empty stderr and identical complete endpoint/PID projections. Extended
+UID/inode/cgroup fields are unused; trusted ownership uses the separate privileged
+process proof. Requirement, Architecture, Python, Test, Security and DevOps
+reviews accept the narrow repair. No warning whitelist or guard relaxation.
+
+The repair changes only the observer command and exact allowlist to `-ltnp`,
+with a regression requiring the real adapter path and retained negative cases.
+Run regression-first and required gates only on SSH58 Ubuntu WSL, matching exact
+source. C7/K7 and their actual proofs remain immutable. A reviewed new C8 plus
+capability-only K8 and renewed qualification are required before another live
+setup. The original TA78 plan/receipts are not replayed. Hyper-V inventory remains
+stopped; no Hyper-V test or VM action was performed by this session.
+
+Requirement matrix: `.tiny-swarm/evidence/issue-440-open/consultations/TA440-20261114-80/requirement_matrix.md`.
+Done criteria: exact regression and required quality pass, independent source
+review, recorded bounded repair evidence; parent acceptance stays incomplete
+until renewed live qualification and remaining product scenarios pass.
+
+```yaml
+{
+  "slice_id": "S440O-SS-OBSERVATION",
+  "profile": "FULL_PATH",
+  "owner": "Senior Python Automation Developer",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/observations.py",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/command_policy.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/workflow.md"
+  ],
+  "affected_modules": [
+    "scoped Incus observation"
+  ],
+  "affected_contracts": [
+    "exact readonly listener command; unchanged trusted ownership and stderr rejection"
+  ],
+  "dependencies": [
+    "S440O-08"
+  ],
+  "parallel_group": "serial-ss-repair",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": true,
+  "file_locks": [
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/observations.py",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/command_policy.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
+    ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261114-80/**",
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/workflow.md"
+  ],
+  "module_locks": [
+    "scoped Incus profile observation"
+  ],
+  "contract_locks": [
+    "listener process attribution"
+  ],
+  "architecture_locks": [
+    "strict readonly command allowlist and trusted ownership"
+  ],
+  "allowed_write_scope": [
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/observations.py",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/command_policy.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
+    ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261114-80/**",
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/workflow.md"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_lifecycle"
+    ],
+    "required": [
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality",
+      "git diff --check"
+    ]
+  },
+  "documentation": {
+    "arc42": "Existing ADR checked; infrastructure command formatting only; no boundary or policy change.",
+    "adr": "No new decision; retain all security and provenance controls."
+  },
+  "stop_conditions": [
+    "Source outside three locks",
+    "Any stderr suppression or lost endpoint/PID or trusted ownership proof",
+    "Unverified source or failed required gate",
+    "Reuse C7/K7 qualification as a new candidate result",
+    "Live effects before renewed campaign admission"
+  ]
+}
+```
+
+
+### TA80 local verification and continuation
+
+Actual SSH58 Ubuntu WSL regression-first evidence: one named test returned
+exit 1 at the original listener stderr guard; independent review accepted the
+reproduced failure. After exactly two command substitutions, 47 targeted tests
+passed. Required full local quality returned exit 0: verification policy,
+complexity, lint, seven import contracts, 44 architecture tests, typecheck over
+1,056 files, and 4,159 tests in 353.781 seconds with 37 declared skips and no
+failures/errors. The 1,816-file source/mode map and own environment/donor guards
+matched before/after. Independent local acceptance: private artifact
+`ta80-test-preparation/quality-independent-acceptance.json`, SHA-256
+`f73a12773ae0495b899a01ace7d57ca0017bd6754f738cfb06cdf05dbccabd4e`.
+These are source-repair results, not lifecycle live or external acceptance.
+
+Only these three workflow/status documents change after that full source run;
+exact SSH/WSL documentation-policy and diff verification are required before
+the bounded source checkpoint. The source/test blobs remain the tested bytes.
+C8/K8 renewal, actual minimal setup, Portainer/component/data-recovery journeys
+and parent completion remain pending. C7/K7 and the failed TA78 attempt remain
+immutable. Current source repair is VERIFIED_LOCAL, not parent DONE.
+
+The user explicitly excluded Hyper-V completely on 2026-11-14. This supersedes
+the earlier native Hyper-V VM/inventory authorization. This session launched no
+Hyper-V query, elevation, VM change or VM test. Native product qualification
+requires an admitted Linux target within the remaining preservation boundaries;
+existing authorized native listener-maintenance scope grants no product reset.

@@ -319,7 +319,73 @@ class FrameRunner:
             operation='', error_code=0, error='', metadata=row)))
 
 
+class ListenerFrameRunner(FrameRunner):
+    def __init__(self, result):
+        super().__init__()
+        self.listener_result = result
+
+    async def run(self, args, timeout_seconds):
+        if args[0] != '/usr/bin/ss':
+            return await super().run(args, timeout_seconds)
+        self.calls.append(tuple(args))
+        if tuple(args) == ('/usr/bin/ss', '-H', '-O', '-ltnpe'):
+            return LxcNodeCommandResult(0, self.listener_result.stdout, 'Failed to open cgroup2 by ID\n')
+        if tuple(args) != ('/usr/bin/ss', '-H', '-O', '-ltnp'):
+            raise AssertionError('Unexpected listener observation command')
+        return self.listener_result
+
+
 class RealObservationFrameTests(unittest.IsolatedAsyncioTestCase):
+    async def test_listener_observation_avoids_unused_cgroup_expansion_without_losing_pid_data(self):
+        stdout = 'LISTEN 0 4096 127.0.0.53:53 0.0.0.0:* users:(("systemd-resolve",pid=41,fd=14))\n'
+        runner = ListenerFrameRunner(LxcNodeCommandResult(0, stdout))
+        with patch('tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle.assert_local_socket'):
+            observed = await IncusProfileLifecycleRuntime(runner).inspect(intent_fixture())
+        self.assertTrue(observed.listeners_clear)
+        self.assertFalse(observed.forbidden_listener)
+        self.assertEqual([args for args in runner.calls if args[0] == '/usr/bin/ss'],
+                         [('/usr/bin/ss', '-H', '-O', '-ltnp')])
+        managed = 'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=314,fd=8))\n'
+        self.assertEqual(dto.listener_rows(managed, intent_fixture()), [('127.0.0.1', 10001, 314)])
+
+    async def test_corrected_listener_command_still_rejects_every_transport_failure(self):
+        results = (
+            LxcNodeCommandResult(0, '', 'Failed to open cgroup2 by ID\n'),
+            LxcNodeCommandResult(0, '', 'unexpected diagnostic\n'),
+            LxcNodeCommandResult(1, ''),
+            LxcNodeCommandResult(0, '', timed_out=True),
+            LxcNodeCommandResult(0, '', failure_hint='incomplete output'),
+        )
+        for result in results:
+            runner = ListenerFrameRunner(result)
+            with self.subTest(result=result), patch(
+                    'tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle.assert_local_socket'), \
+                    self.assertRaises(LifecycleStateError):
+                await IncusProfileLifecycleRuntime(runner).run(('/usr/bin/ss', '-H', '-O', '-ltnp'))
+            self.assertEqual(runner.calls, [('/usr/bin/ss', '-H', '-O', '-ltnp')])
+
+    async def test_listener_observation_retains_ambiguous_foreign_and_duplicate_refusal(self):
+        intent = intent_fixture()
+        for process in ('', 'users:(("incusd",pid=314,fd=8),("foreign",pid=315,fd=9))'):
+            with self.subTest(process=process), self.assertRaises(LifecycleStateError):
+                dto.listener_rows('LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* ' + process, intent)
+        own = 'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=314,fd=8))\n'
+        for stdout, forbidden in ((own + own, False), (own.replace(':10001', ':16080'), True)):
+            runtime = AsyncMock()
+            runtime.run.return_value = stdout
+            with self.subTest(stdout=stdout):
+                observed = await dto.listeners(runtime, intent, 100, True, True, _UUID)
+                self.assertEqual(observed[:3], (forbidden, False, False))
+                self.assertEqual(observed[3], ())
+                runtime.run.assert_awaited_once_with(('/usr/bin/ss', '-H', '-O', '-ltnp'))
+        runtime = AsyncMock()
+        runtime.run.return_value = own
+        with patch('tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.observations.listener_proof',
+                   side_effect=LifecycleStateError('Untrusted listener')) as proof, \
+                self.assertRaises(LifecycleStateError):
+            await dto.listeners(runtime, intent, 100, True, True, _UUID)
+        proof.assert_awaited_once_with(runtime, 314, 100, intent, _UUID)
+
     async def test_actual_command_adapter_collects_strict_complete_frame_without_exporting_raw_metadata(self):
         from dataclasses import asdict
         runner = FrameRunner()

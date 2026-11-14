@@ -623,3 +623,17 @@ not independentremoteclosure enumeration or qualification. C7livepairNOT_RUN/K7
 NOT_CONSTRUCTED/productmatrix/applicationdatarestore/EPICOPEN; separate native
 productVMapprovalpending. ExistingR56codegates/15metadata unchanged; this4DOC_ONLY
 statusmapping needs finaldesignatedSSHWSLdocpolicy+diffchecks PLANNED/notpassed.
+
+
+TA80 current continuation: actual K7 minimal setup BLOCKED before creation; scoped
+`ss` extended cgroup diagnostic localized. S440O-SS-OBSERVATION permits only two
+command/allowlist changes and regression. Required SSH58 source checks and new
+C8/K8 qualification remain pending; no parent completion or new live PASS.
+
+
+TA80 actual local verification accepted: 47 targeted tests; full quality exit 0,
+4,159 tests/37 declared skips, 44 architecture tests/seven contracts, 1,056
+typechecked files. Source and donor/environment guards match. Final three-file
+documentation-only verification and checkpoint pending. C8/K8 and all remaining
+lifecycle acceptance stay separate. Hyper-V is completely excluded by the
+current user instruction; no Hyper-V action occurred in this session.
