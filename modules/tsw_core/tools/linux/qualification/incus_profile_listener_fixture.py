@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import base64
 from datetime import datetime, timezone
 import hashlib
 import ipaddress
@@ -25,12 +24,9 @@ ACTIVE_WORKFLOW = 'documentation/handbook/05-development/workflow/workflow.md'
 TRUSTED_BIN = {'incus': '/usr/bin/incus', 'ip': '/usr/sbin/ip', 'ss': '/usr/bin/ss', 'uname': '/usr/bin/uname', 'free': '/usr/bin/free', 'df': '/usr/bin/df', 'curl': '/usr/bin/curl', 'git': '/usr/bin/git'}
 TRUSTED_PATH = '/usr/sbin:/usr/bin:/sbin:/bin'
 PRIVATE_EVIDENCE_REL = Path('.tiny-swarm/evidence/issue-449/s449-private-20261027')
-WINDOWS_SNAPSHOT_REL = Path('modules/tsw_windows_wsl/tools/qualification/windows_firewall_snapshot.ps1')
-WINDOWS_CERTIFICATE_REL = Path('modules/tsw_windows_wsl/tools/qualification/windows_firewall_certificate.ps1')
-WINDOWS_CERTIFICATE_SHA256 = '2ed11f507292e8abad5367856929e2698c26c4db11f8cf9d00c19fa2da34f458'
 GO_REL = PRIVATE_EVIDENCE_REL / 'three-amigos-s02-live-go.json'
 RESULT_REL = PRIVATE_EVIDENCE_REL / 'r67-incus-6.0.5-listener-fixture.json'
-GO_KEYS = {'decision','source_commit','workflow_sha256','runner_sha256','test_sha256','resource_admission_sha256','issue447_inventory_sha256','target','proxy','cleanup','reviews','windows_rules_unchanged','external_routes_enabled','default_profile_sha256','default_profile_used_by','approved_route_state_sha256','fixture_base_profile_sha256','windows_snapshot_sha256','windows_certificate_sha256'}
+GO_KEYS = {'decision','source_commit','workflow_sha256','runner_sha256','test_sha256','resource_admission_sha256','issue447_inventory_sha256','target','proxy','cleanup','reviews','external_routes_enabled','default_profile_sha256','default_profile_used_by','approved_route_state_sha256','fixture_base_profile_sha256'}
 TARGET_KEYS = {'host','endpoint','project','server_version','run_id','profile','base_profile','instance','image_fingerprint'}
 PROXY_KEYS = {'listen','connect','bind'}
 REVIEW_KEYS = {'requirements','architecture','security','devops','test_evidence'}
@@ -53,8 +49,6 @@ _INVENTORY_MAX_COMMANDS = 256
 _INVENTORY_TOTAL_COMMAND_MAX_BYTES = 16 * 1024 * 1024
 _INVENTORY_HOST_COMMAND_TIMEOUT_SECONDS = 30
 _INVENTORY_TOTAL_TIMEOUT_SECONDS = 300
-_WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS = 650
-_WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS = 300
 _INVENTORY_TARGET_HOST = '192.168.178.33'
 _INVENTORY_CLEANUP_COMMAND_RESERVE = 110
 _INVENTORY_CLEANUP_BYTE_RESERVE = 8 * 1024 * 1024
@@ -72,15 +66,13 @@ _PROJECT_BOOLEAN_KEYS = {
 }
 
 _COMMAND_AUDIT: list[dict[str, Any]] = []
-_WINDOWS_SNAPSHOT_METADATA: dict[str, Any] = {}
 _FAILURE_CONTEXT: dict[str, Any] | None = None
 
 
 def _inventory_budgets() -> tuple[int, int, int, float]:
     reserve = _INVENTORY_RESERVE_CLEANUP and not _INVENTORY_CLEANUP_MODE
-    wsl = _INVENTORY_TARGET_HOST == '192.168.178.58'
-    total = _WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS if wsl else _INVENTORY_TOTAL_TIMEOUT_SECONDS
-    cleanup = _WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if wsl else _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS
+    total = _INVENTORY_TOTAL_TIMEOUT_SECONDS
+    cleanup = _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS
     return (
         _INVENTORY_MAX_COMMANDS - (_INVENTORY_CLEANUP_COMMAND_RESERVE if reserve else 0),
         _INVENTORY_TOTAL_COMMAND_MAX_BYTES - (_INVENTORY_CLEANUP_BYTE_RESERVE if reserve else 0),
@@ -108,18 +100,16 @@ class _BoundedCommandFailure(TargetDrift):
 
 
 def _inventory_budget_profile() -> dict[str, Any]:
-    wsl = _INVENTORY_TARGET_HOST == '192.168.178.58'
-    total = _WSL_INVENTORY_TOTAL_TIMEOUT_SECONDS if wsl else _INVENTORY_TOTAL_TIMEOUT_SECONDS
-    reserve = (_WSL_INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if wsl else
-               _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS) if _INVENTORY_RESERVE_CLEANUP else 0
+    total = _INVENTORY_TOTAL_TIMEOUT_SECONDS
+    reserve = _INVENTORY_CLEANUP_TIMEOUT_RESERVE_SECONDS if _INVENTORY_RESERVE_CLEANUP else 0
     return {'target_host': _INVENTORY_TARGET_HOST, 'total_seconds': total,
             'cleanup_reserve_seconds': reserve, 'active_seconds': total - reserve}
 
 
 def _begin_inventory(host: str, *, reserve_cleanup: bool) -> None:
     global _INVENTORY_TARGET_HOST, _INVENTORY_BYTES_CAPTURED, _INVENTORY_ENTITIES_CAPTURED
-    global _INVENTORY_STARTED_AT, _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE, _WINDOWS_SNAPSHOT_METADATA
-    if host not in {'192.168.178.33', '192.168.178.58'}:
+    global _INVENTORY_STARTED_AT, _INVENTORY_RESERVE_CLEANUP, _INVENTORY_CLEANUP_MODE
+    if host not in {'192.168.178.33'}:
         raise FixtureError('HOST_IDENTITY_DRIFT')
     _INVENTORY_TARGET_HOST = host
     _COMMAND_AUDIT.clear()
@@ -128,7 +118,6 @@ def _begin_inventory(host: str, *, reserve_cleanup: bool) -> None:
     _INVENTORY_STARTED_AT = None
     _INVENTORY_RESERVE_CLEANUP = reserve_cleanup
     _INVENTORY_CLEANUP_MODE = False
-    _WINDOWS_SNAPSHOT_METADATA = {}
 
 
 def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -382,7 +371,6 @@ def _account_inventory_json(argv: list[str], value: Any, code: str) -> None:
 
 def approved_route_state_sha256(listeners_10001: list[bytes],
                                 incus_10001_routes: list[dict[str, Any]],
-                                windows_snapshot: bytes,
                                 incus_projects: list[str] | None = None) -> str:
     tuples = _safe_listener_tuples(listeners_10001)
     payload = {
@@ -393,16 +381,10 @@ def approved_route_state_sha256(listeners_10001: list[bytes],
         'incus_10001_routes': sorted(incus_10001_routes,
                                      key=lambda item: (item['project'], item['owner_type'],
                                                        item['owner'], item['device'])),
-        'windows_snapshot_sha256': digest(windows_snapshot) if windows_snapshot else '',
     }
     raw = json.dumps(payload, sort_keys=True, separators=(',', ':'),
                      ensure_ascii=False).encode('utf-8')
     return digest(raw)
-
-
-def _pack_windows_snapshot(firewall: bytes, portproxy: bytes) -> bytes:
-    """Keep exact Windows state in memory without a text/base64 representation."""
-    return len(firewall).to_bytes(8, 'big') + firewall + len(portproxy).to_bytes(8, 'big') + portproxy
 
 
 def _strict_devices(value: Any, code: str, *, allow_implicit_bind: bool = False) -> dict[str, dict[str, Any]]:
@@ -558,9 +540,9 @@ def _listener_digest(raw: bytes, port: int) -> tuple[list[dict[str, Any]], str]:
 
 def _assert_approved_route_state(go: dict[str, Any], listeners_10001: list[bytes],
                                  incus_10001_routes: list[dict[str, Any]],
-                                 windows_snapshot: bytes, incus_projects: list[str]) -> None:
+                                 incus_projects: list[str]) -> None:
     observed = approved_route_state_sha256(listeners_10001, incus_10001_routes,
-                                           windows_snapshot, incus_projects)
+                                           incus_projects)
     if observed != go['approved_route_state_sha256']:
         raise TargetDrift('APPROVED_ROUTE_STATE_DRIFT')
 
@@ -583,8 +565,6 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
         raise FixtureError('INVALID_DECISION')
     if not isinstance(go['source_commit'], str) or not HASH40.fullmatch(go['source_commit']) or go['source_commit'] != head:
         raise FixtureError('SOURCE_HEAD_MISMATCH')
-    _windows_snapshot_query(_hash(go['windows_snapshot_sha256'], HASH64, 'INVALID_GO_HASH'))
-    _windows_certificate_source(_hash(go['windows_certificate_sha256'], HASH64, 'INVALID_GO_HASH'))
     bindings = {'workflow_sha256': workflow, 'runner_sha256': runner, 'test_sha256': tests}
     for key, raw in bindings.items():
         expected = _hash(go[key], HASH64, 'INVALID_GO_HASH')
@@ -606,7 +586,7 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
         'base_profile': f'tsw-q449-{run_id}-base',
         'instance': f'tsw-q449-{run_id}-fixture',
         'image_fingerprint': target['image_fingerprint'],
-    } or args.target_host not in {'192.168.178.33', '192.168.178.58'}:
+    } or args.target_host not in {'192.168.178.33'}:
         raise FixtureError('TARGET_BINDING_MISMATCH')
     _hash(target['image_fingerprint'], HASH64, 'INVALID_IMAGE_FINGERPRINT')
     proxy = _exact_keys(go['proxy'], PROXY_KEYS, 'INVALID_PROXY_KEYS')
@@ -620,7 +600,7 @@ def validate_go(go: Any, args: argparse.Namespace, head: str, workflow: bytes, r
     reviews = _exact_keys(go['reviews'], REVIEW_KEYS, 'INVALID_REVIEW_KEYS')
     if any(v != 'APPROVED' for v in reviews.values()):
         raise FixtureError('REVIEWS_NOT_APPROVED')
-    if go['windows_rules_unchanged'] is not True or go['external_routes_enabled'] is not False:
+    if go['external_routes_enabled'] is not False:
         raise FixtureError('INVALID_ROUTE_FLAGS')
     consumers = go['default_profile_used_by']
     if (not isinstance(consumers, list) or any(not isinstance(v, str) for v in consumers)
@@ -756,16 +736,8 @@ def command(argv: list[str]) -> bytes:
     argv = list(argv)
     if argv[:2] == ['incus', 'info']:
         raise FixtureError('INVENTORY_COMMAND_NOT_ALLOWLISTED')
-    if (argv and argv[0] == '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
-            and argv != [argv[0], '-NoProfile', '-NonInteractive', '-Command',
-                         '(Get-NetIPAddress -AddressFamily IPv4).IPAddress']):
-        if argv != [argv[0], '-NoProfile', '-NonInteractive', '-Command', _windows_snapshot_wrapper()]:
-            raise FixtureError('WINDOWS_SNAPSHOT_COMMAND_NOT_ALLOWLISTED')
-        return _snapshot_process(argv, 120, 2 * 1024 * 1024, 2 * 1024 * 1024,
-                                 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE', require_empty_stderr=True)
-    if argv == ['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all']:
-        return _snapshot_process(argv, 30, 2 * 1024 * 1024, 2 * 1024 * 1024,
-                                 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
+    if argv and argv[0].casefold().endswith('.exe'):
+        raise TargetDrift('UNTRUSTED_EXECUTABLE')
     if (argv and argv[0] == 'incus' and len(argv) > 1
             and (argv[1] in {'query', 'list'}
                  or argv[1:3] in (['project', 'list'], ['profile', 'list'],
@@ -812,214 +784,12 @@ def command(argv: list[str]) -> bytes:
     return stdout
 
 
-def _windows_snapshot_query(expected_sha256: str | None = None) -> str:
-    return _windows_source_asset(WINDOWS_SNAPSHOT_REL, expected_sha256)
-
-
-def _windows_source_asset(relative: Path, expected_sha256: str | None = None) -> str:
-    """Read only a fixed plain bounded source asset; retain no raw host data."""
-    path = ROOT / relative
-    current = ROOT
-    try:
-        for component in relative.parts[:-1]:
-            current = current / component
-            if not stat.S_ISDIR(current.lstat().st_mode) or current.is_symlink():
-                raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
-        try:
-            before = os.fstat(fd)
-            if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= 65536:
-                raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
-            raw = bytearray()
-            while len(raw) <= 65536:
-                part = os.read(fd, min(8192, 65537 - len(raw)))
-                if not part:
-                    break
-                raw.extend(part)
-            after = os.fstat(fd)
-            if (len(raw) != before.st_size or len(raw) > 65536
-                    or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
-                       != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)):
-                raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
-        finally:
-            os.close(fd)
-        data = bytes(raw)
-        if expected_sha256 is not None and (not isinstance(expected_sha256, str)
-                or HASH64.fullmatch(expected_sha256) is None or digest(data) != expected_sha256):
-            raise FixtureError('WINDOWS_SNAPSHOT_ASSET_MISMATCH')
-        text = data.decode('utf-8', errors='strict')
-        if text.startswith('\ufeff') or not text.strip() or '\x00' in text:
-            raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE')
-        return text
-    except (OSError, UnicodeError) as exc:
-        raise FixtureError('WINDOWS_SNAPSHOT_ASSET_UNSAFE') from exc
-
-
-def _windows_certificate_source(expected_sha256: str | None = None) -> str:
-    if expected_sha256 is not None and expected_sha256 != WINDOWS_CERTIFICATE_SHA256:
-        raise FixtureError('WINDOWS_SNAPSHOT_ASSET_MISMATCH')
-    return _windows_source_asset(WINDOWS_CERTIFICATE_REL, WINDOWS_CERTIFICATE_SHA256)
-
-
-def _windows_snapshot_wrapper(expected_sha256: str | None = None, certificate_sha256: str | None = None) -> str:
-    query = _windows_snapshot_query(expected_sha256).encode('utf-8')
-    producer = _windows_certificate_source(certificate_sha256)
-    if producer.count('QUERY_BASE64') != 1 or producer.count('QUERY_SHA256') != 1:
-        raise FixtureError('WINDOWS_SNAPSHOT_TEMPLATE_INVALID')
-    wrapper = producer.replace('QUERY_BASE64', base64.b64encode(query).decode('ascii')).replace(
-        'QUERY_SHA256', digest(query))
-    # Conservative headroom for executable/argv quoting under CreateProcessW.
-    if len(subprocess.list2cmdline(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', wrapper]).encode('utf-16-le')) // 2 > 30000:
-        raise FixtureError('WINDOWS_SNAPSHOT_COMMAND_TOO_LARGE')
-    return wrapper
-
-
-_WINDOWS_FIXTURE_EXECUTABLES = frozenset({
-    '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-    '/mnt/c/Windows/System32/netsh.exe',
-})
-
-
 def _fixture_process_cwd(argv: list[str]) -> Path:
-    return Path('/mnt/c/Windows/System32') if argv and argv[0] in _WINDOWS_FIXTURE_EXECUTABLES else ROOT
+    return ROOT
 
 
 def _fixture_process_environment(argv: list[str]) -> dict[str, str]:
-    env = {'PATH': TRUSTED_PATH, 'LANG': 'C.UTF-8'}
-    if not argv or argv[0] not in _WINDOWS_FIXTURE_EXECUTABLES:
-        return env
-    interop = os.environ.get('WSL_INTEROP', '')
-    if not interop:
-        return env
-    if not re.fullmatch(r'/run/WSL/[0-9]+_interop', interop):
-        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED')
-    try:
-        mode = Path(interop).lstat().st_mode
-    except OSError as exc:
-        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED') from exc
-    if not stat.S_ISSOCK(mode):
-        raise TargetDrift('WINDOWS_INTEROP_UNVERIFIED')
-    env['WSL_INTEROP'] = interop
-    return env
-
-
-def _snapshot_process(argv: list[str], timeout_seconds: float, stdout_limit: int,
-                      stderr_limit: int, failure_code: str, *, require_empty_stderr: bool = False) -> bytes:
-    """Capture one allowlisted Windows snapshot process under shared budgets."""
-    global _INVENTORY_BYTES_CAPTURED, _INVENTORY_STARTED_AT
-    command_limit, byte_limit, _, total_timeout = _inventory_budgets()
-    if len(_COMMAND_AUDIT) >= command_limit:
-        raise TargetDrift('INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED')
-    now = time.monotonic()
-    if _INVENTORY_STARTED_AT is None:
-        _INVENTORY_STARTED_AT = now
-    if now - _INVENTORY_STARTED_AT > total_timeout:
-        raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
-    process = None
-    selector = None
-    stdout, stderr = bytearray(), bytearray()
-    started = time.monotonic()
-    env = _fixture_process_environment(argv)
-    try:
-        process = subprocess.Popen(argv, cwd=_fixture_process_cwd(argv), env=env,
-                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        assert process.stdout is not None and process.stderr is not None
-        selector = selectors.DefaultSelector()
-        for stream, target, cap in ((process.stdout, stdout, stdout_limit),
-                                    (process.stderr, stderr, stderr_limit)):
-            os.set_blocking(stream.fileno(), False)
-            selector.register(stream, selectors.EVENT_READ, (target, cap))
-        process_deadline = started + timeout_seconds
-        aggregate_deadline = _INVENTORY_STARTED_AT + total_timeout
-        deadline = min(process_deadline, aggregate_deadline)
-        while selector.get_map():
-            remaining = deadline - time.monotonic()
-            if remaining < 0:
-                raise TimeoutError
-            for key, _ in selector.select(min(max(remaining, 0.001), 0.25)):
-                target, cap = key.data
-                aggregate_remaining = byte_limit - _INVENTORY_BYTES_CAPTURED - len(stdout) - len(stderr)
-                read_size = min(65536, cap - len(target) + 1, aggregate_remaining + 1)
-                chunk = os.read(key.fd, read_size)
-                if not chunk:
-                    selector.unregister(key.fileobj)
-                    continue
-                target.extend(chunk)
-                if len(target) > cap or len(stdout) + len(stderr) + _INVENTORY_BYTES_CAPTURED > byte_limit:
-                    raise OverflowError
-        remaining = deadline - time.monotonic()
-        if remaining < 0:
-            raise TimeoutError
-        exit_status = process.wait(timeout=max(0.001, remaining))
-    except (TimeoutError, subprocess.TimeoutExpired) as exc:
-        total_timeout_exceeded = (aggregate_deadline <= process_deadline
-                                  and time.monotonic() > aggregate_deadline)
-        try:
-            if process is not None:
-                _kill_and_reap(process, failure_code)
-        finally:
-            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
-            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
-                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
-        if total_timeout_exceeded:
-            raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT') from exc
-        raise TargetDrift('WINDOWS_SNAPSHOT_TIMEOUT') from exc
-    except OverflowError as exc:
-        try:
-            if process is not None:
-                _kill_and_reap(process, failure_code)
-        finally:
-            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
-            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
-                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
-        raise TargetDrift('WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE') from exc
-    except OSError as exc:
-        try:
-            if process is not None:
-                _kill_and_reap(process, failure_code)
-        finally:
-            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
-            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
-                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
-        raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED') from exc
-    except Exception as exc:
-        try:
-            if process is not None:
-                _kill_and_reap(process, failure_code)
-        finally:
-            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
-            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
-                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
-        raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED') from exc
-    except BaseException:
-        try:
-            if process is not None:
-                _kill_and_reap(process, failure_code)
-        finally:
-            _COMMAND_AUDIT.append(_safe_command_record(argv, None, len(stdout), len(stderr)))
-            _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
-                                       stdout_limit=stdout_limit, stderr_limit=stderr_limit)
-        raise
-    finally:
-        if selector is not None:
-            selector.close()
-        if process is not None:
-            for pipe in (process.stdout, process.stderr):
-                if pipe is not None:
-                    pipe.close()
-    duration_ms = int((time.monotonic() - started) * 1000)
-    _COMMAND_AUDIT.append(_safe_command_record(argv, exit_status, len(stdout), len(stderr)) |
-                          {'duration_ms': duration_ms})
-    _INVENTORY_BYTES_CAPTURED += len(stdout) + len(stderr)
-    if exit_status or require_empty_stderr and stderr:
-        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
-                                   stdout_limit=stdout_limit, stderr_limit=stderr_limit)
-        raise TargetDrift('WINDOWS_SNAPSHOT_COMMAND_FAILED')
-    if time.monotonic() - _INVENTORY_STARTED_AT > total_timeout:
-        _record_command_diagnostic(_COMMAND_AUDIT[-1], stdout, stderr,
-                                   stdout_limit=stdout_limit, stderr_limit=stderr_limit)
-        raise TargetDrift('INCUS_INVENTORY_TOTAL_TIMEOUT')
-    return bytes(stdout)
+    return {'LC_ALL': 'C', 'PATH': TRUSTED_PATH}
 
 
 def _safe_command_record(argv: list[str], status: int | None,
@@ -1125,78 +895,15 @@ def write_result(fd: int, result: dict[str, Any]) -> None:
     os.fsync(fd)
 
 
-def _assert_windows_unchanged(before: bytes, after: bytes) -> None:
-    if before != after:
-        raise TargetDrift('WINDOWS_RULES_CHANGED')
-
-
-_WINDOWS_FILTER_KINDS = ('address', 'application', 'interface', 'interface_type',
-                         'port', 'security', 'service')
-def _windows_firewall_certificate(value: Any, expected_sha256: str) -> dict[str, Any]:
-    code = 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE'
-    keys = {'schema_version', 'query_sha256', 'snapshot_sha256', 'snapshot_bytes',
-            'snapshot_schema_version', 'store', 'association_model', 'counts'}
-    if (not isinstance(value, dict) or set(value) != keys
-            or value['schema_version'] != 'tsw.windows-firewall-certificate.v1'
-            or not isinstance(value['query_sha256'], str) or HASH64.fullmatch(value['query_sha256']) is None
-            or value['query_sha256'] != expected_sha256
-            or not isinstance(value['snapshot_sha256'], str) or HASH64.fullmatch(value['snapshot_sha256']) is None
-            or type(value['snapshot_bytes']) is not int or not 0 <= value['snapshot_bytes'] <= 14680064
-            or type(value['snapshot_schema_version']) is not int or value['snapshot_schema_version'] != 2
-            or value['store'] != 'ActiveStore' or value['association_model'] != 'PROVIDER_IDENTITY_ONE_TO_ONE'
-            or not isinstance(value['counts'], dict)
-            or set(value['counts']) != {'rules', 'profiles', 'settings', *_WINDOWS_FILTER_KINDS}):
-        raise TargetDrift(code)
-    limits = {'profiles': 16, 'settings': 128}
-    for kind, count in value['counts'].items():
-        if type(count) is not int or not 0 <= count <= limits.get(kind, 8192):
-            raise TargetDrift(code)
-        if kind in _WINDOWS_FILTER_KINDS and count != value['counts']['rules']:
-            raise TargetDrift(code)
-    return value
-
-
-def _windows_snapshot(expected_sha256: str | None = None, certificate_sha256: str | None = None) -> bytes:
-    exe = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
-    query_sha256 = digest(_windows_snapshot_query(expected_sha256).encode('utf-8'))
-    raw_firewall = command([exe, '-NoProfile', '-NonInteractive', '-Command', _windows_snapshot_wrapper(query_sha256, certificate_sha256)])
-    firewall_value = _windows_firewall_certificate(strict_json(raw_firewall), query_sha256)
-    firewall = json.dumps(firewall_value, sort_keys=True, separators=(',', ':'),
-                          ensure_ascii=False).encode('utf-8')
-    portproxy = command(['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all'])
-    global _WINDOWS_SNAPSHOT_METADATA
-    _WINDOWS_SNAPSHOT_METADATA = {
-        'schema_version': 'tsw.windows-route-snapshot.v2',
-        'firewall_bytes': firewall_value['snapshot_bytes'], 'firewall_sha256': firewall_value['snapshot_sha256'],
-        'query_sha256': query_sha256, 'certificate_sha256': WINDOWS_CERTIFICATE_SHA256,
-        'portproxy_bytes': len(portproxy), 'portproxy_sha256': digest(portproxy),
-        'profile_count': firewall_value['counts']['profiles'],
-        'setting_count': firewall_value['counts']['settings'], 'rule_count': firewall_value['counts']['rules'],
-        'captured_at': datetime.now(timezone.utc).isoformat(),
-    }
-    # Length-prefix each exact component. The byte sequence stays in memory for
-    # equality checks; artifacts retain only the metadata above and a digest.
-    packed = _pack_windows_snapshot(firewall, portproxy)
-    _WINDOWS_SNAPSHOT_METADATA['windows_snapshot_sha256'] = digest(packed)
-    return packed
-
-
 def _assert_host_identity(host: str) -> None:
-    if host == '192.168.178.33':
-        rows = strict_json(command(['ip', '-j', '-4', 'addr']))
-        if not isinstance(rows, list):
-            raise TargetDrift('HOST_IDENTITY_DRIFT')
-        addresses = {address.get('local') for row in rows if isinstance(row, dict)
-                     for address in row.get('addr_info', []) if isinstance(address, dict)}
-        if host not in addresses:
-            raise TargetDrift('HOST_IDENTITY_DRIFT')
-        return
-    if b'microsoft' not in command(['uname', '-r']).lower():
+    if host != '192.168.178.33':
         raise TargetDrift('HOST_IDENTITY_DRIFT')
-    win = command(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                   '-NoProfile', '-NonInteractive', '-Command',
-                   "(Get-NetIPAddress -AddressFamily IPv4).IPAddress"])
-    if host not in win.decode('utf-8', errors='strict').split():
+    rows = strict_json(command(['ip', '-j', '-4', 'addr']))
+    if not isinstance(rows, list):
+        raise TargetDrift('HOST_IDENTITY_DRIFT')
+    addresses = {address.get('local') for row in rows if isinstance(row, dict)
+                 for address in row.get('addr_info', []) if isinstance(address, dict)}
+    if host not in addresses:
         raise TargetDrift('HOST_IDENTITY_DRIFT')
 
 
@@ -1269,10 +976,6 @@ def _inventory_host_command(argv: list[str]) -> bytes:
         command_argv = [TRUSTED_BIN['ip'], '-j', '-4', 'addr']
     elif argv == ['uname', '-r']:
         command_argv = [TRUSTED_BIN['uname'], '-r']
-    elif argv == ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                  '-NoProfile', '-NonInteractive', '-Command',
-                  '(Get-NetIPAddress -AddressFamily IPv4).IPAddress']:
-        command_argv = argv
     else:
         raise FixtureError('INVENTORY_HOST_COMMAND_NOT_ALLOWLISTED')
     stdout, _, exit_status = _bounded_process_output(
@@ -1283,21 +986,14 @@ def _inventory_host_command(argv: list[str]) -> bytes:
 
 
 def _assert_host_identity_inventory(host: str) -> None:
-    if host == '192.168.178.33':
-        rows = strict_json(_inventory_host_command(['ip', '-j', '-4', 'addr']))
-        if not isinstance(rows, list):
-            raise TargetDrift('HOST_IDENTITY_DRIFT')
-        addresses = {address.get('local') for row in rows if isinstance(row, dict)
-                     for address in row.get('addr_info', []) if isinstance(address, dict)}
-        if host not in addresses:
-            raise TargetDrift('HOST_IDENTITY_DRIFT')
-        return
-    if b'microsoft' not in _inventory_host_command(['uname', '-r']).lower():
+    if host != '192.168.178.33':
         raise TargetDrift('HOST_IDENTITY_DRIFT')
-    win = _inventory_host_command(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                                   '-NoProfile', '-NonInteractive', '-Command',
-                                   '(Get-NetIPAddress -AddressFamily IPv4).IPAddress'])
-    if host not in win.decode('utf-8', errors='strict').split():
+    rows = strict_json(_inventory_host_command(['ip', '-j', '-4', 'addr']))
+    if not isinstance(rows, list):
+        raise TargetDrift('HOST_IDENTITY_DRIFT')
+    addresses = {address.get('local') for row in rows if isinstance(row, dict)
+                 for address in row.get('addr_info', []) if isinstance(address, dict)}
+    if host not in addresses:
         raise TargetDrift('HOST_IDENTITY_DRIFT')
 
 
@@ -1306,11 +1002,9 @@ def _route_state(host: str) -> dict[str, Any]:
     _assert_local_incus_remote()
     listeners = _listener_rows(command(['ss', '-H', '-ltnp']), 10001)
     projects, routes = _incus_route_inventory()
-    windows = _windows_snapshot() if host == '192.168.178.58' else b''
     return {'listeners_10001': listeners, 'incus_10001_routes': routes,
             'incus_projects': projects,
-            'windows_snapshot': windows,
-            'approved_route_state_sha256': approved_route_state_sha256(listeners, routes, windows, projects)}
+            'approved_route_state_sha256': approved_route_state_sha256(listeners, routes, projects)}
 
 
 def _capture_output_path(value: str) -> Path:
@@ -1345,8 +1039,7 @@ def capture_route_state(host: str, output: str) -> None:
     head, _, _, _ = git_preflight()
     state = _route_state(host)
     safe_listeners = _safe_listener_tuples(state['listeners_10001'])
-    windows_metadata = dict(globals().get('_WINDOWS_SNAPSHOT_METADATA', {}))
-    payload = {'schema_version': 'tsw.route-state.v2', 'source_commit': head,
+    payload = {'schema_version': 'tsw.route-state.v3', 'source_commit': head,
                'captured_at': datetime.now(timezone.utc).isoformat(),
                'target_host': host, 'target_ip': host, 'inventory_budget': _inventory_budget_profile(),
                'listeners_10001_count': len(safe_listeners),
@@ -1355,7 +1048,6 @@ def capture_route_state(host: str, output: str) -> None:
                    safe_listeners, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')),
                'incus_projects': state['incus_projects'],
                'incus_10001_routes': state['incus_10001_routes'],
-               'windows_snapshot': windows_metadata,
                'approved_route_state_sha256': state['approved_route_state_sha256'],
                'commands': _COMMAND_AUDIT}
     raw = _serialize_route_state_artifact(payload)
@@ -2382,18 +2074,13 @@ def jit(go: dict[str, Any], host: str) -> dict[str, Any]:
     incus_projects, incus_routes = _incus_route_inventory()
     if 'default' not in incus_projects:
         raise TargetDrift('INCUS_PROJECT_DRIFT')
-    windows = b''
-    if host == '192.168.178.58':
-        windows = _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256'])
-    _assert_approved_route_state(go, listener_rows, incus_routes, windows, incus_projects)
+    _assert_approved_route_state(go, listener_rows, incus_routes, incus_projects)
     return {'listeners_10001': listener_rows, 'incus_10001_routes': incus_routes,
             'incus_projects': incus_projects,
-            'windows_rules_portproxy': windows, 'resources': resource_baseline,
+            'resources': resource_baseline,
             'approved_route_state_sha256': go['approved_route_state_sha256'],
             'default_profile_sha256': profile['sha256'],
             'derived_base_profile': profile['derived'], 'image_properties': dict(properties)}
-
-
 
 
 def _incus(*args: str, profile_data: dict[str, Any] | None = None) -> bytes:
@@ -2607,14 +2294,13 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
                                 'listener_before_sha256': _listener_digest(b'\n'.join(baseline['listeners_10001']), 10001)[1],
                                 'listener_10001_before_count': len(baseline['listeners_10001']),
                                 'listener_10001_before_sha256': approved_route_state_sha256(
-                                    baseline['listeners_10001'], [], b'', []) and
+                                    baseline['listeners_10001'], [], []) and
                                     digest(json.dumps(_safe_listener_tuples(baseline['listeners_10001']),
                                                       sort_keys=True, separators=(',', ':')).encode()),
                                 'incus_projects_before': baseline['incus_projects'],
                                 'incus_10001_routes_before_count': len(baseline['incus_10001_routes']),
                                 'incus_10001_routes_before_sha256': digest(json.dumps(
                                     baseline['incus_10001_routes'], sort_keys=True, separators=(',', ':')).encode()),
-                                'windows_rules_before_sha256': digest(baseline['windows_rules_portproxy']),
                                 'resource_baseline': baseline['resources']}
 
     def checkpoint() -> bytes:
@@ -2626,10 +2312,7 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
         projects, routes = _incus_route_inventory()
         if projects != baseline['incus_projects'] or routes != baseline['incus_10001_routes']:
             raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
-        if target['host'] == '192.168.178.58':
-            _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256']))
-        _assert_approved_route_state(go, listeners, routes,
-                                     baseline['windows_rules_portproxy'], projects)
+        _assert_approved_route_state(go, listeners, routes, projects)
         return listener_snapshot
 
     def prepare_write(*args: str) -> None:
@@ -2790,12 +2473,8 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
         incus_projects_after, incus_routes_after = _incus_route_inventory()
         if incus_projects_after != baseline['incus_projects'] or incus_routes_after != baseline['incus_10001_routes']:
             raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
-        after_windows = b''
-        if target['host'] == '192.168.178.58':
-            after_windows = _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256'])
-            _assert_windows_unchanged(baseline['windows_rules_portproxy'], after_windows)
         after_route_state_sha256 = approved_route_state_sha256(
-            after_10001, incus_routes_after, after_windows, incus_projects_after)
+            after_10001, incus_routes_after, incus_projects_after)
         if after_route_state_sha256 != baseline['approved_route_state_sha256']:
             raise TargetDrift('APPROVED_ROUTE_STATE_CHANGED')
         evidence['listener_10001_after_count'] = len(after_10001)
@@ -2805,7 +2484,6 @@ def _run_fixture(go: dict[str, Any], baseline: dict[str, Any], *, approved_go_sh
         evidence['incus_10001_routes_after_sha256'] = digest(json.dumps(
             incus_routes_after, sort_keys=True, separators=(',', ':')).encode())
         evidence['incus_projects_after'] = incus_projects_after
-        evidence['windows_rules_after_sha256'] = digest(after_windows)
         evidence['approved_route_state_sha256_after'] = after_route_state_sha256
         evidence['status'] = 'PASS'
         return evidence
@@ -2922,7 +2600,7 @@ def main(argv: list[str] | None = None) -> int:
     _FAILURE_CONTEXT = None
     parser = argparse.ArgumentParser()
     parser.add_argument('--expected-approval-sha256')
-    parser.add_argument('--target-host', required=True, choices=['192.168.178.33', '192.168.178.58'])
+    parser.add_argument('--target-host', required=True, choices=['192.168.178.33'])
     parser.add_argument('--capture-route-state', action='store_true')
     parser.add_argument('--capture-project-inventory', action='store_true')
     parser.add_argument('--output')
@@ -2984,8 +2662,6 @@ def main(argv: list[str] | None = None) -> int:
             final_projects, final_routes = _incus_route_inventory()
             if final_projects != baseline['incus_projects'] or final_routes != baseline['incus_10001_routes']:
                 raise TargetDrift('INCUS_10001_ROUTE_CHANGED')
-            if args.target_host == '192.168.178.58':
-                _assert_windows_unchanged(baseline['windows_rules_portproxy'], _windows_snapshot(go['windows_snapshot_sha256'], go['windows_certificate_sha256']))
             result['listener_after_cleanup_sha256'] = _listener_digest(
                 final_listeners, int(port))[1]
             result['commands'] = _COMMAND_AUDIT
@@ -2998,7 +2674,7 @@ def main(argv: list[str] | None = None) -> int:
                          'failure_provenance': provenance, 'commands': _COMMAND_AUDIT,
                          'go_sha256': digest(raw), 'source_commit': head})
             return 2
-        result.update({'inventory_budget': _inventory_budget_profile(), 'windows_certificate_sha256': go['windows_certificate_sha256'], 'go_sha256': digest(raw), 'workflow_sha256': go['workflow_sha256'], 'runner_sha256': go['runner_sha256'], 'test_sha256': go['test_sha256'], 'source_commit': head, 'issue447_inventory_sha256': go['issue447_inventory_sha256'], 'resource_admission_sha256': go['resource_admission_sha256']})
+        result.update({'inventory_budget': _inventory_budget_profile(), 'go_sha256': digest(raw), 'workflow_sha256': go['workflow_sha256'], 'runner_sha256': go['runner_sha256'], 'test_sha256': go['test_sha256'], 'source_commit': head, 'issue447_inventory_sha256': go['issue447_inventory_sha256'], 'resource_admission_sha256': go['resource_admission_sha256']})
         write_result(evidence_fd, result)
         return 0
     except FixtureError as exc:

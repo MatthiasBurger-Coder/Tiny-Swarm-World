@@ -1,5 +1,10 @@
 # UX-01 one-command setup CLI and operator contract
 
+> Current availability: Windows preparation and bridge tooling were removed.
+> Windows paths and commands below describe the recorded audit/design revision,
+> not runnable interfaces in this checkout. Use the [installation guide](../../03-user-guide/user_guide/installation.adoc)
+> for current Linux entry points. Historical acceptance does not qualify current source.
+
 Contract version: **1.0.0**. Status: **specified; wrappers not implemented**.
 Issue [#489](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/489),
 parent [#488](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/488).

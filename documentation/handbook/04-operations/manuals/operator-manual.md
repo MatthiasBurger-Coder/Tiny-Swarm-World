@@ -25,10 +25,10 @@ See [network preparation](../../03-user-guide/user_guide/network-preparation.md)
 browser-access boundaries.
 
 The installer requires a prepared host and does not invoke host preparation.
-Tiny Swarm World installs Docker inside managed LXC nodes. On WSL2, Windows
-lifecycle and capacity planning use the separate
-[Windows preparation guide](../../03-user-guide/user_guide/windows-preparation.md); ordinary
-Windows Apply remains blocked pending applicable live qualification.
+Tiny Swarm World installs Docker inside managed LXC nodes. Windows lifecycle,
+capacity and bridge preparation tools are no longer shipped; see the
+[tool removal notice](../../03-user-guide/user_guide/windows-preparation.md).
+Existing external host integration must satisfy applicable runtime guards.
 
 An empty Incus project can still share a host network with another project.
 Check that the configured node names and published ports are available across

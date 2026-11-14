@@ -1,69 +1,47 @@
 # Physical modules
 
-The repository physically stores implementations and assets under three modules:
+The repository stores implementations and assets under two modules:
 
 ```text
 modules/
   tsw_core/
-    src/tiny_swarm_world/       # domain, application and infrastructure
-    src/tsw_core/               # core discovery and packaged descriptor
-    infra/config/              # one service catalog and runtime asset tree
-    modules/tsw_native_linux/boostrap/           # shared Linux/WSL preparation, install and CLI
-    modules/tsw_native_linux/tools/               # common qualification and developer tooling
+    src/                       # domain, application and infrastructure
+    src/module.json            # packaged core descriptor
+    infra/config/              # service catalog and runtime assets
+    tools/linux/               # shared quality and developer tools
+    tests/                     # shared runtime and architecture tests
   tsw_native_linux/
+    boostrap/                  # Linux preparation, install and CLI
+    tools/                     # compatibility tool forwarders
     install.sh                 # native platform-to-core handoff
     tsw
     module.json
-  tsw_windows_wsl/
-    modules/tsw_windows_wsl/bootstrap/         # bootstrap, distro selection, bridge and probes
-    modules/tsw_windows_wsl/tools/
-    module.json
+    tests/
 ```
 
-The Python namespace `tiny_swarm_world`, CLI `tiny-swarm-world`, distribution
-name and version 0.2.0 remain unchanged. Root packaging metadata locates actual
-Python implementations under `modules/tsw_core/src`; root import shims and
-editions are excluded from the wheel. No symlinks or duplicate implementations
-supply compatibility.
+Root packaging maps `tiny_swarm_world` to `modules/tsw_core/src` and `tsw_core`
+to `modules/tsw_core`. The Python namespace, CLI `tiny-swarm-world`, distribution
+name and version 0.2.0 remain unchanged. Root import shims are excluded from
+the wheel; they load the same physical implementation.
 
-The deployment root remains the repository/release root. It owns packaging and
-lock-file contracts, `.tiny-swarm-world` state, credentials and environment
-anchors. `tsw_core.discover_root()` returns that root; its descriptor resolves
-physical source/configuration paths beneath it without probing either edition.
-Explicit infrastructure overrides retain their original semantics. Historical
-release checkouts retain their old source/configuration topology; lifecycle
-adapters distinguish those from incomplete physical module deployments. A
-missing new core cannot be hidden by legacy directories.
+The deployment root owns packaging and lock-file contracts, local state and
+credential/environment anchors. `tsw_core.discover_root()` returns that root;
+the core descriptor resolves physical source/configuration paths beneath it.
+Explicit infrastructure overrides retain their semantics. Lifecycle adapters
+recognize historical release layouts and reject incomplete module deployments.
 
-Public `./install.sh`, `./tsw`, documented `../../../modules/tsw_native_linux/linux` commands and public
-Windows scripts are thin compatibility forwarders. Native implementation lives
-in its module and executes core. Windows runs its physical owner, whose bridge
-registration copies the actual bridge implementation and adjacent assets. Its
-selected distribution/account handoff invokes physical core preparation then
-installation directly. Flags, quoting, stdin, environment and status propagate
-through the forwarding entry points. `PYTHONPATH=.` remains an import
-compatibility surface; both that path and `PYTHONPATH=.`
-load the same physical implementation. Core execution does not need the shims.
+Public `./install.sh` and `./tsw` are thin forwarders to the Linux module,
+which invokes core. Flags, quoting, stdin, environment and status propagate
+through the forwarding entry points.
 
-The root `host-bindings.json` is compatibility composition data pointing at
-Windows-owned physical assets. Core consumes injected host bindings when WSL
-integration is requested; it never constructs an edition root. Source proofs
-and fingerprints follow physical implementations/configuration and consumed
-compatibility entry points. Native edition assets are outside WSL execution
-admission; missing, modified or symlinked core/WSL assets remain blockers.
+Windows preparation and bridge assets have been removed. Core retains legacy host models and adapters, but standard host preparation
+registers only the native Linux adapter. This checkout supplies no Windows
+bridge implementation or root host-binding configuration. A required
+missing external binding remains a blocker; Linux installation needs no such
+binding. Historical Windows delivery records do not describe current assets.
 
-Focused verification on the mandated Windows-host WSL target:
-
-```sh
-PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.architecture.test_core_module modules.tsw_core.tests.architecture.test_edition_modules modules.tsw_native_linux.tests.test_install_handoff modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_product_layout
-```
-
-Fixtures assert physical ownership and removal of old implementation trees,
-core-only deployment without shims/editions, compatibility/direct imports,
-public and physical native argv/environment/stdin/status, PowerShell parsing,
-public Windows wrappers and selected WSL handoff, package contents and denied
-source-integrity paths. These checks do not install or change infrastructure.
-
-The earlier MOD-01/MOD-02–04 delivery isolated ownership in place. That logical
-isolation did not satisfy the user's physical restructuring requirement; the
-physical correction is tracked separately in the Epic evidence.
+When verification is authorized, module ownership and native forwarding are
+covered by `modules.tsw_core.tests.architecture.test_core_module`,
+`modules.tsw_core.tests.architecture.test_edition_modules` and
+`modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_product_layout`.
+Follow `AGENTS.md` for the required remote test target.

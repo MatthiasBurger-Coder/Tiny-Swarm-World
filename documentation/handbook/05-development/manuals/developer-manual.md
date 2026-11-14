@@ -50,8 +50,8 @@ These commands do not prepare Incus or verify installed services.
 ## Quality
 
 Locations follow the [bootstrap and developer-tool layout](tools-layout.md):
-installation prerequisites live in `modules/tsw_windows_wsl/bootstrap` and `modules/tsw_native_linux/boostrap`;
-quality, audit, packaging and developer tools live in `tools`.
+installation prerequisites live in `modules/tsw_native_linux/boostrap`;
+quality, audit and developer tools live in `modules/tsw_core/tools/linux`.
 
 `QUALITY.md` is the quality authority. The standard local command is:
 
@@ -74,9 +74,8 @@ as implemented without evidence.
 
 Install the checkout with `python3 -m pip install --no-deps -e .` before development checks.
 Shared runtime and architecture tests live in `modules/tsw_core/tests`; Linux
-bootstrap and native qualification tests live in `modules/tsw_native_linux/tests`;
-Windows/WSL tests and PowerShell fixtures live in `modules/tsw_windows_wsl/tests`.
+bootstrap and native qualification tests live in `modules/tsw_native_linux/tests`.
 Shared fixtures remain in `modules/tsw_core/tests/support` and
 `modules/tsw_core/tests/fixtures`. Use explicit module-qualified imports across
-these test trees. The canonical quality gate discovers all three trees through
+these test trees. The canonical quality gate discovers both trees through
 `python3 -m unittest discover -s modules -t .`.

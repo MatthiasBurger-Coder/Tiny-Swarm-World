@@ -555,18 +555,15 @@ requires separate consent; compatible existing resources are reused and
 conflicts block. Read-only modes do not create preparation evidence or activate
 a stopped daemon. New group membership requires logout/login and reinventory.
 
-On Windows, `modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1` separately owns selected-distribution lifecycle
-and WSL capacity planning/configuration. Ordinary Apply remains blocked pending
-applicable live qualification; explicit candidate qualification uses the guarded
-consent contract. Windows browser routing delegates to the existing protected
-bridge owner. Preparation does not deploy managed nodes or services, start the
-installer, or prove service authentication. The full bootstrap integration and
-WSL installation migration remain separate delivery work.
+Windows preparation and bridge tooling have been removed. Standard host
+preparation registers only the native Linux adapter; WSL preparation is blocked.
+Incus listener qualification and native maintenance require Linux source pins
+and reject retired Windows-proof approvals. See the native-only qualification ADR.
 
-See the link:../../01-product/contracts/bootstrap.md[bootstrap contract],
-link:../../03-user-guide/user_guide/windows-preparation.md[Windows preparation guide] and
-link:../../03-user-guide/user_guide/network-preparation.md[network preparation guide] for delivered
-capabilities, resource requirements, consent boundaries and remaining gaps.
+See the link:../../03-user-guide/user_guide/installation.adoc[installation guide]
+and link:../../03-user-guide/user_guide/network-preparation.md[network preparation guide]
+for Linux preparation and consent boundaries. Earlier Windows bootstrap contracts
+and qualification records describe their recorded revisions.
 
 === Secure Traefik Dashboard Runtime Flow
 

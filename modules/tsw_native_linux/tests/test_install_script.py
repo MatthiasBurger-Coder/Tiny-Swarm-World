@@ -61,12 +61,7 @@ class TestInstallScript(unittest.TestCase):
             self.assertTrue((evidence_dir / "setup-run.log").is_file())
             context = (evidence_dir / "context.txt").read_text()
             self.assertIn("fresh_install_reset=required", context)
-            self.assertIn("host_runtime_type=wsl2", context)
             self.assertIn("host_runtime_detection_source=test_override", context)
-            self.assertIn(
-                ".tiny-swarm-world/evidence/installation-tests/wsl2/",
-                context,
-            )
             self.assertIn("live_execution_mode=interactive", context)
             self.assertIn("live_approval_source=operator_prompt", context)
             self.assertIn("terminal_recording_mode=terminal_recorder", context)
@@ -344,25 +339,6 @@ class TestInstallScript(unittest.TestCase):
             self.assertIn("Native host preflight failed", result.stderr)
             self.assertFalse((fixture.root / ".tiny-swarm-world" / "install-venv").exists())
             self.assertEqual(fixture.recorded_commands(), [])
-
-    def test_wsl_path_keeps_python3_when_dependency_bootstrap_is_skipped(self):
-        with _install_script_fixture(
-            extra_environment={
-                "TSW_INSTALL_TEST_HOST_RUNTIME": "wsl2",
-                "TSW_WINDOWS_EXPOSURE": "disabled",
-                "WSL_DISTRO_NAME": "Ubuntu",
-            },
-        ) as fixture:
-            result = fixture.run()
-
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse((fixture.root / ".tiny-swarm-world" / "install-venv").exists())
-            self.assertIn("PYTHONPATH=. python3 -m tiny_swarm_world", fixture.recorded_commands()[0])
-            evidence_dir = fixture.single_evidence_dir("wsl2")
-            context = (evidence_dir / "context.txt").read_text()
-            self.assertIn("host_runtime_type=wsl2", context)
-            self.assertIn("host_runtime_detection_source=test_override", context)
-            self.assertIn("windows_wsl_bridge_reason=windows_exposure_disabled", context)
 
     def test_unsupported_native_host_stops_before_wsl_reset_contract(self):
         with _install_script_fixture(

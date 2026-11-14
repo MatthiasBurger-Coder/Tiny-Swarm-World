@@ -203,126 +203,17 @@ certificate is insufficient proof of identity. Preserve
 the installation's CA and keys unless a separate recovery or rotation plan
 explicitly changes them.
 
-## Optional Windows current-user trust helper
+## Removed Windows helpers
 
-The GUI procedure above remains available. Alternatively, the reviewed
-`modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1` helper provides separate `inspect`, `install`
-and `remove` actions for `CurrentUser/Root` only. It never modifies machine-wide
-trust and is not invoked by ordinary installation or the Windows bridge.
-
-First inspect the selected CA on the installation host, then calculate its
-DER SHA-256 fingerprint:
-
-```bash
-openssl x509 -in "$tsw_ca_cert" -noout -subject -issuer -dates -fingerprint -sha256
-openssl x509 -in "$tsw_ca_cert" -outform DER | sha256sum
-```
-
-Use the verified 64-character hexadecimal DER fingerprint below, without colons.
-It differs from the PEM file's byte digest, the Windows SHA-1 thumbprint, and
-the combined CA/leaf lifecycle fingerprint. Transfer only the public certificate
-and verify the copy as described above. Replace the example file path with its
-actual local fixed-drive location. From the checkout in PowerShell, under the
-Windows account that will use the services:
-
-```powershell
-./modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1 -Action inspect -CertificatePath C:/certs/tsw-ca.crt
-./modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1 -Action install -CertificatePath C:/certs/tsw-ca.crt -ExpectedSha256 <verified-DER-SHA256> -Approve
-```
-
-Run installation in that user's interactive Windows session and accept the
-Windows certificate confirmation if shown. SSH can fail with
-`ERROR_NOT_SUPPORTED` despite administrative rights; `-Approve` does not replace
-Windows' own confirmation. Do not change the store scope or account to bypass
-this boundary. Import trusts the CA for that user, not just one service URL.
-
-The helper rejects private keys, certificate bundles, non-CA certificates,
-fingerprint mismatches and explicit key usage without certificate signing.
-Installation rejects expired or not-yet-valid certificates. An exact certificate
-already in the store is a no-op and grants no new removal authority. A newly
-imported certificate is verified and recorded in a protected current-user
-receipt under LocalApplicationData `TinySwarmWorld/TlsTrust`; the receipt is
-bound to that user and exact certificate through DPAPI. Keep this state private.
-If trust changes but receipt writing fails, inspect the result manually rather
-than retrying a removal without proven ownership.
-
-For helper-owned rollback, retain the original public certificate and matching
-DER fingerprint and use the same Windows account:
-
-```powershell
-./modules/tsw_windows_wsl/bootstrap/tsw-tls-trust.ps1 -Action remove -CertificatePath C:/certs/tsw-ca.crt -ExpectedSha256 <verified-DER-SHA256> -Approve
-```
-
-Removal requires the matching protected receipt; pre-existing trust and GUI
-imports are preserved. Expired owned certificates remain removable. Removal
-consumes its receipt before changing trust; interrupted or failed removal
-therefore requires manual inspection rather than reusable deletion authority.
-Browser-managed stores still require their own verified import/removal.
-
-Windows Schannel curl can reject a managed local CA with
-`CRYPT_E_NO_REVOCATION_CHECK` when no revocation distribution point exists.
-An explicit diagnostic policy can use `--ssl-revoke-best-effort` to retain
-certificate-chain and hostname validation while tolerating unavailable
-revocation information. In the intended Windows account's terminal:
-
-```powershell
-curl.exe --ssl-revoke-best-effort -sS -o NUL -w '%{http_code}\n' https://service-access.tsw.local/
-```
-
-Record that policy with the result. It is not a successful strict revocation
-check or authenticated login. Do not replace it with `--insecure`. See the
-[curl option contract](https://curl.se/docs/manpage.html#--ssl-revoke-best-effort).
-
-## WSL bridge, restart and interrupted preparation
-
-Initial Windows bridge registration requires an elevated interactive Windows
-session of the account owning the selected WSL distribution. Its credential
-dialog takes that Windows account's password for the Service Control Manager;
-Linux sudo does not grant Windows administrator rights. A headless SSH session
-cannot substitute for that interactive dialog. An owned matching registration
-reuses its credentials; foreign paths or account mismatches block.
-
-Use the existing [Windows preparation guide](windows-preparation.md) and
-[bridge lifecycle instructions](../../../../modules/tsw_windows_wsl/bootstrap/README.windows-wsl-bridge.md)
-for the selected distribution, bridge status and verification. The bridge remains
-the owner of Windows hosts entries, portproxy, firewall rules and its service.
-Do not add a competing updater. Bridge readiness and TCP checks do not establish
-TLS trust or actual service login.
-
-After a requested restart, perform only the printed scope. Save work in every
-affected distribution before a global WSL resource change requires WSL shutdown;
-do not substitute a global shutdown for a selected-distribution restart. Rerun
-the same read-only preparation command with the same distribution, release,
-profile and overrides, inspect fresh observations, and give new consent for
-remaining actions.
-
-A selected WSL distribution termination and relaunch can recreate PID 1 and
-its namespaces while retaining the shared kernel's boot ID. For restart
-verification, compare PID 1's start time and namespace identities before and
-after relaunch; the kernel boot ID alone cannot prove that the selected
-distribution restarted. Preserve the selected Lxss registration and unrelated
-`.wslconfig` settings. After relaunch, verify the fresh bridge heartbeat and
-current forwarding target, all three configured managed nodes, trusted HTTPS,
-and actual API authentication with an authenticated read. A running distribution
-or changed PID 1 does not establish service readiness.
-
-Preserve interrupted-run evidence, checkpoints and configuration backups. Changed
-source, target or selection can make a checkpoint stale and block apply. Review
-and deliberately archive it into protected operator storage before replanning;
-archival does not authorize another mutation. Never delete an APT lock, erase
-state or reset the platform simply to retry. Ordinary installation reconciles
-existing state. See the [bootstrap recovery contract](../../01-product/contracts/bootstrap.md#boot-w08-resumable-preparation-and-protected-recovery).
-
-For an interrupted download or dependency installation, retain the partial
-virtual environment and protected state for inspection. Review the checkpoint,
-reported effects, selected source and target, then obtain a fresh read-only plan
-before an ordinary connected rerun with new consent. A successful resume and
-subsequent no-action rerun establish only the exercised stage's recovery and
-idempotence; an isolated stage probe is not full installer or CLI qualification.
-Do not erase checkpoints, recreate the environment blindly or delete APT locks
-to obtain a passing retry.
+Windows certificate-trust and bridge lifecycle helpers are no longer shipped.
+Historical commands must not be used as current setup instructions. Retain
+operator ownership of any existing host trust and forwarding configuration.
 
 ## Check a deliberate recovery before resuming
+
+Installer evidence directories and newly created parent directories use mode
+`0700`, including when the shell uses `umask 002`. Existing directory permissions
+are preserved; incompatible ownership or permissions remain blockers.
 
 An instance snapshot on its existing storage pool is not a host operating-system
 backup or disaster-recovery copy. Establish separately whether external volumes

@@ -94,18 +94,10 @@ Failures stop dependent actions and record confirmed/uncertain effects. Inspect
 the printed protected evidence, then obtain a fresh plan and new consent before
 resuming. No automatic rollback removes another application's resources.
 
-For Windows browser access, use the selected distribution with the existing
-Windows preparation and bridge owner. Windows operations require an elevated
-session of the Windows account that owns that distribution; Linux `sudo` does
-not grant Windows administrator rights. Standalone Windows preparation retains
-the W04 candidate qualification and exact target/source/plan consent guards; see
-[Windows preparation](windows-preparation.md). Linux preparation separately binds
-its approved source, target and network plan when delegating to the same bridge.
-The bridge stores its protected
-bundle/configuration/registration and remains the sole owner of Windows hosts,
-portproxy and firewall rules. A new registration opens the existing credential
-dialog for the Windows account that owns the WSL distribution. An owned matching
-registration reuses its credentials. Account mismatch or foreign ownership blocks.
+Windows preparation and bridge installers have been removed; see the
+[tool removal notice](windows-preparation.md). Linux preparation still consumes
+applicable externally provided bridge bindings and checks ownership/readiness.
+This checkout does not create Windows lifecycle or browser-routing prerequisites.
 
 Preparation separates Linux kernel/forwarding/name prerequisites, Windows routing
 configuration/agent readiness, deployed endpoint/API reachability and actual login.

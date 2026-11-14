@@ -279,16 +279,6 @@ class TestHostNetworkRepair(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertEqual(result.message, "Failed to install forwarding persistence files.")
 
-    def test_windows_scripts_read_ports_from_registry(self):
-        root = Path(__file__).resolve().parents[6]
-        repair_script = root / "modules/tsw_windows_wsl/bootstrap" / "repair-wsl-portproxy.ps1"
-        doctor_script = root / "modules/tsw_windows_wsl/bootstrap" / "doctor-portproxy.ps1"
-
-        for script in (repair_script, doctor_script):
-            text = script.read_text(encoding="utf-8")
-            self.assertIn("modules/tsw_core/infra/config/ports.yaml", text)
-            self.assertIn("Get-TswBridgePorts", text)
-            self.assertNotIn("$ports = @(", text)
 
 
 class TestWslConfigConfinement(unittest.TestCase):

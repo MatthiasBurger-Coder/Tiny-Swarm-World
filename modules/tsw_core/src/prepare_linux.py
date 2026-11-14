@@ -23,7 +23,7 @@ from tiny_swarm_world.infrastructure.composition_native_preparation import (
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Prepare native or WSL2 Ubuntu 24.04/26.04 package/Python prerequisites, separately from services.")
+    parser = argparse.ArgumentParser(description="Prepare native Ubuntu 24.04/26.04 package/Python prerequisites, separately from services.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--preflight", action="store_true", help="Validate without changing the host.")
     mode.add_argument("--dry-run", action="store_true", help="Show the package plan without changing the host.")

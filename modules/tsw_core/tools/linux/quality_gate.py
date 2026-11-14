@@ -18,7 +18,7 @@ SOURCE_ROOT = REPOSITORY_ROOT / "modules/tsw_core/src"
 PACKAGE_ROOT = SOURCE_ROOT
 TEST_ROOT = REPOSITORY_ROOT / "modules"
 TEST_ROOTS = [TEST_ROOT / module / "tests" for module in (
-    "tsw_core", "tsw_native_linux", "tsw_windows_wsl",
+    "tsw_core", "tsw_native_linux",
 )]
 SOURCE_TARGETS = [
     PACKAGE_ROOT / "__main__.py",

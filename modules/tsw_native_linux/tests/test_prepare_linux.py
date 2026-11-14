@@ -41,7 +41,6 @@ from tiny_swarm_world.infrastructure.adapters.host.native_preparation import (
 
 QUALIFIED = NativeHostFacts(
     platform="Linux",
-    is_wsl=False,
     distribution_id="ubuntu",
     version_id="24.04",
     architecture="x86_64",

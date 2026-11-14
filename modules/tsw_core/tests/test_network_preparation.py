@@ -25,13 +25,11 @@ from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inven
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import exact_present, parse_rules, verify_no_foreign_denies
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import equivalent
 from tiny_swarm_world.infrastructure.adapters.network_preparation.linux_plan import CONTROLS
-from tiny_swarm_world.infrastructure.adapters.network_preparation.windows import WindowsNetworkPreparation
 from tiny_swarm_world.infrastructure.adapters.network_preparation.configuration import local_names, verify_listeners
 from tiny_swarm_world.infrastructure.adapters.network_preparation.source_identity import preparation_asset_hashes
 from tiny_swarm_world.infrastructure.adapters.network_preparation.persistence_guard import render_guard
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inventory import ufw_status
 from tiny_swarm_world.infrastructure.adapters.incus_preparation.preservation import stable_links
-from tiny_swarm_world.application.ports.host.port_windows_command_runner import WindowsCommandResult
 
 ROOT = Path(__file__).resolve().parents[3]
 PACKAGE = "tiny_swarm_world.infrastructure.adapters.network_preparation"
@@ -378,24 +376,13 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotEqual(first.fingerprint, second.fingerprint)
                 self.assertEqual(host.calls, [])
 
-    async def exercise(self, *, ufw=False, wsl=False):
+    async def exercise(self, *, ufw=False):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory) / "proc", ufw=ufw)
             evidence = Mock()
-            runner = Mock()
-            state = {"schema_version": 1, "distro": "Ubuntu-24.04", "observed_address": "172.20.1.2",
-                     "ownership": "absent", "routing_ready": False, "agent_ready": False, "bridge_ready": False,
-                     "action": "install", "blockers": [], "fingerprint": "absent", "endpoint_state": "UNVERIFIED", "login_state": "UNVERIFIED"}
-            def windows_run(action, **kwargs):
-                if action != "inventory":
-                    host.calls.append(("windows", action))
-                    state.update(ownership="owned", routing_ready=True, agent_ready=True, bridge_ready=True, action=None, fingerprint="ready")
-                return WindowsCommandResult(0, stdout=json.dumps(state))
-            runner.run.side_effect = windows_run
-            windows = WindowsNetworkPreparation(runner, ROOT, ROOT / "modules/tsw_core/infra/config") if wsl else None
             adapter = LocalNetworkPreparation(ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
-                        proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=evidence, windows=windows)
-            with host.patches(), patch.dict("os.environ", WSL_DISTRO_NAME="Ubuntu-24.04"):
+                        proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=evidence)
+            with host.patches():
                 service = NetworkPreparationService(adapter)
                 plan = await service.plan()
                 self.assertFalse(plan.blockers, plan.blockers)
@@ -417,20 +404,11 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await service.apply(second, approved=True)).status, "READY")
                 self.assertEqual(host.calls, before)
                 self.assertFalse(any("MASQUERADE" in call or "--system" in call or "reload" in call for call in host.calls))
-                if wsl:
-                    self.assertIn(("windows", "install"), host.calls)
-                    self.assertTrue(all(call.kwargs["distro"] == "Ubuntu-24.04" for call in runner.run.call_args_list))
-                else:
-                    runner.run.assert_not_called()
-
     async def test_fresh_native_reconciliation_and_zero_mutation_rerun(self):
         await self.exercise()
 
     async def test_active_ufw_adds_scoped_dhcp_dns_routes_preserves_policy_and_rerun(self):
         await self.exercise(ufw=True)
-
-    async def test_fresh_wsl_delegates_existing_owner_and_readiness_stays_separate(self):
-        await self.exercise(wsl=True)
 
     async def test_source_drift_and_foreign_port_block_before_any_effect(self):
         with tempfile.TemporaryDirectory() as directory:

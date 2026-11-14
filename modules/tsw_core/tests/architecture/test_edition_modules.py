@@ -4,7 +4,6 @@ from __future__ import annotations
 import ast
 import json
 import os
-import runpy
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,10 +11,9 @@ import sys
 import tempfile
 import unittest
 
-from modules.tsw_windows_wsl.tests.test_prepare_windows import _powershell, _runtime_path
 
 ROOT = Path(__file__).resolve().parents[4]
-MODULES = ("tsw_core", "tsw_native_linux", "tsw_windows_wsl")
+MODULES = ("tsw_core", "tsw_native_linux")
 
 
 def descriptor_path(root: Path, name: str) -> Path:
@@ -27,7 +25,7 @@ def check_boundaries(root: Path) -> None:
     """Check declared edges, required assets and executable edition references."""
     for name in MODULES:
         descriptor = json.loads(descriptor_path(root, name).read_text())
-        expected = [] if name == "tsw_core" else ["tsw_core", "tsw_native_linux"] if name == "tsw_windows_wsl" else ["tsw_core"]
+        expected = [] if name == "tsw_core" else ["tsw_core"]
         if descriptor["name"] != name or descriptor["project_dependencies"] != expected:
             raise AssertionError(f"Invalid dependency boundary: {name}")
         assets = descriptor.get("owned_assets", descriptor.get("shared_bootstrap", []))
@@ -57,11 +55,8 @@ def check_boundaries(root: Path) -> None:
                              else [node.module or ""] if isinstance(node, ast.ImportFrom) else [])
                     if any(forbidden.intersection(item.split(".")) for item in names):
                         raise AssertionError(f"Forbidden import: {source}")
-            if source.suffix != ".py" and name in ("tsw_native_linux", "tsw_core") and "modules/tsw_windows_wsl/bootstrap/" in text:
+            if source.suffix != ".py" and name == "tsw_core" and "modules/tsw_native_linux/" in text:
                 raise AssertionError(f"Forbidden edition path: {source}")
-            if name == "tsw_windows_wsl" and any(token in text for token in
-                    ("exec ./install.sh", "'install.sh'", '"install.sh"', "exec ./tsw")):
-                raise AssertionError(f"WSL invokes native entry point: {source}")
 
 
 class EditionModuleTests(unittest.TestCase):
@@ -79,8 +74,6 @@ class EditionModuleTests(unittest.TestCase):
         for name in ("install.sh", "tsw"):
             self.assertIn("modules/tsw_native_linux/" + name, (ROOT / name).read_text())
             self.assertIn("$SCRIPT_DIR/boostrap/", (ROOT / "modules/tsw_native_linux" / name).read_text())
-        self.assertNotIn("function Invoke-", (ROOT / "modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1").read_text())
-        self.assertIn("Invoke-WindowsPreparation", (ROOT / "modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1").read_text())
         for module in MODULES:
             self.assertFalse((ROOT / "modules" / module).is_symlink())
 
@@ -125,13 +118,12 @@ class EditionModuleTests(unittest.TestCase):
             for name in MODULES:
                 path = descriptor_path(root, name).parent
                 path.mkdir(parents=True, exist_ok=True)
-                descriptor = {"name": name, "project_dependencies": [] if name == "tsw_core" else ["tsw_core", "tsw_native_linux"] if name == "tsw_windows_wsl" else ["tsw_core"],
+                descriptor = {"name": name, "project_dependencies": [] if name == "tsw_core" else ["tsw_core"],
                               "owned_assets": []}
                 (path / "module.json").write_text(json.dumps(descriptor))
             check_boundaries(root)
-            for owner, dependency in (("tsw_core", "tsw_windows_wsl"),
-                                      ("tsw_windows_wsl", "tsw_windows_wsl"),
-                                      ("tsw_native_linux", "tsw_windows_wsl")):
+            for owner, dependency in (("tsw_core", "tsw_native_linux"),
+                                      ("tsw_native_linux", "tsw_native_linux")):
                 path = descriptor_path(root, owner)
                 original = path.read_text()
                 descriptor = json.loads(original)
@@ -141,14 +133,13 @@ class EditionModuleTests(unittest.TestCase):
                     check_boundaries(root)
                 path.write_text(original)
             injected = root / "modules/tsw_core/src/invalid.py"
-            for content in ("import tsw_windows_wsl\n", "import modules.tsw_windows_wsl\n",
-                            'asset = root / "modules/tsw_windows_wsl/bootstrap"\n'):
+            for content in ("import tsw_native_linux\n", "import modules.tsw_native_linux\n",
+                            'asset = root / "modules/tsw_native_linux/boostrap"\n'):
                 injected.write_text(content)
                 with self.assertRaises(AssertionError):
                     check_boundaries(root)
             injected.unlink()
-            for owner, text in (("tsw_native_linux", 'exec "$ROOT/modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1"'),
-                                ("tsw_windows_wsl", "exec ./install.sh")):
+            for owner, text in (("tsw_core", 'exec "$ROOT/modules/tsw_native_linux/install.sh"'),):
                 script = root / "bad.sh"
                 script.write_text(text)
                 descriptor_file = descriptor_path(root, owner)
@@ -206,42 +197,9 @@ class EditionModuleTests(unittest.TestCase):
                 result = subprocess.run([str(root / public), "--help"], cwd="/", env={**env, "TSW_FIXTURE_EXIT": "0"},
                                         text=True, capture_output=True, timeout=15)
                 self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertFalse((root / "modules/tsw_windows_wsl/bootstrap").exists())
 
-    def test_windows_release_proof_requires_linux_bootstrap_but_not_native_entrypoints(self):
-        builder = runpy.run_path(str(ROOT / "modules/tsw_windows_wsl/tools/build_windows_preparation_manifest.py"))
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            for relative in (*builder["ASSETS"], "install.sh", "tsw", "modules/tsw_native_linux/module.json"):
-                path = root / relative
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("fixture\n")
-            def git(*arguments):
-                return subprocess.run(["git", "-C", str(root), *arguments], check=True,
-                                      capture_output=True, timeout=15).stdout
-            git("init", "--quiet")
-            git("add", ".")
-            git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture")
-            for relative in ("install.sh", "tsw", "modules/tsw_native_linux/module.json"):
-                (root / relative).unlink()
-            manifest = builder["build"](root)
-            self.assertEqual(manifest["revision"], git("rev-parse", "HEAD").decode().strip())
-            (root / "modules/tsw_native_linux/boostrap/install.sh").write_text("edited core\n")
-            with self.assertRaises(ValueError):
-                builder["build"](root)
 
     def test_touched_shell_syntax(self):
-        for relative in ("install.sh", "tsw", "modules/tsw_native_linux/boostrap/install.sh", "modules/tsw_native_linux/boostrap/run.sh",
-                         "modules/tsw_windows_wsl/bootstrap/preparation/linux-handoff.sh"):
+        for relative in ("install.sh", "tsw", "modules/tsw_native_linux/boostrap/install.sh", "modules/tsw_native_linux/boostrap/run.sh"):
             result = subprocess.run(["bash", "-n", str(ROOT / relative)], capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
-
-    @unittest.skipUnless(_powershell(), "PowerShell runtime required for isolated WSL delegation")
-    def test_windows_public_entrypoint_and_stubbed_wsl_delegation(self):
-        executable = _powershell()
-        result = subprocess.run([executable, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File",
-                                 _runtime_path(ROOT / "modules/tsw_windows_wsl/tests/windows/module-delegation.Tests.ps1", executable),
-                                 "-RepositoryRoot", _runtime_path(ROOT, executable)],
-                                capture_output=True, text=True, timeout=45)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("PASS", result.stdout)

@@ -231,11 +231,8 @@ def _windows_wsl_bridge_suggested_commands(reason: str) -> tuple[str, ...]:
     if reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         return (
             'powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"',
-            "powershell.exe -ExecutionPolicy Bypass -File modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1 -Action install",
         )
-    return (
-        "powershell.exe -ExecutionPolicy Bypass -File modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1 -Action install",
-    )
+    return ()
 
 
 def _print_windows_wsl_bridge_failure(
@@ -254,8 +251,7 @@ def _print_windows_wsl_bridge_failure(
             file=sys.stderr,
         )
     print("", file=sys.stderr)
-    print("Run PowerShell as Administrator:", file=sys.stderr)
-    print("  modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1 -Action install", file=sys.stderr)
+    print("Windows bridge installation tooling is no longer shipped in this checkout.", file=sys.stderr)
     if guard.reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
         print("", file=sys.stderr)
         print("Or restart the existing Windows bridge service:", file=sys.stderr)

@@ -25,6 +25,8 @@ links from existing ADR files.
 
 === Infrastructure & Architecture Decisions
 
+include::09_decisions/adr-native-only-host-preparation-and-qualification.adoc[leveloffset=+3]
+
 Examples: cloud or local provider choices, monolith versus microservices,
 runtime topology, ingress, workflow safety, and responsibility ownership.
 

@@ -18,7 +18,6 @@ You must not create commits.
 You must not push branches.
 
 Command execution environment:
-- On Windows hosts, execute repository commands through WSL from the repository's WSL-mounted worktree path.
 - On Linux hosts, execute repository commands through native shell access.
 - Stop and report if WSL is unavailable on Windows or if the worktree cannot be reached from WSL.
 

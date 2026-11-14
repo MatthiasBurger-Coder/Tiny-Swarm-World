@@ -22,41 +22,6 @@ from unittest.mock import Mock, patch
 from modules.tsw_native_linux.tools.qualification import incus_profile_listener_fixture as fixture
 
 
-def _snapshot_asset_digest():
-    return fixture.digest((fixture.ROOT / fixture.WINDOWS_SNAPSHOT_REL).read_bytes())
-
-
-def _firewall_v2_fixture(legacy):
-    """Literal provider protocol fixture with opaque POCO values, not a production converter."""
-    kinds = ('address', 'application', 'interface', 'interface_type', 'port', 'security', 'service')
-    return {'schema_version': 2, 'store': 'ActiveStore', 'association_model': 'PROVIDER_IDENTITY_ONE_TO_ONE',
-            'profiles': [{'identity': item['Name'], 'value': item} for item in legacy['profiles']],
-            'settings': [{'identity': json.dumps(item, sort_keys=True), 'value': item} for item in legacy['settings']],
-            'rules': [{'identity': item['rule']['Name'], 'value': item['rule']} for item in legacy['rules']],
-            'filters': {kind: [{'identity': item['rule']['Name'], 'value': item[kind][0]}
-                               for item in legacy['rules']] for kind in kinds},
-            'cim_layout': {'provider_identity': ['class_name', 'namespace', 'server', 'path'],
-                           'native_property': ['cim_type', 'flags', 'value'],
-                           'adapted_override': ['member_type', 'clr_type', 'alias_target', 'value'],
-                           'enum_view': ['clr_type', 'name'],
-                           'equivalent_rule': 'same-name exact CLR type/value',
-                           'alias_rule': 'native referenced-member exact CLR type/value'}}
-
-
-def _certificate_fixture(legacy):
-    full = _firewall_v2_fixture(legacy)
-    for kind in ('profiles', 'settings', 'rules'):
-        full[kind].sort(key=lambda row: row['identity'])
-    for rows in full['filters'].values():
-        rows.sort(key=lambda row: row['identity'])
-    raw = json.dumps(full, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
-    counts = {kind: len(full[kind]) for kind in ('rules', 'profiles', 'settings')}
-    counts.update({kind: len(rows) for kind, rows in full['filters'].items()})
-    return {'schema_version': 'tsw.windows-firewall-certificate.v1', 'query_sha256': _snapshot_asset_digest(),
-            'snapshot_sha256': fixture.digest(raw), 'snapshot_bytes': len(raw), 'snapshot_schema_version': 2,
-            'store': 'ActiveStore', 'association_model': 'PROVIDER_IDENTITY_ONE_TO_ONE', 'counts': counts}
-
-
 def _fixture_instance_dto(go, derived, properties, phase='init'):
     maps = json.dumps([{'Isuid': True, 'Isgid': False, 'Hostid': 1000000, 'Nsid': 0, 'Maprange': 65536},
                        {'Isuid': False, 'Isgid': True, 'Hostid': 1000000, 'Nsid': 0, 'Maprange': 65536}], separators=(',', ':'))
@@ -329,7 +294,6 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
                    'device_type': 'proxy', 'effective_profiles': ['manager'],
                    'listen': {'protocol': 'tcp', 'address': '127.0.0.1', 'port': 10001},
                    'connect': {'protocol': 'tcp', 'address': '127.0.0.1', 'port': 8080}, 'bind': 'host'}]
-        windows = b'firewall\r\n--PORTPROXY--\r\n10001\r\n'
         payload = {
             'listeners_10001_count': 1,
             'listeners_10001_sha256': hashlib.sha256(json.dumps(
@@ -337,11 +301,11 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
                 ensure_ascii=False).encode('utf-8')).hexdigest(),
             'incus_projects': ['default'],
             'incus_10001_routes': routes,
-            'windows_snapshot_sha256': hashlib.sha256(windows).hexdigest(),
+
         }
         expected = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':'),
                                              ensure_ascii=False).encode('utf-8')).hexdigest()
-        self.assertEqual(fixture.approved_route_state_sha256(listeners, routes, windows, ['default']), expected)
+        self.assertEqual(fixture.approved_route_state_sha256(listeners, routes,  ['default']), expected)
 
     def test_successfully_read_empty_route_state_is_a_valid_bound_baseline(self):
         outputs = [b'',
@@ -355,7 +319,7 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
         self.assertEqual(state['incus_10001_routes'], [])
         self.assertEqual(state['incus_projects'], ['default'])
         self.assertEqual(state['approved_route_state_sha256'],
-                         fixture.approved_route_state_sha256([], [], b'', ['default']))
+                         fixture.approved_route_state_sha256([], [],  ['default']))
         self.assertEqual(command.call_count, 5)
 
     def test_empty_route_inventory_covers_and_binds_every_project(self):
@@ -368,8 +332,8 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
         self.assertEqual(projects, ['default', 'qa'])
         self.assertEqual(routes, [])
         self.assertEqual(command.call_count, 7)
-        self.assertNotEqual(fixture.approved_route_state_sha256([], [], b'', projects),
-                            fixture.approved_route_state_sha256([], [], b'', ['default']))
+        self.assertNotEqual(fixture.approved_route_state_sha256([], [],  projects),
+                            fixture.approved_route_state_sha256([], [],  ['default']))
 
     def test_route_inventory_reads_shared_profiles_only_from_default_project(self):
         calls = []
@@ -445,10 +409,10 @@ class RouteStateDigestTests(_FixtureBehaviorTestCase):
             with (patch.object(fixture, 'ROOT', root),
                   patch.object(fixture, 'git_preflight', return_value=('b' * 40, b'w', b'r', b't')),
                   patch.object(fixture, '_route_state', side_effect=fixture.TargetDrift(
-                      'WINDOWS_SNAPSHOT_TIMEOUT')),
-                  self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT')):
-                fixture.capture_route_state('192.168.178.58',
-                    '.tiny-swarm/evidence/issue-449/s449-private-20261027/windows-timeout.json')
+                      'INCUS_INVENTORY_TOTAL_TIMEOUT')),
+                  self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_TOTAL_TIMEOUT')):
+                fixture.capture_route_state('192.168.178.33',
+                    '.tiny-swarm/evidence/issue-449/s449-private-20261027/inventory-timeout.json')
             self.assertEqual(list(evidence.iterdir()), [])
 
 
@@ -464,8 +428,8 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
             root = Path(directory)
             evidence = self._private_evidence_root(root)
             state = {'listeners_10001': [], 'incus_10001_routes': [], 'incus_projects': ['default'],
-                     'windows_snapshot': b'',
-                     'approved_route_state_sha256': fixture.approved_route_state_sha256([], [], b'', ['default'])}
+
+                     'approved_route_state_sha256': fixture.approved_route_state_sha256([], [],  ['default'])}
             with (patch.object(fixture, 'ROOT', root),
                   patch.object(fixture, 'git_preflight', return_value=('a' * 40, b'w', b'r', b't')),
                   patch.object(fixture, '_route_state', return_value=state),
@@ -509,8 +473,8 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
             destination.write_bytes(b'preserve')
             (evidence / 'capture.json').symlink_to(destination)
             state = {'listeners_10001': [], 'incus_10001_routes': [], 'incus_projects': ['default'],
-                     'windows_snapshot': b'',
-                     'approved_route_state_sha256': fixture.approved_route_state_sha256([], [], b'', ['default'])}
+
+                     'approved_route_state_sha256': fixture.approved_route_state_sha256([], [],  ['default'])}
             with (patch.object(fixture, 'ROOT', root),
                   patch.object(fixture, 'git_preflight', return_value=('a' * 40, b'w', b'r', b't')),
                   patch.object(fixture, '_route_state', return_value=state),
@@ -594,7 +558,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
                     with self.assertRaisesRegex(fixture.TargetDrift, 'DEFAULT_PROFILE_UNREADABLE'):
                         fixture._read_default_profile({
                             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-                            'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
+                              'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
                                 {'boot.autostart': 'false'}, {})}, [])
 
     def test_capture_executes_read_only_inventory_allowlist_and_binds_all_projects(self):
@@ -685,7 +649,7 @@ class RouteStateCaptureTests(_FixtureBehaviorTestCase):
             ]
             self.assertEqual(payload['incus_10001_routes'], expected_routes)
             self.assertEqual(payload['approved_route_state_sha256'],
-                             fixture.approved_route_state_sha256([], expected_routes, b'', ['default', 'qa']))
+                             fixture.approved_route_state_sha256([], expected_routes,  ['default', 'qa']))
             self.assertEqual({path.name for path in evidence.iterdir()}, {'pre-go-route-state.json'})
 
 
@@ -1362,7 +1326,7 @@ class ProxyRouteParsingTests(_FixtureBehaviorTestCase):
 
 class GoValidationTests(_FixtureBehaviorTestCase):
     def setUp(self):
-        self.args = argparse.Namespace(target_host='192.168.178.58')
+        self.args = argparse.Namespace(target_host='192.168.178.33')
         self.workflow, self.runner, self.tests = b'w', b'r', b't'
         run_id = 'a' * 32
         self.go = {
@@ -1380,11 +1344,22 @@ class GoValidationTests(_FixtureBehaviorTestCase):
             'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
             'cleanup': [f'tsw-q449-{run_id}-fixture', f'tsw-q449-{run_id}-profile', f'tsw-q449-{run_id}-base'],
             'reviews': {k: 'APPROVED' for k in fixture.REVIEW_KEYS},
-            'windows_rules_unchanged': True, 'external_routes_enabled': False,
+             'external_routes_enabled': False,
             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}), 'default_profile_used_by': [],
-            'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
             'approved_route_state_sha256': '0' * 64,
         }
+
+    def test_rejects_removed_windows_proof_fields(self):
+        candidate = {**self.go, 'windows_snapshot_sha256': '0' * 64}
+        with self.assertRaisesRegex(fixture.FixtureError, 'INVALID_GO_KEYS'):
+            fixture.validate_go(candidate, self.args, 'b' * 40, self.workflow, self.runner, self.tests)
+
+    def test_rejects_removed_windows_host_before_inventory(self):
+        with patch.object(fixture, 'command') as command:
+            with self.assertRaisesRegex(fixture.FixtureError, 'HOST_IDENTITY_DRIFT'):
+                fixture._begin_inventory('192.168.178.58', reserve_cleanup=True)
+        command.assert_not_called()
 
     def test_accepts_exact_bound_contract(self):
         self.assertEqual(fixture.validate_go(self.go, self.args, 'b' * 40, self.workflow, self.runner, self.tests), self.go)
@@ -1554,7 +1529,6 @@ class NoMutationTests(_FixtureBehaviorTestCase):
         command.assert_not_called()
 
 
-
 class GoValidationMatrixTests(_FixtureBehaviorTestCase):
     def setUp(self):
         GoValidationTests.setUp(self)
@@ -1578,7 +1552,7 @@ class GoValidationMatrixTests(_FixtureBehaviorTestCase):
 
     def test_every_sha256_and_source_hash_rejects_bad_syntax(self):
         keys = ('workflow_sha256', 'runner_sha256', 'test_sha256', 'resource_admission_sha256',
-                'issue447_inventory_sha256', 'default_profile_sha256', 'fixture_base_profile_sha256', 'windows_snapshot_sha256', 'windows_certificate_sha256',
+                'issue447_inventory_sha256', 'default_profile_sha256', 'fixture_base_profile_sha256',
                 'approved_route_state_sha256')
         for key in keys:
             candidate = json.loads(json.dumps(self.base))
@@ -1598,7 +1572,6 @@ class GoValidationMatrixTests(_FixtureBehaviorTestCase):
         mutations = (
             lambda g: g.__setitem__('cleanup', list(reversed(g['cleanup']))),
             lambda g: g['reviews'].__setitem__('requirements', 'REJECTED'),
-            lambda g: g.__setitem__('windows_rules_unchanged', 1),
             lambda g: g.__setitem__('external_routes_enabled', True),
             lambda g: g.__setitem__('default_profile_used_by', ['/z', '/a']),
             lambda g: g.__setitem__('default_profile_used_by', ['/a', '/a']),
@@ -1626,7 +1599,6 @@ class GoValidationMatrixTests(_FixtureBehaviorTestCase):
             mutate(candidate)
             with self.subTest(candidate=candidate), self.assertRaises(fixture.FixtureError):
                 fixture.validate_go(candidate, self.args, 'b' * 40, self.workflow, self.runner, self.tests)
-
 
 
 class ReadAndReservationTests(_FixtureBehaviorTestCase):
@@ -1708,11 +1680,11 @@ class ReadAndReservationTests(_FixtureBehaviorTestCase):
 
 
 class FixtureLifecycleTests(_FixtureBehaviorTestCase):
-    def test_initial_consumer_listener_and_wsl_route_drift_prevent_first_write(self):
-        for drift in ('consumer', 'listener', 'wsl'):
+    def test_initial_consumer_and_listener_drift_prevent_first_write(self):
+        for drift in ('consumer', 'listener'):
             with self.subTest(drift=drift):
                 run_id = 'a' * 32
-                host = '192.168.178.58' if drift == 'wsl' else '192.168.178.33'
+                host = '192.168.178.33'
                 go = {'source_commit': 'b' * 40,
                       'target': {'host': host, 'endpoint': 'unix://', 'project': 'default',
                                  'server_version': '6.0.5', 'run_id': run_id,
@@ -1722,14 +1694,13 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                       'proxy': {'listen': 'tcp:127.0.0.1:61000',
                                 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
                       'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-                      'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
+                        'fixture_base_profile_sha256': fixture.canonical_profile_sha256(
                           {'boot.autostart': 'false'}, {}),
                       'default_profile_used_by': []}
-                windows = b'approved windows state' if drift == 'wsl' else b''
-                route_digest = fixture.approved_route_state_sha256([], [], windows, ['default'])
+                route_digest = fixture.approved_route_state_sha256([], [],  ['default'])
                 go['approved_route_state_sha256'] = route_digest
                 baseline = {'listeners_10001': [], 'incus_10001_routes': [],
-                            'incus_projects': ['default'], 'windows_rules_portproxy': windows,
+                            'incus_projects': ['default'],
                             'approved_route_state_sha256': route_digest,
                             'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                             'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
@@ -1759,11 +1730,9 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                     patch.object(fixture, '_inventory_command', return_value=json.dumps(profile).encode()),
                     patch.object(fixture, 'command', side_effect=command),
                     patch.object(fixture, '_incus_route_inventory', return_value=(['default'], [])),
-                    patch.object(fixture, '_windows_snapshot', return_value=b'changed windows state'),
                 ):
                     code = {'consumer': 'DEFAULT_PROFILE_CONSUMERS_DRIFT',
-                            'listener': 'AUTHORIZED_LISTENER_CHANGED',
-                            'wsl': 'WINDOWS_RULES_CHANGED'}[drift]
+                            'listener': 'AUTHORIZED_LISTENER_CHANGED'}[drift]
                     with self.assertRaisesRegex(fixture.TargetDrift, code):
                         _run_approved_fixture(go, baseline)
                 self.assertEqual(writes, [])
@@ -1822,7 +1791,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                        'instance': f'tsw-q449-{run_id}-fixture'},
             'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
             'default_profile_sha256': fixture.canonical_profile_sha256({}, {}), 'default_profile_used_by': [],
-            'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+              'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
         }
         state = {'instance': False, 'profile_marker': False, 'instance_marker': False,
                  'status': 'stopped', 'foreign_consumer': False, 'base_exists': False,
@@ -1838,7 +1807,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
         listener = (b'LISTEN 0 4096 127.0.0.1:61000 0.0.0.0:* users:(("incusd",pid=123,fd=4))\n'
                     b'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=44,fd=5))\n')
         approved_route_state = fixture.approved_route_state_sha256(
-            [listener.splitlines()[1]], [], b'', ['default'])
+            [listener.splitlines()[1]], [],  ['default'])
         go['approved_route_state_sha256'] = approved_route_state
 
         def incus(*args, profile_data=None):
@@ -1946,7 +1915,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             return incus(*argv[1:])
 
         baseline = {'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
-                    'incus_10001_routes': [], 'windows_rules_portproxy': b'',
+                    'incus_10001_routes': [],
                     'approved_route_state_sha256': approved_route_state,
                     'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                     'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3, 'filesystem_available_bytes': 2}}
@@ -1997,7 +1966,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             with self.assertRaises(fixture.TargetDrift):
                 _run_approved_fixture(go, {'listeners_10001': [listener.splitlines()[1]],
                                           'incus_projects': ['default'],
-                                          'incus_10001_routes': [], 'windows_rules_portproxy': b'',
+                                          'incus_10001_routes': [],
                                           'approved_route_state_sha256': approved_route_state,
                                           'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                                           'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
@@ -2031,7 +2000,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
             with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_10001_ROUTE_CHANGED'):
                 _run_approved_fixture(go, {
                     'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
-                    'incus_10001_routes': [], 'windows_rules_portproxy': b'',
+                    'incus_10001_routes': [],
                     'approved_route_state_sha256': approved_route_state,
                     'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                     'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
@@ -2063,7 +2032,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                     with self.assertRaisesRegex(fixture.TargetDrift, 'JIT_COMMAND_FAILED'):
                         _run_approved_fixture(go, {
                             'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
-                            'incus_10001_routes': [], 'windows_rules_portproxy': b'',
+                            'incus_10001_routes': [],
                             'approved_route_state_sha256': approved_route_state,
                             'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                             'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
@@ -2104,7 +2073,7 @@ class FixtureLifecycleTests(_FixtureBehaviorTestCase):
                 with self.assertRaisesRegex(fixture.TargetDrift, error_code):
                     _run_approved_fixture(go, {
                         'listeners_10001': [listener.splitlines()[1]], 'incus_projects': ['default'],
-                        'incus_10001_routes': [], 'windows_rules_portproxy': b'',
+                        'incus_10001_routes': [],
                         'approved_route_state_sha256': approved_route_state,
                         'image_properties': {}, 'derived_base_profile': {'config': {'boot.autostart': 'false'}, 'devices': {}},
                         'resources': {'memory_total_bytes': 4, 'memory_available_bytes': 3,
@@ -2308,7 +2277,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': '0' * 64, 'default_profile_used_by': [],
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {})}
+                'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {})}
         outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
                    b'Client version: 6.0.5\nServer version: 6.0.5\n',
                    json.dumps([{'fingerprint': fingerprint}]).encode(),
@@ -2356,7 +2325,7 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'base_profile': f'tsw-q449-{run_id}-base', 'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256(profile['config'], profile['devices']),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+                'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         with (patch.object(fixture, '_incus_10001_routes', return_value=[]),
               patch.object(fixture, 'command', side_effect=command) as command_mock,
@@ -2444,9 +2413,9 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
         routes = [{'project': 'default', 'owner_type': 'profile', 'owner': 'manager', 'device': 'web',
                    'config': {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001'}, 'used_by': []}]
         go = {'approved_route_state_sha256': fixture.approved_route_state_sha256(
-            listeners, routes, b'approved windows state', ['default'])}
+            listeners, routes,  ['default'])}
         with self.assertRaisesRegex(fixture.TargetDrift, 'APPROVED_ROUTE_STATE_DRIFT'):
-            fixture._assert_approved_route_state(go, listeners, routes, b'changed windows state', ['default'])
+            fixture._assert_approved_route_state(go, listeners, routes, ['default', 'foreign'])
 
     def test_every_jit_command_failure_prefix_contains_no_incus_write(self):
         run_id = 'a' * 32
@@ -2475,12 +2444,12 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                          'image_fingerprint': fingerprint},
               'proxy': {'listen': 'tcp:127.0.0.1:61000'},
               'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
+                'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
               'default_profile_used_by': []}
         go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
             [b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))'],
             [{'project': 'default', 'owner_type': 'profile', 'owner': 'legacy', 'device': 'web',
-              'config': route['devices']['web'], 'used_by': []}], b'', ['default'])
+              'config': route['devices']['web'], 'used_by': []}],  ['default'])
         command_order = [
             ('ip', '-j', '-4', 'addr'), ('incus', 'version'),
             ('incus', 'image', 'list', '--project', 'default', '--format', 'json'),
@@ -2514,617 +2483,6 @@ class JitNoMutationTests(_FixtureBehaviorTestCase):
                 'create', 'init', 'start', 'stop', 'delete',
                 'config', 'launch', 'copy', 'move',
             }) for cmd in seen))
-
-
-class WslJitTests(_FixtureBehaviorTestCase):
-    def setUp(self):
-        super().setUp()
-        patcher = patch.object(fixture, '_assert_local_incus_remote_inventory')
-        patcher.start()
-        self.addCleanup(patcher.stop)
-
-    def test_source_commit_must_equal_current_head(self):
-        case = GoValidationTests()
-        case.setUp()
-        self.addCleanup(case.doCleanups)
-        candidate = json.loads(json.dumps(case.go))
-        candidate['source_commit'] = 'c' * 40
-        with self.assertRaises(fixture.FixtureError):
-            fixture.validate_go(candidate, case.args, 'b' * 40, case.workflow, case.runner, case.tests)
-
-    def test_default_profile_consumer_drift_is_detected_by_jit(self):
-        case = GoValidationTests()
-        case.setUp()
-        self.addCleanup(case.doCleanups)
-        go = {'target': {'host': '192.168.178.33', 'server_version': '6.0.5',
-                         'instance': case.go['target']['instance'], 'profile': case.go['target']['profile'],
-                         'base_profile': case.go['target']['base_profile'],
-                         'image_fingerprint': case.go['target']['image_fingerprint']},
-              'proxy': {'listen': 'tcp:127.0.0.1:61000'},
-              'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
-              'default_profile_used_by': []}
-        outputs = [b'[{"addr_info":[{"local":"192.168.178.33"}]}]',
-                   b'Client version: 6.0.5\nServer version: 6.0.5\n',
-                   json.dumps([{'fingerprint': case.go['target']['image_fingerprint']}]).encode(),
-                   b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
-                   b'{"name":"default","project":"default","config":{},"devices":{},"used_by":["/1.0/instances/other"]}']
-        with (patch.object(fixture, 'command', side_effect=outputs),
-              patch.object(fixture, '_inventory_command', return_value=outputs[-1])):
-            with self.assertRaisesRegex(fixture.TargetDrift, 'DEFAULT_PROFILE_CONSUMERS_DRIFT'):
-                fixture.jit(go, '192.168.178.33')
-
-    def test_wsl_identity_and_windows_rules_portproxy_snapshot(self):
-        fingerprint = 'e' * 64
-        profile = {'name': 'default', 'project': 'default', 'config': {}, 'devices': {}, 'used_by': []}
-        route = {'name': 'legacy', 'project': 'default', 'config': {}, 'devices': {'web': {'type': 'proxy',
-                 'listen': 'tcp:127.0.0.1:10001', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}},
-                 'used_by': []}
-        seen = []
-
-        def command(argv):
-            seen.append(argv)
-            if argv[0] == 'uname':
-                return b'6.6.87.2-microsoft-standard-WSL2'
-            if argv[0].endswith('powershell.exe'):
-                script = argv[-1]
-                if 'Get-NetIPAddress' in script:
-                    return b'192.168.178.58\n'
-                if 'tsw.windows-firewall-certificate.v1' in script:
-                    return json.dumps(_certificate_fixture({'profiles': [], 'settings': [], 'rules': []})).encode()
-            if argv[0].endswith('/netsh.exe'):
-                return b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
-            mapping = {
-                ('incus', 'remote', 'list', '--format', 'json'): b'{"local":{"Addr":"unix://"}}',
-                ('incus', 'remote', 'get-default'): b'local',
-                ('incus', 'version'): b'Client version: 6.0.5\nServer version: 6.0.5\n',
-                ('incus', 'project', 'list', '--format', 'json'): b'[{"name":"default"}]',
-                ('incus', 'query', '/1.0/projects/default'): b'{"name":"default","description":"","config":{}}',
-                ('incus', 'image', 'list', '--project', 'default', '--format', 'json'): json.dumps([{'fingerprint': fingerprint}]).encode(),
-                ('incus', 'query', '/1.0/images/' + fingerprint + '?project=default'): b'{"properties":{"os":"Alpine Linux","release":"3.21"}}',
-                ('incus', 'query', fixture._profile_api_path('default', 'default')): json.dumps(profile).encode(),
-                ('free', '-b'): b'header\nMem: 40000000000 1000000 2000000 0 3000000 35000000000',
-                ('df', '-B1', '--output=avail', str(fixture.ROOT)): b'Avail\n100000000000',
-                ('ss', '-H', '-ltn'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:*',
-                ('ss', '-H', '-ltnp'): b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))',
-                ('incus', 'query', '/1.0/instances?project=default&recursion=1'): b'[]',
-                ('incus', 'profile', 'list', '--project', 'default', '--format', 'json'): json.dumps([route]).encode(),
-                }
-            return mapping[tuple(argv)]
-
-        go = {'target': {'host': '192.168.178.58', 'server_version': '6.0.5',
-                         'instance': 'tsw-q449-' + 'a' * 32 + '-fixture',
-                         'profile': 'tsw-q449-' + 'a' * 32 + '-profile',
-                         'base_profile': 'tsw-q449-' + 'a' * 32 + '-base',
-                         'image_fingerprint': fingerprint},
-              'proxy': {'listen': 'tcp:127.0.0.1:61000'},
-              'default_profile_sha256': fixture.canonical_profile_sha256({}, {}),
-              'windows_snapshot_sha256': _snapshot_asset_digest(), 'windows_certificate_sha256': fixture.WINDOWS_CERTIFICATE_SHA256, 'fixture_base_profile_sha256': fixture.canonical_profile_sha256({'boot.autostart': 'false'}, {}),
-              'default_profile_used_by': []}
-        firewall_bytes = json.dumps(_certificate_fixture({'profiles': [], 'settings': [], 'rules': []}),
-                                    sort_keys=True, separators=(',', ':')).encode()
-        portproxy_bytes = b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
-        windows_snapshot = fixture._pack_windows_snapshot(firewall_bytes, portproxy_bytes)
-        go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
-            [b'LISTEN 0 1 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=77,fd=3))'],
-            [fixture._safe_route_row('default', 'profile', 'legacy', 'web',
-                                     route['devices']['web'], ['legacy'])], windows_snapshot, ['default'])
-        with (patch.object(fixture, 'command', side_effect=command),
-              patch.object(fixture, '_inventory_command', return_value=json.dumps(profile).encode())):
-            baseline = fixture.jit(go, '192.168.178.58')
-        self.assertEqual(baseline['windows_rules_portproxy'], windows_snapshot)
-        self.assertTrue(any(argv[0].endswith('powershell.exe') and 'Get-NetIPAddress' in argv[-1] for argv in seen))
-        firewall_command = next(argv[-1] for argv in seen if argv[0].endswith('powershell.exe')
-                                and 'tsw.windows-firewall-certificate.v1' in argv[-1])
-        self.assertEqual(firewall_command, fixture._windows_snapshot_wrapper(go['windows_snapshot_sha256']))
-        query_source = fixture._windows_snapshot_query(go['windows_snapshot_sha256'])
-        for cmdlet in ('Get-NetFirewallProfile',
-                       'Get-NetFirewallSetting',
-                       'Get-NetFirewallAddressFilter', 'Get-NetFirewallApplicationFilter',
-                       'Get-NetFirewallInterfaceFilter', 'Get-NetFirewallInterfaceTypeFilter',
-                       'Get-NetFirewallPortFilter', 'Get-NetFirewallSecurityFilter',
-                       'Get-NetFirewallServiceFilter'):
-            self.assertIn(cmdlet, query_source)
-        self.assertTrue(any(argv[0].endswith('/netsh.exe') and argv[1:] == [
-            'interface', 'portproxy', 'show', 'all'] for argv in seen))
-        self.assertEqual(baseline['incus_10001_routes'][0]['owner'], 'legacy')
-
-        seen.clear()
-        def fail_firewall_snapshot(argv):
-            if argv[0].endswith('powershell.exe') and 'tsw.windows-firewall-certificate.v1' in argv[-1]:
-                seen.append(argv)
-                raise fixture.TargetDrift('WINDOWS_SNAPSHOT_TIMEOUT')
-            return command(argv)
-        with (patch.object(fixture, 'command', side_effect=fail_firewall_snapshot),
-              patch.object(fixture, '_inventory_command', return_value=json.dumps(profile).encode())):
-            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT'):
-                fixture.jit(go, '192.168.178.58')
-        self.assertFalse(any(argv[0] == 'incus' and len(argv) > 1 and argv[1] in {
-            'create', 'init', 'launch', 'start', 'stop', 'delete', 'copy', 'move',
-        } for argv in seen))
-
-        go['approved_route_state_sha256'] = '0' * 64
-        seen.clear()
-        with (patch.object(fixture, 'command', side_effect=command),
-              patch.object(fixture, '_inventory_command', return_value=json.dumps(profile).encode())):
-            with self.assertRaisesRegex(fixture.TargetDrift, 'APPROVED_ROUTE_STATE_DRIFT'):
-                fixture.jit(go, '192.168.178.58')
-        self.assertFalse(any(argv[0] == 'incus' and argv[1] in {
-            'create', 'init', 'start', 'stop', 'delete', 'launch', 'copy', 'move',
-        } for argv in seen))
-
-    def test_windows_snapshot_comparison_accepts_equal_and_rejects_changed(self):
-        fixture._assert_windows_unchanged(b'approved state', b'approved state')
-        with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_RULES_CHANGED'):
-            fixture._assert_windows_unchanged(b'approved state', b'changed state')
-
-    def test_windows_snapshot_digest_is_stable_across_provider_order(self):
-        base = {'profiles': [{'Name': 'Public'}, {'Name': 'Private'}],
-                'settings': [{'Setting': 'z'}, {'Setting': 'a'}],
-                'rules': [{'rule': {'Name': 'rule-b'},
-                           'profiles': [{'Name': 'Public'}, {'Name': 'Private'}],
-                           'address': [{'RemoteAddress': 'Any'}], 'application': [{'Program': 'Any'}],
-                           'interface': [{'InterfaceAlias': 'Any'}],
-                           'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
-                           'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]},
-                          {'rule': {'Name': 'rule-a'},
-                           'profiles': [{'Name': 'Private'}, {'Name': 'Public'}],
-                           'address': [{'RemoteAddress': 'LocalSubnet'}], 'application': [{'Program': 'Any'}],
-                           'interface': [{'InterfaceAlias': 'Any'}],
-                           'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
-                           'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]}]}
-        reordered = json.loads(json.dumps(base))
-        reordered['profiles'].reverse()
-        reordered['settings'].reverse()
-        reordered['rules'].reverse()
-        for rule in reordered['rules']:
-            rule['profiles'].reverse()
-        portproxy = b'raw exact portproxy bytes\r\n'
-        outputs = [json.dumps(_certificate_fixture(base)).encode(), portproxy,
-                   json.dumps(_certificate_fixture(reordered)).encode(), portproxy]
-        with patch.object(fixture, 'command', side_effect=outputs):
-            first = fixture._windows_snapshot()
-            first_digest = fixture._WINDOWS_SNAPSHOT_METADATA['windows_snapshot_sha256']
-            second = fixture._windows_snapshot()
-        self.assertEqual(first, second)
-        self.assertEqual(first_digest, fixture._WINDOWS_SNAPSHOT_METADATA['windows_snapshot_sha256'])
-        self.assertEqual(first[-len(portproxy):], portproxy)
-        self.assertNotIn(b'base64', first)
-
-    def test_wsl_route_capture_binds_identity_and_canonical_active_store_plus_exact_portproxy(self):
-        firewall_value = {
-            'profiles': [{'Name': 'Public', 'Enabled': True}, {'Name': 'Domain', 'Enabled': False}],
-            'settings': [{'PolicyStoreSource': 'ActiveStore'}],
-            'rules': [{'rule': {'Name': 'z-rule', 'Enabled': True},
-                       'profiles': [{'Name': 'Public'}], 'address': [{'RemoteAddress': 'Any'}],
-                       'application': [{'Program': 'Any'}], 'interface': [{'InterfaceAlias': 'Any'}],
-                       'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
-                       'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]},
-                      {'rule': {'Name': 'a-rule', 'Enabled': False},
-                       'profiles': [{'Name': 'Public'}], 'address': [{'RemoteAddress': 'Any'}],
-                       'application': [{'Program': 'Any'}], 'interface': [{'InterfaceAlias': 'Any'}],
-                       'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
-                       'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]}],
-        }
-        raw_portproxy = b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
-        seen = []
-
-        def command(argv):
-            seen.append(argv)
-            if argv[0] == 'uname':
-                return b'6.6.87.2-microsoft-standard-WSL2'
-            if argv[0].endswith('powershell.exe'):
-                if 'Get-NetIPAddress' in argv[-1]:
-                    return b'192.168.178.58\n'
-                if 'tsw.windows-firewall-certificate.v1' in argv[-1]:
-                    return json.dumps(_certificate_fixture(firewall_value)).encode('utf-8')
-            if argv[0].endswith('/netsh.exe'):
-                return raw_portproxy
-            if argv[0] == 'ss':
-                return b''
-            if argv == ['incus', 'remote', 'list', '--format', 'json']:
-                return b'{"local":{"Addr":"unix://"}}'
-            if argv == ['incus', 'remote', 'get-default']:
-                return b'local'
-            if argv == ['incus', 'project', 'list', '--format', 'json']:
-                return b'[{"name":"default"},{"name":"qa"}]'
-            if argv == ['incus', 'query', '/1.0/projects/default']:
-                return b'{"name":"default","description":"","config":{}}'
-            if argv == ['incus', 'query', '/1.0/projects/qa']:
-                return b'{"name":"qa","description":"","config":{}}'
-            if argv[:3] == ['incus', 'profile', 'list']:
-                return b'[]'
-            if argv in (['incus', 'query', '/1.0/instances?project=default&recursion=1'], ['incus', 'query', '/1.0/instances?project=qa&recursion=1']):
-                return b'[]'
-            self.fail(f'unexpected capture command: {argv}')
-
-        def remote_inventory():
-            seen.extend([
-                ['incus', 'remote', 'list', '--format', 'json'],
-                ['incus', 'remote', 'get-default'],
-            ])
-
-        with (patch.object(fixture, 'command', side_effect=command),
-              patch.object(fixture, '_assert_local_incus_remote_inventory', side_effect=remote_inventory)):
-            state = fixture._route_state('192.168.178.58')
-
-        expected_value = _certificate_fixture(firewall_value)
-        expected_firewall = json.dumps(expected_value, sort_keys=True, separators=(',', ':'),
-                                       ensure_ascii=False).encode('utf-8')
-        expected_snapshot = fixture._pack_windows_snapshot(expected_firewall, raw_portproxy)
-        self.assertEqual(state['windows_snapshot'], expected_snapshot)
-        self.assertEqual(state['approved_route_state_sha256'],
-                         fixture.approved_route_state_sha256([], [], expected_snapshot, ['default', 'qa']))
-        self.assertEqual(seen[0], ['uname', '-r'])
-        self.assertIn(['incus', 'remote', 'list', '--format', 'json'], seen)
-        self.assertIn(['incus', 'remote', 'get-default'], seen)
-        self.assertIn(['incus', 'project', 'list', '--format', 'json'], seen)
-        self.assertTrue(any(argv[0].endswith('powershell.exe') and 'Get-NetIPAddress' in argv[-1]
-                            for argv in seen))
-        self.assertTrue(any(argv[0].endswith('/netsh.exe') and argv[1:] == [
-            'interface', 'portproxy', 'show', 'all'] for argv in seen))
-
-    def test_windows_snapshot_rejects_malformed_provider_rows(self):
-        complete_rule = {'rule': {'Name': 'r'},
-                         'profiles': [{'Name': 'Public'}], 'address': [{'RemoteAddress': 'Any'}],
-                         'application': [{'Program': 'Any'}], 'interface': [{'InterfaceAlias': 'Any'}],
-                         'interface_type': [{'InterfaceType': 'Any'}], 'port': [{'LocalPort': 'Any'}],
-                         'security': [{'Authentication': 'NotRequired'}], 'service': [{'Service': 'Any'}]}
-        collections = ('profiles', 'address', 'application', 'interface', 'interface_type',
-                       'port', 'security', 'service')
-        missing_filters = [{**complete_rule, key: []} for key in collections]
-        duplicate_filters = [{**complete_rule, key: [complete_rule[key][0],
-                               dict(complete_rule[key][0])]} for key in collections]
-        empty_associated_filter = {**complete_rule, 'port': [{}]}
-        orphan_profile_association = {**complete_rule, 'profiles': [{'Name': 'MissingProfile'}]}
-        orphan_collection = {**complete_rule, 'orphan': [{'Address': '192.0.2.1'}]}
-        malformed_outputs = (
-            b'{"profiles":[null],"settings":[],"rules":[]}',
-            b'{"profiles":[],"settings":[],"rules":[{"rule":null}]}',
-            b'{"profiles":[],"settings":[],"rules":[{"rule":{"Name":"r"},"profiles":[null],"address":[],"application":[],"interface":[],"interface_type":[],"port":[],"security":[],"service":[]}]}',
-            *(json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [rule]}).encode()
-              for rule in missing_filters),
-            *(json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [rule]}).encode()
-              for rule in duplicate_filters),
-            json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [empty_associated_filter]}).encode(),
-            json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [orphan_profile_association]}).encode(),
-            json.dumps({'profiles': [{'Name': 'Public'}], 'settings': [], 'rules': [orphan_collection]}).encode(),
-        )
-        for raw in malformed_outputs:
-            with self.subTest(raw=raw), patch.object(fixture, 'command', return_value=raw):
-                with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE'):
-                    fixture._windows_snapshot()
-
-
-    def test_wsl_identity_mismatch_stops_before_incus(self):
-        cases = (
-            (b'Linux-native-kernel',),
-            (b'6.6.87.2-microsoft-standard-WSL2', b'192.168.178.33\n'),
-        )
-        for outputs in cases:
-            seen = []
-            def command(argv):
-                seen.append(argv)
-                return outputs[len(seen) - 1]
-            with self.subTest(outputs=outputs), patch.object(fixture, 'command', side_effect=command):
-                with self.assertRaises(fixture.TargetDrift):
-                    fixture.jit({'target': {'host': '192.168.178.58'}}, '192.168.178.58')
-            self.assertFalse(any(argv[0] == 'incus' for argv in seen))
-
-
-
-class BoundedWindowsSnapshotProcessTests(_FixtureBehaviorTestCase):
-    def setUp(self):
-        super().setUp()
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-
-    def _run(self, program, timeout=5, stdout_cap=128, stderr_cap=64, total_cap=512):
-        with patch.object(fixture, '_inventory_budgets', return_value=(256, total_cap, 10_000, 300)):
-            return fixture._snapshot_process(
-                [fixture.sys.executable, '-c', program], timeout, stdout_cap, stderr_cap,
-                'WINDOWS_SNAPSHOT_COMMAND_FAILED')
-
-    def test_per_command_exact_stream_cap_is_accepted_and_cap_plus_one_rejected(self):
-        self.assertEqual(self._run("import sys; sys.stdout.buffer.write(b'x'*128)"), b'x' * 128)
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-        with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
-            self._run("import sys; sys.stdout.buffer.write(b'x'*129)")
-
-    def test_exact_production_stream_and_aggregate_caps_are_accepted(self):
-        mib = 1024 * 1024
-        budgets = (256, 16 * mib, 10_000, 300)
-        with patch.object(fixture, '_inventory_budgets', return_value=budgets):
-            powershell = [fixture.sys.executable, '-c',
-                          f"import sys; sys.stdout.buffer.write(b'o'*{14*mib}); "
-                          f"sys.stderr.buffer.write(b'e'*{2*mib})"]
-            output = fixture._snapshot_process(powershell, 120, 14*mib, 2*mib, 'FAILED')
-            self.assertEqual(len(output), 14*mib)
-            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 16*mib)
-
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-        with patch.object(fixture, '_inventory_budgets', return_value=budgets):
-            netsh = [fixture.sys.executable, '-c',
-                     f"import sys; sys.stdout.buffer.write(b'o'*{2*mib}); "
-                     f"sys.stderr.buffer.write(b'e'*{2*mib})"]
-            self.assertEqual(len(fixture._snapshot_process(netsh, 30, 2*mib, 2*mib, 'FAILED')), 2*mib)
-            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 4*mib)
-
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-        with patch.object(fixture, '_inventory_budgets', return_value=budgets):
-            first = [fixture.sys.executable, '-c', f"import sys; sys.stdout.buffer.write(b'x'*{14*mib})"]
-            second = [fixture.sys.executable, '-c', f"import sys; sys.stderr.buffer.write(b'y'*{2*mib})"]
-            self.assertEqual(len(fixture._snapshot_process(first, 120, 14*mib, 2*mib, 'FAILED')), 14*mib)
-            self.assertEqual(fixture._snapshot_process(second, 30, 2*mib, 2*mib, 'FAILED'), b'')
-            self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 16*mib)
-
-    def test_per_command_and_aggregate_cap_plus_one_are_rejected(self):
-        mib = 1024 * 1024
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*mib, 10_000, 300)):
-            oversized_firewall = [fixture.sys.executable, '-c',
-                                  f"import sys; sys.stdout.buffer.write(b'x'*{14*mib+1})"]
-            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
-                fixture._snapshot_process(oversized_firewall, 120, 14*mib, 2*mib, 'FAILED')
-
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*mib, 10_000, 300)):
-            oversized_netsh = [fixture.sys.executable, '-c',
-                               f"import sys; sys.stderr.buffer.write(b'x'*{2*mib+1})"]
-            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
-                fixture._snapshot_process(oversized_netsh, 30, 2*mib, 2*mib, 'FAILED')
-
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*mib, 10_000, 300)):
-            first = [fixture.sys.executable, '-c', f"import sys; sys.stdout.buffer.write(b'x'*{14*mib})"]
-            oversized_second = [fixture.sys.executable, '-c', f"import sys; sys.stderr.buffer.write(b'y'*{2*mib+1})"]
-            fixture._snapshot_process(first, 120, 14*mib, 2*mib, 'FAILED')
-            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
-                fixture._snapshot_process(oversized_second, 30, 2*mib, 2*mib+1, 'FAILED')
-
-    def test_aggregate_byte_cap_is_shared_between_commands(self):
-        with patch.object(fixture, '_inventory_budgets', return_value=(256, 199, 10_000, 300)):
-            command = [fixture.sys.executable, '-c', "import sys; sys.stdout.buffer.write(b'x'*100)"]
-            self.assertEqual(fixture._snapshot_process(command, 5, 128, 64, 'FAILED'), b'x' * 100)
-            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_OUTPUT_TOO_LARGE'):
-                fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
-
-    def test_timeout_is_distinct_from_nonzero_exit_and_child_is_reaped(self):
-        processes = []
-        popen = fixture.subprocess.Popen
-        def track(*args, **kwargs):
-            process = popen(*args, **kwargs)
-            processes.append(process)
-            return process
-        with patch.object(fixture.subprocess, 'Popen', side_effect=track):
-            with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT'):
-                self._run('import time; time.sleep(2)', timeout=0.05)
-        self.assertTrue(processes)
-        self.assertIsNotNone(processes[0].poll())
-        fixture._COMMAND_AUDIT.clear()
-        fixture._INVENTORY_BYTES_CAPTURED = 0
-        fixture._INVENTORY_STARTED_AT = None
-        with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_COMMAND_FAILED'):
-            self._run('raise SystemExit(7)')
-
-    def test_aggregate_command_limit_rejects_overrun(self):
-        command = [fixture.sys.executable, '-c', 'pass']
-        with patch.object(fixture, '_inventory_budgets', return_value=(1, 512, 10_000, 300)):
-            fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
-            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
-                fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
-
-    def test_production_256_command_limit_accepts_exact_count_then_rejects_plus_one(self):
-        command = [fixture.sys.executable, '-c', 'pass']
-        with patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)):
-            for _ in range(256):
-                self.assertEqual(fixture._snapshot_process(command, 5, 128, 64, 'FAILED'), b'')
-            self.assertEqual(len(fixture._COMMAND_AUDIT), 256)
-            with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_COMMAND_LIMIT_EXCEEDED'):
-                fixture._snapshot_process(command, 5, 128, 64, 'FAILED')
-
-    def test_windows_command_dispatch_uses_required_timeout_and_caps(self):
-        powershell = ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                      '-NoProfile', '-NonInteractive', '-Command', fixture._windows_snapshot_wrapper()]
-        netsh = ['/mnt/c/Windows/System32/netsh.exe', 'interface', 'portproxy', 'show', 'all']
-        with patch.object(fixture, '_snapshot_process', return_value=b'ok') as snapshot:
-            self.assertEqual(fixture.command(powershell), b'ok')
-            snapshot.assert_called_with(powershell, 120, 2 * 1024 * 1024,
-                                        2 * 1024 * 1024, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE', require_empty_stderr=True)
-            self.assertEqual(fixture.command(netsh), b'ok')
-            snapshot.assert_called_with(netsh, 30, 2 * 1024 * 1024,
-                                        2 * 1024 * 1024, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE')
-
-    def test_production_timeout_limit_accepts_exact_deadline_and_rejects_plus_one(self):
-        class FakePipe:
-            def __init__(self, number):
-                self.number = number
-            def fileno(self):
-                return self.number
-            def close(self):
-                pass
-
-        class FakeProcess:
-            def __init__(self, *args, **kwargs):
-                self.stdout, self.stderr = FakePipe(11), FakePipe(12)
-                self.killed = False
-            def wait(self, timeout=None):
-                return 0
-            def kill(self):
-                self.killed = True
-
-        class FakeSelector:
-            def __init__(self, elapsed, clock):
-                self.elapsed, self.clock = elapsed, clock
-                self.rows = {}
-                self.advanced = False
-            def register(self, stream, event, data):
-                self.rows[stream.number] = SimpleNamespace(fileobj=stream, fd=stream.number, data=data)
-            def get_map(self):
-                return self.rows
-            def select(self, timeout=None):
-                if not self.advanced:
-                    self.clock[0] += self.elapsed
-                    self.advanced = True
-                return [(row, 1) for row in list(self.rows.values())]
-            def unregister(self, stream):
-                self.rows.pop(stream.number)
-            def close(self):
-                pass
-
-        for timeout, elapsed in ((120, 120), (30, 30)):
-            with self.subTest(timeout=timeout, elapsed=elapsed):
-                clock = [0.0]
-                process = FakeProcess()
-                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
-                      patch.object(fixture.subprocess, 'Popen', return_value=process),
-                      patch.object(fixture.selectors, 'DefaultSelector', side_effect=lambda: FakeSelector(elapsed, clock)),
-                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
-                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
-                    fixture._INVENTORY_STARTED_AT = None
-                    fixture._INVENTORY_BYTES_CAPTURED = 0
-                    fixture._COMMAND_AUDIT.clear()
-                    self.assertEqual(fixture._snapshot_process(['bounded.exe'], timeout, 8, 8, 'FAILED'), b'')
-
-        for timeout, elapsed in ((120, 121), (30, 31)):
-            with self.subTest(timeout=timeout, elapsed=elapsed):
-                clock = [0.0]
-                process = FakeProcess()
-                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
-                      patch.object(fixture.subprocess, 'Popen', return_value=process),
-                      patch.object(fixture.selectors, 'DefaultSelector', side_effect=lambda: FakeSelector(elapsed, clock)),
-                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
-                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
-                    fixture._INVENTORY_STARTED_AT = None
-                    fixture._INVENTORY_BYTES_CAPTURED = 0
-                    fixture._COMMAND_AUDIT.clear()
-                    with self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_SNAPSHOT_TIMEOUT'):
-                        fixture._snapshot_process(['bounded.exe'], timeout, 8, 8, 'FAILED')
-                    self.assertTrue(process.killed)
-
-    def test_aggregate_300_second_limit_accepts_exact_deadline_and_rejects_plus_one(self):
-        class Pipe:
-            def __init__(self, number): self.number = number
-            def fileno(self): return self.number
-            def close(self): pass
-        class Process:
-            def __init__(self, *args, **kwargs):
-                self.stdout, self.stderr, self.killed = Pipe(21), Pipe(22), False
-            def wait(self, timeout=None): return 0
-            def kill(self): self.killed = True
-        class Selector:
-            def __init__(self, elapsed, clock): self.elapsed, self.clock, self.rows = elapsed, clock, {}
-            def register(self, stream, event, data):
-                self.rows[stream.number] = SimpleNamespace(fileobj=stream, fd=stream.number, data=data)
-            def get_map(self): return self.rows
-            def select(self, timeout=None):
-                self.clock[0] += self.elapsed
-                return [(row, 1) for row in list(self.rows.values())]
-            def unregister(self, stream): self.rows.pop(stream.number)
-            def close(self): pass
-
-        for elapsed, expected_error in ((300, None), (301, 'INCUS_INVENTORY_TOTAL_TIMEOUT')):
-            with self.subTest(elapsed=elapsed):
-                clock, process = [0.0], Process()
-                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
-                      patch.object(fixture.subprocess, 'Popen', return_value=process),
-                      patch.object(fixture.selectors, 'DefaultSelector', side_effect=lambda: Selector(elapsed, clock)),
-                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
-                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
-                    fixture._INVENTORY_STARTED_AT = None
-                    fixture._INVENTORY_BYTES_CAPTURED = 0
-                    fixture._COMMAND_AUDIT.clear()
-                    if expected_error is None:
-                        self.assertEqual(fixture._snapshot_process(['aggregate.exe'], 400, 8, 8, 'FAILED'), b'')
-                    else:
-                        with self.assertRaisesRegex(fixture.TargetDrift, expected_error):
-                            fixture._snapshot_process(['aggregate.exe'], 400, 8, 8, 'FAILED')
-
-    def test_powershell_and_netsh_share_aggregate_duration_budget(self):
-        class Pipe:
-            def __init__(self, number): self.number = number
-            def fileno(self): return self.number
-            def close(self): pass
-        class Process:
-            def __init__(self, *args, **kwargs): self.stdout, self.stderr = Pipe(31), Pipe(32)
-            def wait(self, timeout=None): return 0
-            def kill(self): pass
-        class Selector:
-            def __init__(self, elapsed, clock): self.elapsed, self.clock, self.rows = elapsed, clock, {}
-            def register(self, stream, event, data):
-                self.rows[stream.number] = SimpleNamespace(fileobj=stream, fd=stream.number, data=data)
-            def get_map(self): return self.rows
-            def select(self, timeout=None):
-                self.clock[0] += self.elapsed
-                return [(row, 1) for row in list(self.rows.values())]
-            def unregister(self, stream): self.rows.pop(stream.number)
-            def close(self): pass
-
-        for starting_elapsed, should_pass in ((150, True), (151, False)):
-            with self.subTest(starting_elapsed=starting_elapsed):
-                clock = [float(starting_elapsed)]
-                elapsed = [120, 30]
-                with (patch.object(fixture, '_inventory_budgets', return_value=(256, 16*1024*1024, 10_000, 300)),
-                      patch.object(fixture.subprocess, 'Popen', side_effect=Process),
-                      patch.object(fixture.selectors, 'DefaultSelector',
-                                   side_effect=lambda: Selector(elapsed.pop(0), clock)),
-                      patch.object(fixture.os, 'set_blocking'), patch.object(fixture.os, 'read', return_value=b''),
-                      patch.object(fixture.time, 'monotonic', side_effect=lambda: clock[0])):
-                    fixture._INVENTORY_STARTED_AT = 0.0
-                    fixture._INVENTORY_BYTES_CAPTURED = 0
-                    fixture._COMMAND_AUDIT.clear()
-                    fixture._snapshot_process(['powershell-snapshot'], 120, 14, 2, 'FAILED')
-                    if should_pass:
-                        fixture._snapshot_process(['netsh-portproxy'], 30, 2, 2, 'FAILED')
-                        self.assertEqual(len(fixture._COMMAND_AUDIT), 2)
-                    else:
-                        with self.assertRaisesRegex(fixture.TargetDrift, 'INCUS_INVENTORY_TOTAL_TIMEOUT'):
-                            fixture._snapshot_process(['netsh-portproxy'], 30, 2, 2, 'FAILED')
-
-    def test_keyboard_interrupt_kills_and_reaps_running_snapshot_process(self):
-        class Pipe:
-            def __init__(self, number): self.number = number
-            def fileno(self): return self.number
-            def close(self): pass
-        class Process:
-            def __init__(self, *args, **kwargs): self.stdout, self.stderr, self.killed = Pipe(41), Pipe(42), False
-            def wait(self, timeout=None): return 0
-            def kill(self): self.killed = True
-        class InterruptingSelector:
-            def register(self, *args): pass
-            def get_map(self): return {1: True}
-            def select(self, *args): raise KeyboardInterrupt
-            def close(self): pass
-        process = Process()
-        with (patch.object(fixture, '_inventory_budgets', return_value=(256, 1024, 100, 300)),
-              patch.object(fixture.subprocess, 'Popen', return_value=process),
-              patch.object(fixture.selectors, 'DefaultSelector', return_value=InterruptingSelector()),
-              patch.object(fixture.os, 'set_blocking')):
-            with self.assertRaises(KeyboardInterrupt):
-                fixture._snapshot_process(['interruptible.exe'], 120, 8, 8, 'FAILED')
-        self.assertTrue(process.killed)
-
-    def test_exact_eight_mib_route_artifact_limit_is_accepted_and_plus_one_rejected(self):
-        cap = fixture._INVENTORY_ARTIFACT_MAX_BYTES
-        empty = fixture._serialize_route_state_artifact({'padding': ''})
-        exact_payload = {'padding': 'x' * (cap - len(empty))}
-        exact = fixture._serialize_route_state_artifact(exact_payload)
-        self.assertEqual(len(exact), cap)
-        with self.assertRaisesRegex(fixture.FixtureError, 'INVENTORY_ARTIFACT_TOO_LARGE'):
-            fixture._serialize_route_state_artifact({'padding': 'x' * (cap - len(empty) + 1)})
 
 
 class SafeRouteProjectionTests(_FixtureBehaviorTestCase):
@@ -3165,7 +2523,7 @@ class SafeRouteProjectionTests(_FixtureBehaviorTestCase):
             evidence.mkdir(parents=True, mode=0o700)
             evidence.chmod(0o700)
             state = {'listeners_10001': [], 'incus_10001_routes': [row], 'incus_projects': ['default'],
-                     'windows_snapshot': b'', 'approved_route_state_sha256': 'a' * 64}
+                      'approved_route_state_sha256': 'a' * 64}
             with (patch.object(fixture, 'ROOT', root),
                   patch.object(fixture, '_INVENTORY_ARTIFACT_MAX_BYTES', 1),
                   patch.object(fixture, 'git_preflight', return_value=('b' * 40, b'w', b'r', b't')),
@@ -3187,8 +2545,8 @@ class SafeRouteProjectionTests(_FixtureBehaviorTestCase):
                 {'type': 'proxy', 'listen': 'tcp:127.0.0.1:10001',
                  'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'}, ['manager'])]
             state = {'listeners_10001': [raw], 'incus_10001_routes': routes, 'incus_projects': ['default'],
-                     'windows_snapshot': b'', 'approved_route_state_sha256': fixture.approved_route_state_sha256(
-                         [raw], routes, b'', ['default'])}
+                      'approved_route_state_sha256': fixture.approved_route_state_sha256(
+                         [raw], routes,  ['default'])}
             with (patch.object(fixture, 'ROOT', root),
                   patch.object(fixture, 'git_preflight', return_value=('a' * 40, b'w', b'r', b't')),
                   patch.object(fixture, '_route_state', return_value=state)):
@@ -3200,49 +2558,6 @@ class SafeRouteProjectionTests(_FixtureBehaviorTestCase):
             self.assertEqual(payload['listeners_10001_count'], 1)
             for forbidden in (b'4312', b'incusd', b'fd=9', b'users:', b'_b64', b'windows_snapshot_b64'):
                 self.assertNotIn(forbidden, encoded)
-
-    def test_artifact_and_command_audit_do_not_persist_raw_windows_snapshot_content(self):
-        raw_firewall = b'SID=S-1-5-21-123456; ACL=secret-firewall-provider-data'
-        raw_portproxy = b'listen 0.0.0.0:10001 connect 127.0.0.1:10001\r\n'
-        record = fixture._safe_command_record(
-            ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-             '-Command', raw_firewall.decode()], 0, len(raw_firewall), 0)
-        self.assertEqual(record['safe_args'], [])
-        record_bytes = json.dumps(record).encode()
-        self.assertNotIn(b'S-1-5-21', record_bytes)
-        self.assertNotIn(b'secret-firewall-provider-data', record_bytes)
-        self.assertNotIn(raw_portproxy, record_bytes)
-
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            evidence = root / fixture.PRIVATE_EVIDENCE_REL
-            evidence.mkdir(parents=True, mode=0o700)
-            evidence.chmod(0o700)
-            state = {'listeners_10001': [], 'incus_10001_routes': [], 'incus_projects': ['default'],
-                     'windows_snapshot': fixture._pack_windows_snapshot(raw_firewall, raw_portproxy),
-                     'approved_route_state_sha256': 'a' * 64}
-            def route_state(_host):
-                fixture._WINDOWS_SNAPSHOT_METADATA = {
-                    'schema_version': 'tsw.windows-route-snapshot.v2',
-                    'firewall_bytes': len(raw_firewall), 'firewall_sha256': fixture.digest(raw_firewall),
-                    'portproxy_bytes': len(raw_portproxy), 'portproxy_sha256': fixture.digest(raw_portproxy),
-                    'windows_snapshot_sha256': fixture.digest(state['windows_snapshot']),
-                    'profile_count': 1, 'setting_count': 1, 'rule_count': 1,
-                    'captured_at': '2026-01-01T00:00:00+00:00'}
-                return state
-            with (patch.object(fixture, 'ROOT', root),
-                  patch.object(fixture, 'git_preflight', return_value=('c' * 40, b'w', b'r', b't')),
-                  patch.object(fixture, '_route_state', side_effect=route_state)):
-                fixture.capture_route_state('192.168.178.58',
-                    '.tiny-swarm/evidence/issue-449/s449-private-20261027/windows-safe.json')
-            encoded = (evidence / 'windows-safe.json').read_bytes()
-            for forbidden in (b'S-1-5-21', b'secret-firewall-provider-data', raw_portproxy,
-                              b'firewall_active_store_b64', b'portproxy_raw_b64'):
-                self.assertNotIn(forbidden, encoded)
-            payload = fixture.strict_json(encoded)
-            self.assertEqual(payload['windows_snapshot']['windows_snapshot_sha256'],
-                             fixture.digest(state['windows_snapshot']))
-
 
 
 class _BoundedMemoryProcess:
@@ -3287,14 +2602,13 @@ class _BoundedMemoryProcess:
 class _FullGraphFixtureTransport:
     """Three projects, inherited profiles and full foreign metadata; no kernel/Incus calls."""
 
-    def __init__(self, testcase, *, wsl=False):
-        self.is_wsl = wsl
+    def __init__(self, testcase, *, multi_project=False):
         self.testcase = testcase
         self.run_id = 'a' * 32
         self.base = 'tsw-q449-' + self.run_id + '-base'
         self.profile = 'tsw-q449-' + self.run_id + '-profile'
         self.instance = 'tsw-q449-' + self.run_id + '-fixture'
-        self.projects = ['default', 'issue447'] if wsl else ['default', 'foreign', 'inherited']
+        self.projects = ['default', 'issue447'] if multi_project else ['default', 'foreign', 'inherited']
         self.profiles: dict[str, dict[str, Any]] = {name: {'name': name, 'project': 'default', 'config': {}, 'devices': {}, 'used_by': []}
                          for name in ('default', 'legacy-base', 'legacy-route')}
         self.profiles['default']['devices'] = {'root': {'type': 'disk', 'path': '/', 'pool': 'default'},
@@ -3314,7 +2628,7 @@ class _FullGraphFixtureTransport:
         self.profiles['legacy-route']['used_by'] = ['/1.0/instances/foreign-manager?project=foreign']
         self.foreign_before = json.dumps(self.foreign, sort_keys=True)
         self.foreign_rows: dict[str, list[dict[str, Any]]] = {project: [] for project in self.projects}
-        if wsl:
+        if multi_project:
             for index in range(4):
                 row = json.loads(self.foreign_before)
                 project = 'default' if index < 3 else 'issue447'
@@ -3331,22 +2645,11 @@ class _FullGraphFixtureTransport:
         else:
             self.foreign_rows['foreign'] = [self.foreign]
         self.foreign_rows_before = json.dumps(self.foreign_rows, sort_keys=True)
-        self.firewall = {'schema_version': 'tsw.windows-firewall-certificate.v1',
-                         'query_sha256': _snapshot_asset_digest(), 'snapshot_sha256': 'c' * 64,
-                         'snapshot_bytes': 9000000, 'snapshot_schema_version': 2, 'store': 'ActiveStore',
-                         'association_model': 'PROVIDER_IDENTITY_ONE_TO_ONE',
-                         'counts': {'rules': 500, 'profiles': 3, 'settings': 1,
-                                    **dict.fromkeys(('address', 'application', 'interface', 'interface_type',
-                                                    'port', 'security', 'service'), 500)}}
-        self.portproxy = b'existing exact portproxy rows\r\n'
-        self.windows_snapshot = fixture._pack_windows_snapshot(
-            json.dumps(self.firewall, sort_keys=True, separators=(',', ':')).encode(), self.portproxy) if wsl else b''
         self.current: dict[str, Any] | None = None
         self.running = False
         self.events: list[tuple[str, ...]] = []
         self.effects: list[tuple[tuple[str, ...], int]] = []
         self.active_peak = 0
-        self.windows_phases: list[bool] = []
         self.foreign_lists = 0
         self.fail_effect: tuple[str, ...] | None = None
         self.lost_create: str | None = None
@@ -3355,21 +2658,19 @@ class _FullGraphFixtureTransport:
         self.corrupt_after_exec = False
         self.listener = b'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=44,fd=5))\n'
         self.go: dict[str, Any] = {'source_commit': 'f' * 40,
-                   'target': {'host': '192.168.178.58' if wsl else '192.168.178.33', 'endpoint': 'unix://', 'project': 'default',
+                   'target': {'host': '192.168.178.33', 'endpoint': 'unix://', 'project': 'default',
                               'server_version': '6.0.5', 'run_id': self.run_id, 'base_profile': self.base,
                               'profile': self.profile, 'instance': self.instance, 'image_fingerprint': 'b' * 64},
                    'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
                    'default_profile_used_by': []}
         default = self.profiles['default']
-        self.go['windows_snapshot_sha256'] = _snapshot_asset_digest()
-        self.go['windows_certificate_sha256'] = fixture.WINDOWS_CERTIFICATE_SHA256
         self.go['default_profile_sha256'] = fixture.canonical_profile_sha256(default['config'], default['devices'])
         self.go['fixture_base_profile_sha256'] = fixture.canonical_profile_sha256(
             {'boot.autostart': 'false'}, default['devices'])
         route = fixture._safe_route_row('default', 'profile', 'legacy-route', 'web',
                                         self.profiles['legacy-route']['devices']['web'], ['legacy-route'])
         self.go['approved_route_state_sha256'] = fixture.approved_route_state_sha256(
-            [self.listener.rstrip(b'\n')], [route], self.windows_snapshot, self.projects)
+            [self.listener.rstrip(b'\n')], [route],  self.projects)
 
     def _observe(self, args):
         self.events.append(tuple(args))
@@ -3511,15 +2812,6 @@ class _FullGraphFixtureTransport:
                             self.current['config'][field] = '33333333-3333-4333-8333-333333333333'
                             self.current['expanded_config'][field] = '33333333-3333-4333-8333-333333333333'
                 output = b''
-        elif command_name == 'powershell.exe':
-            if 'tsw.windows-firewall-certificate.v1' in args[-1]:
-                self.windows_phases.append(fixture._INVENTORY_CLEANUP_MODE)
-            output = (b'192.168.178.58\n' if 'Get-NetIPAddress' in args[-1]
-                      else self._json(self.firewall))
-        elif command_name == 'netsh.exe':
-            output = self.portproxy
-        elif command_name == 'uname':
-            output = b'6.6.87.2-microsoft-standard-WSL2'
         elif command_name == 'ip':
             output = b'[{"addr_info":[{"local":"192.168.178.33"}]}]'
         elif command_name == 'free':
@@ -3586,8 +2878,7 @@ class GracefulFixtureStopBudgetTests(_FixtureBehaviorTestCase):
                 self.assertEqual(process.call_args.args[0][1:], argv[1:])
 
     def test_remaining_active_and_cleanup_time_caps_stop_without_resetting_clock(self):
-        for host, active, reserve, total in (('192.168.178.33', 180, 120, 300),
-                                             ('192.168.178.58', 350, 300, 650)):
+        for host, active, reserve, total in (('192.168.178.33', 180, 120, 300),):
             for cleanup, horizon in ((False, active), (True, total)):
                 with self.subTest(host=host, cleanup=cleanup):
                     fixture._begin_inventory(host, reserve_cleanup=True)
@@ -3603,7 +2894,7 @@ class GracefulFixtureStopBudgetTests(_FixtureBehaviorTestCase):
                     self.assertEqual(fixture._INVENTORY_STARTED_AT, 100.0)
 
     def test_exhausted_phase_deadline_never_spawns_a_stop_client(self):
-        for host, active, total in (('192.168.178.33', 180, 300), ('192.168.178.58', 350, 650)):
+        for host, active, total in (('192.168.178.33', 180, 300),):
             for cleanup, horizon in ((False, active), (True, total)):
                 with self.subTest(host=host, cleanup=cleanup):
                     fixture._begin_inventory(host, reserve_cleanup=True)
@@ -3641,14 +2932,13 @@ class GracefulFixtureStopBudgetTests(_FixtureBehaviorTestCase):
 
 
 class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
-    def test_native_and_wsl_profiles_reset_every_quota_without_cleanup_reclaim(self):
-        for host, active, total in (('192.168.178.58', 350, 650), ('192.168.178.33', 180, 300)):
+    def test_native_profile_resets_every_quota_without_cleanup_reclaim(self):
+        for host, active, total in (('192.168.178.33', 180, 300),):
             fixture._COMMAND_AUDIT.append({'old': True})
             fixture._INVENTORY_BYTES_CAPTURED = 100
             fixture._INVENTORY_ENTITIES_CAPTURED = 100
             fixture._INVENTORY_ENTITY_SLOTS.add((('old',), ()))
             fixture._INVENTORY_STARTED_AT = 12.0
-            fixture._WINDOWS_SNAPSHOT_METADATA = {'old': True}
             fixture._begin_inventory(host, reserve_cleanup=True)
             self.assertEqual(fixture._inventory_budgets(), (146, 8 * 1024 * 1024, 5000, active))
             self.assertEqual(fixture._COMMAND_AUDIT, [])
@@ -3656,7 +2946,6 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
             self.assertEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 0)
             self.assertEqual(fixture._INVENTORY_ENTITY_SLOTS, set())
             self.assertIsNone(fixture._INVENTORY_STARTED_AT)
-            self.assertEqual(fixture._WINDOWS_SNAPSHOT_METADATA, {})
             fixture._COMMAND_AUDIT.append({'consumed': True})
             fixture._INVENTORY_BYTES_CAPTURED = 123
             fixture._INVENTORY_STARTED_AT = 99.0
@@ -3666,7 +2955,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
             self.assertEqual(fixture._INVENTORY_BYTES_CAPTURED, 123)
             self.assertEqual(fixture._INVENTORY_STARTED_AT, 99.0)
 
-    def test_invalid_host_never_grants_wsl_time_or_resets_consumed_quota(self):
+    def test_invalid_host_never_resets_consumed_quota(self):
         fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
         fixture._INVENTORY_BYTES_CAPTURED = 37
         with self.assertRaisesRegex(fixture.FixtureError, 'HOST_IDENTITY_DRIFT'):
@@ -3676,7 +2965,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
 
     def test_all_capture_entrypoints_reset_stale_host_and_time_before_queries(self):
         for capture in (fixture.capture_route_state, fixture.capture_project_inventory):
-            for host, total in (('192.168.178.58', 650), ('192.168.178.33', 300)):
+            for host, total in (('192.168.178.33', 300),):
                 fixture._INVENTORY_STARTED_AT = -999.0
                 fixture._INVENTORY_BYTES_CAPTURED = 999
                 fixture._COMMAND_AUDIT.append({'stale': True})
@@ -3694,7 +2983,7 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
     def test_main_resets_host_scope_before_approval_or_effect(self):
         import contextlib
         import io
-        for host, active in (('192.168.178.58', 350), ('192.168.178.33', 180)):
+        for host, active in (('192.168.178.33', 180),):
             fixture._INVENTORY_STARTED_AT = -999.0
             fixture._INVENTORY_BYTES_CAPTURED = 999
             with (contextlib.redirect_stderr(io.StringIO()), patch.object(fixture, 'git_preflight') as source):
@@ -3705,37 +2994,10 @@ class HostScopedInventoryBudgetTests(_FixtureBehaviorTestCase):
             self.assertIsNone(fixture._INVENTORY_STARTED_AT)
             source.assert_not_called()
 
-    def test_shared_producer_asset_is_mandatory_and_not_an_inline_fallback(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path = root / fixture.WINDOWS_CERTIFICATE_REL
-            path.parent.mkdir(parents=True)
-            good = (Path(__file__).resolve().parents[6] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes()
-            for raw in (b'', b'\xff', b'\xef\xbb\xbf' + good, good + b'\n', b'x' * 65537):
-                path.write_bytes(raw)
-                with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
-                    fixture._windows_certificate_source()
-            path.unlink()
-            target = root / 'other.ps1'
-            target.write_bytes(good)
-            path.symlink_to(target)
-            with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
-                fixture._windows_certificate_source()
-            path.unlink()
-            with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
-                fixture._windows_certificate_source()
-        with self.assertRaises(fixture.FixtureError):
-            fixture._windows_certificate_source('0' * 64)
-        with (patch.object(fixture, '_windows_certificate_source', return_value='missing placeholders'),
-              patch.object(fixture.subprocess, 'Popen') as spawn,
-              self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_TEMPLATE_INVALID')):
-            fixture._windows_snapshot_wrapper()
-        spawn.assert_not_called()
 
 class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
     def test_incus_read_cannot_spend_active_or_cleanup_time_reserve(self):
-        for host, cleanup, total in (('192.168.178.33', False, 180), ('192.168.178.33', True, 300),
-                                     ('192.168.178.58', False, 350), ('192.168.178.58', True, 650)):
+        for host, cleanup, total in (('192.168.178.33', False, 180), ('192.168.178.33', True, 300)):
             with self.subTest(host=host, cleanup=cleanup):
                 self.setUp()
                 fixture._INVENTORY_TARGET_HOST = host
@@ -3955,7 +3217,6 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
             disk.assert_not_called()
 
 
-
     def test_lost_atomic_create_ack_requires_exact_full_body_readback_before_cleanup(self):
         for resource in ('base', 'profile'):
             with self.subTest(resource=resource):
@@ -3991,229 +3252,29 @@ class R3BudgetAndAtomicTransportTests(_FixtureBehaviorTestCase):
         self.assertEqual(json.dumps(transport.foreign, sort_keys=True), transport.foreign_before)
 
 
-
-class SharedWindowsSnapshotAssetTests(_FixtureBehaviorTestCase):
-    def _asset(self, root, raw=b"$ErrorActionPreference = 'Stop'\n'fixed readonly snapshot'\n"):
-        certificate = root / fixture.WINDOWS_CERTIFICATE_REL
-        certificate.parent.mkdir(parents=True, exist_ok=True)
-        certificate.write_bytes((Path(__file__).resolve().parents[6] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes())
-        asset = root / fixture.WINDOWS_SNAPSHOT_REL
-        asset.parent.mkdir(parents=True, exist_ok=True)
-        asset.write_bytes(raw)
-        return asset, raw
-
-    def test_exact_go_asset_binding_is_required_for_both_hosts_before_effects(self):
-        template = GoValidationTests()
-        template.setUp()
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            _, raw = self._asset(root)
-            with patch.object(fixture, 'ROOT', root):
-                for host in ('192.168.178.33', '192.168.178.58'):
-                    candidate = json.loads(json.dumps(template.go))
-                    candidate['target']['host'] = host
-                    candidate['windows_snapshot_sha256'] = fixture.digest(raw)
-                    args = argparse.Namespace(target_host=host)
-                    self.assertEqual(fixture.validate_go(candidate, args, 'b' * 40,
-                        template.workflow, template.runner, template.tests), candidate)
-                    for field in ('windows_snapshot_sha256', 'windows_certificate_sha256'):
-                        for change in ('missing', 'wrong-hash', 'malformed-hash'):
-                            bad = dict(candidate)
-                            if change == 'missing':
-                                bad.pop(field)
-                            else:
-                                bad[field] = '0' * 64 if change == 'wrong-hash' else True
-                            with self.subTest(host=host, field=field, change=change), self.assertRaises(fixture.FixtureError):
-                                fixture.validate_go(bad, args, 'b' * 40, template.workflow, template.runner, template.tests)
-
-    def test_fixed_asset_loader_refuses_missing_symlink_directory_nonutf8_bom_nul_oversize_and_drift(self):
-        invalid: tuple[bytes, ...] = (b'', b'\xff', b'\xef\xbb\xbfread', b'read\x00', b'x' * 65537)
-        for raw in invalid:
-            with self.subTest(length=len(raw)), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                self._asset(root, raw)
-                with patch.object(fixture, 'ROOT', root), self.assertRaises(fixture.FixtureError):
-                    fixture._windows_snapshot_query(fixture.digest(raw))
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            asset, raw = self._asset(root)
-            with patch.object(fixture, 'ROOT', root):
-                self.assertEqual(fixture._windows_snapshot_query(fixture.digest(raw)), raw.decode())
-                with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_MISMATCH'):
-                    fixture._windows_snapshot_query('0' * 64)
-                asset.unlink()
-                target = root / 'other.ps1'
-                target.write_bytes(raw)
-                asset.symlink_to(target)
-                with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_UNSAFE'):
-                    fixture._windows_snapshot_query(fixture.digest(raw))
-                asset.unlink()
-                asset.mkdir()
-                with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_UNSAFE'):
-                    fixture._windows_snapshot_query(fixture.digest(raw))
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'outside').mkdir()
-            (root / 'tools').symlink_to(root / 'outside')
-            with patch.object(fixture, 'ROOT', root), self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_ASSET_UNSAFE'):
-                fixture._windows_snapshot_query()
-
-    def test_only_exact_loaded_asset_text_can_use_powershell_snapshot_transport(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            _, raw = self._asset(root)
-            prefix = ['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                      '-NoProfile', '-NonInteractive', '-Command']
-            with (patch.object(fixture, 'ROOT', root), patch.object(fixture, '_snapshot_process', return_value=b'{}') as run):
-                fixture.command([*prefix, fixture._windows_snapshot_wrapper(fixture.digest(raw))])
-                run.assert_called_once()
-                run.reset_mock()
-                for command in ([*prefix, raw.decode() + '; extra'], [*prefix[:-1], '-File', str(root / fixture.WINDOWS_SNAPSHOT_REL)]):
-                    with self.assertRaisesRegex(fixture.FixtureError, 'WINDOWS_SNAPSHOT_COMMAND_NOT_ALLOWLISTED'):
-                        fixture.command(command)
-                run.assert_not_called()
-
-
-
-class FirewallCertificateReaderTests(_FixtureBehaviorTestCase):
-    def test_reader_binds_query_entire_digest_exact_types_and_all_counts(self):
-        good = _certificate_fixture({'rules': [], 'profiles': [], 'settings': []})
-        expected = _snapshot_asset_digest()
-        self.assertEqual(fixture._windows_firewall_certificate(good, expected), good)
-        mutations: tuple[dict[str, object], ...] = (
-            {'query_sha256': '0' * 64}, {'snapshot_sha256': 'X' * 64}, {'snapshot_bytes': True},
-            {'snapshot_bytes': -1}, {'snapshot_bytes': 14680065}, {'snapshot_schema_version': True},
-            {'snapshot_schema_version': 1}, {'schema_version': 'legacy'}, {'store': 'PersistentStore'},
-            {'association_model': 'unknown'}, {'extra': True},
-            {'counts': {**good['counts'], 'rules': 8193}},
-            {'counts': {**good['counts'], 'profiles': 17}},
-            {'counts': {**good['counts'], 'settings': 129}},
-            {'counts': {**good['counts'], 'address': 1}},
-            {'counts': {**good['counts'], 'port': False}},
-            {'counts': {key: value for key, value in good['counts'].items() if key != 'port'}},
-        )
-        for change in mutations:
-            with self.subTest(change=change), self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_FIREWALL_SNAPSHOT_UNREADABLE'):
-                fixture._windows_firewall_certificate({**good, **change}, expected)
-        for field in good:
-            incomplete = {key: value for key, value in good.items() if key != field}
-            with self.subTest(missing=field), self.assertRaises(fixture.TargetDrift):
-                fixture._windows_firewall_certificate(incomplete, expected)
-
-    def test_wrapper_is_exact_source_bound_and_rejects_encoded_commandline_overflow_before_spawn(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            certificate = root / fixture.WINDOWS_CERTIFICATE_REL
-            certificate.parent.mkdir(parents=True, exist_ok=True)
-            certificate.write_bytes((Path(__file__).resolve().parents[6] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes())
-            asset = root / fixture.WINDOWS_SNAPSHOT_REL
-            asset.parent.mkdir(parents=True, exist_ok=True)
-            raw = b"'fixed test query'\n"
-            asset.write_bytes(raw)
-            with patch.object(fixture, 'ROOT', root):
-                wrapper = fixture._windows_snapshot_wrapper(fixture.digest(raw))
-                self.assertIn(base64.b64encode(raw).decode(), wrapper)
-                self.assertIn(fixture.digest(raw), wrapper)
-                self.assertIn('$outputs.Count -ne 1', wrapper)
-                self.assertIn('Hash-Bytes $bytes', wrapper)
-                self.assertNotIn('Get-NetFirewallRule', wrapper)
-                asset.write_bytes(b'x' * 24000)
-                with patch.object(fixture.subprocess, 'Popen') as spawn, self.assertRaisesRegex(
-                        fixture.FixtureError, 'WINDOWS_SNAPSHOT_COMMAND_TOO_LARGE'):
-                    fixture._windows_snapshot_wrapper(fixture.digest(asset.read_bytes()))
-                spawn.assert_not_called()
-
-
-@unittest.skipUnless(Path('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe').is_file(),
-                     'Windows PowerShell transport unavailable; no fallback to another host')
-class FirewallCertificatePowerShellContractTests(_FixtureBehaviorTestCase):
-    """Execute only synthetic query expressions, never real firewall cmdlets."""
-
-    def _run_query(self, source):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            certificate = root / fixture.WINDOWS_CERTIFICATE_REL
-            certificate.parent.mkdir(parents=True, exist_ok=True)
-            certificate.write_bytes((Path(__file__).resolve().parents[6] / fixture.WINDOWS_CERTIFICATE_REL).read_bytes())
-            asset = root / fixture.WINDOWS_SNAPSHOT_REL
-            asset.parent.mkdir(parents=True, exist_ok=True)
-            raw = source.encode('utf-8')
-            asset.write_bytes(raw)
-            with patch.object(fixture, 'ROOT', root):
-                wrapper = fixture._windows_snapshot_wrapper(fixture.digest(raw))
-                result = subprocess.run(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-                    '-NoProfile', '-NonInteractive', '-Command', wrapper], stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20, check=False)
-            return result, fixture.digest(raw)
-
-    def _source(self, value):
-        raw = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
-        return "[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('" + base64.b64encode(raw).decode() + "'))", raw
-
-    def test_actual_wrapper_hashes_entire_current_json_and_exports_only_closed_certificate(self):
-        value = _firewall_v2_fixture({'rules': [], 'profiles': [{'Name': 'Private', 'opaque': 'SID_CANARY'}], 'settings': []})
-        for suffix in ('first', 'second'):
-            value['profiles'][0]['value']['opaque'] = 'SID_CANARY_' + suffix
-            source, raw = self._source(value)
-            result, query_sha = self._run_query(source)
-            self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
-            self.assertFalse(result.stderr)
-            certificate = fixture.strict_json(result.stdout)
-            self.assertEqual(fixture._windows_firewall_certificate(certificate, query_sha), certificate)
-            self.assertEqual(certificate['snapshot_sha256'], fixture.digest(raw))
-            self.assertEqual(certificate['snapshot_bytes'], len(raw))
-            self.assertEqual(certificate['counts']['profiles'], 1)
-            self.assertNotIn(b'SID_CANARY', result.stdout)
-
-    def test_actual_wrapper_rejects_incomplete_ambiguous_wrong_schema_and_unknown_layout_without_raw_errors(self):
-        full = _firewall_v2_fixture({'rules': [], 'profiles': [], 'settings': []})
-        wrong_layout = json.loads(json.dumps(full))
-        wrong_layout['cim_layout']['adapted_override'] = ['missing']
-        mutations = [dict(full, schema_version=True), dict(full, store=['ActiveStore']),
-                     dict(full, extra=True), wrong_layout,
-                     dict(full, profiles=[{'identity': 'x', 'value': {}}, {'identity': 'x', 'value': {}}]),
-                     dict(full, filters={**full['filters'], 'port': [{'identity': 'orphan', 'value': {}}]})]
-        sources = [self._source(value)[0] for value in mutations]
-        sources += ["'SID_CANARY_incomplete{'", "'SID_CANARY_first'; 'SID_CANARY_second'", "throw 'SID_CANARY_exception'"]
-        for source in sources:
-            with self.subTest(source_digest=fixture.digest(source.encode())):
-                result, _ = self._run_query(source)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertNotIn(b'SID_CANARY', result.stdout + result.stderr)
-                self.assertIn(b'WINDOWS_FIREWALL_CERTIFICATE_FAILED', result.stderr)
-
-
-
 class FullListObservationTests(_FixtureBehaviorTestCase):
-    def test_wsl_two_project_four_full_foreign_rows_fit_real_counters_and_keep_all_fresh_checks(self):
-        fixture._begin_inventory('192.168.178.58', reserve_cleanup=True)
-        transport = _FullGraphFixtureTransport(self, wsl=True)
+    def test_native_two_project_four_full_foreign_rows_keep_all_fresh_checks(self):
+        fixture._begin_inventory('192.168.178.33', reserve_cleanup=True)
+        transport = _FullGraphFixtureTransport(self, multi_project=True)
         fixture._INVENTORY_RESERVE_CLEANUP = True
         with (patch.object(fixture.subprocess, 'Popen', side_effect=transport.popen),
               patch.object(fixture.subprocess, 'run', side_effect=transport.run)):
-            baseline = fixture.jit(transport.go, '192.168.178.58')
+            baseline = fixture.jit(transport.go, '192.168.178.33')
             self.assertEqual(sum(len(rows) for rows in transport.foreign_rows.values()), 4)
             result = _run_approved_fixture(transport.go, baseline)
             fixture._INVENTORY_CLEANUP_MODE = True
             self.assertFalse(fixture._listener_rows(fixture._listeners(), 61000))
             self.assertEqual(fixture._listener_rows(fixture.command(['ss', '-H', '-ltnp']), 10001), baseline['listeners_10001'])
             self.assertEqual(fixture._incus_route_inventory(), (baseline['incus_projects'], baseline['incus_10001_routes']))
-            fixture._assert_windows_unchanged(baseline['windows_rules_portproxy'],
-                                              fixture._windows_snapshot(transport.go['windows_snapshot_sha256']))
         self.assertEqual(result['status'], 'PASS')
-        self.assertEqual(transport.active_peak, 107)
-        self.assertEqual(len(fixture._COMMAND_AUDIT), 181)
+        self.assertEqual(transport.active_peak, 92)
+        self.assertEqual(len(fixture._COMMAND_AUDIT), 154)
         self.assertLessEqual(fixture._INVENTORY_ENTITIES_CAPTURED, 5000)
         self.assertLess(fixture._INVENTORY_BYTES_CAPTURED, 8 * 1024 * 1024)
         self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
         self.assertIsNone(transport.current)
         self.assertEqual(set(transport.profiles), {'default', 'legacy-base', 'legacy-route'})
         self.assertEqual(len(transport.effects), 9)
-        windows_observations = [args for args in transport.events if args[:1] == ('powershell.exe',)
-                                and 'tsw.windows-firewall-certificate.v1' in args[-1]]
-        self.assertEqual(len(windows_observations), 13)
-        self.assertEqual(transport.windows_phases.count(False), 7)
-        self.assertEqual(transport.windows_phases.count(True), 6)
         self.assertGreaterEqual(transport.foreign_lists, 20)
         self.assertNotIn('xxxxxxxx', json.dumps(fixture._COMMAND_AUDIT))
 
@@ -4263,7 +3324,6 @@ class FullListObservationTests(_FixtureBehaviorTestCase):
         self.assertIsNone(transport.current)
         self.assertIsNone(transport.foreign['expanded_config'])
         self.assertFalse(any(args[0] in {'delete', 'stop'} and 'foreign-manager' in args for args, _ in transport.effects))
-
 
 
 class FixtureInstanceReceiptTests(_FixtureBehaviorTestCase):
@@ -4353,7 +3413,6 @@ class FixtureInstanceReceiptTests(_FixtureBehaviorTestCase):
         self.assertIn(transport.profile, transport.profiles)
         self.assertFalse(any(args[0] in {'stop', 'delete'} or args[:2] == ('profile', 'delete') for args, _ in transport.effects))
         self.assertEqual(json.dumps(transport.foreign_rows, sort_keys=True), transport.foreign_rows_before)
-
 
 
 class InstanceStateApiTests(_FixtureBehaviorTestCase):
@@ -4637,71 +3696,6 @@ class InitialIdentityDurabilityTests(_FixtureBehaviorTestCase):
                 self.assertEqual(fixture.main(['--target-host', '192.168.178.33', '--expected-approval-sha256', fixture.digest(raw)]), 0)
         self.assertEqual(execute.call_args.kwargs['approved_go_sha256'], fixture.digest(raw))
 
-class WindowsInteropEnvironmentTests(_FixtureBehaviorTestCase):
-    WINDOWS = ('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-               '/mnt/c/Windows/System32/netsh.exe')
-
-    def test_both_real_process_capture_paths_forward_only_validated_windows_interop(self):
-        for executable in self.WINDOWS:
-            for kind in ('bounded', 'snapshot'):
-                with self.subTest(executable=executable, kind=kind):
-                    fixture._begin_inventory('192.168.178.58', reserve_cleanup=False)
-                    process = _BoundedMemoryProcess(b'ok')
-                    with (patch.dict(os.environ, {'WSL_INTEROP': '/run/WSL/3456_interop', 'PRIVATE_CANARY': 'never-forward'}, clear=True),
-                          patch.object(Path, 'lstat', return_value=SimpleNamespace(st_mode=stat.S_IFSOCK | 0o600)),
-                          patch.object(fixture.subprocess, 'Popen', return_value=process) as popen):
-                        if kind == 'bounded':
-                            self.assertEqual(fixture._bounded_process_output([executable], 5, 128), (b'ok', b'', 0))
-                        else:
-                            self.assertEqual(fixture._snapshot_process([executable], 5, 128, 128, 'FAILED'), b'ok')
-                    self.assertEqual(popen.call_args.kwargs['cwd'], Path('/mnt/c/Windows/System32'))
-                    self.assertEqual(popen.call_args.kwargs['env'], {
-                        'PATH': fixture.TRUSTED_PATH, 'LANG': 'C.UTF-8', 'WSL_INTEROP': '/run/WSL/3456_interop'})
-
-    def test_invalid_present_interop_never_reaches_either_windows_spawn(self):
-        cases = (('/tmp/3456_interop', stat.S_IFSOCK), ('/run/WSL/notpid_interop', stat.S_IFSOCK),
-                 ('/run/WSL/3456_interop', stat.S_IFREG), ('/run/WSL/3456_interop', stat.S_IFLNK))
-        for executable in self.WINDOWS:
-            for value, mode in cases:
-                for kind in ('bounded', 'snapshot'):
-                    with self.subTest(executable=executable, value=value, mode=mode, kind=kind):
-                        fixture._begin_inventory('192.168.178.58', reserve_cleanup=False)
-                        with (patch.dict(os.environ, {'WSL_INTEROP': value}, clear=True),
-                              patch.object(Path, 'lstat', return_value=SimpleNamespace(st_mode=mode)),
-                              patch.object(fixture.subprocess, 'Popen') as popen,
-                              self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_INTEROP_UNVERIFIED')):
-                            if kind == 'bounded':
-                                fixture._bounded_process_output([executable], 5, 128)
-                            else:
-                                fixture._snapshot_process([executable], 5, 128, 128, 'FAILED')
-                        popen.assert_not_called()
-        with (patch.dict(os.environ, {'WSL_INTEROP': '/run/WSL/3456_interop'}, clear=True),
-              patch.object(Path, 'lstat', side_effect=FileNotFoundError),
-              self.assertRaisesRegex(fixture.TargetDrift, 'WINDOWS_INTEROP_UNVERIFIED')):
-            fixture._fixture_process_environment([self.WINDOWS[0]])
-
-    def test_linux_environment_stays_exact_and_missing_interop_keeps_existing_behavior(self):
-        expected = {'PATH': fixture.TRUSTED_PATH, 'LANG': 'C.UTF-8'}
-        for value in ('/run/WSL/3456_interop', '/untrusted/socket'):
-            with patch.dict(os.environ, {'WSL_INTEROP': value, 'PRIVATE_CANARY': 'never-forward'}, clear=True):
-                self.assertEqual(fixture._fixture_process_environment(['/usr/bin/incus']), expected)
-                self.assertEqual(fixture._fixture_process_environment(['/mnt/c/Windows/System32/unapproved.exe']), expected)
-        for executable in ('/usr/bin/incus', '/mnt/c/Windows/System32/unapproved.exe'):
-            for kind in ('bounded', 'snapshot'):
-                fixture._begin_inventory('192.168.178.58', reserve_cleanup=False)
-                with (patch.dict(os.environ, {}, clear=True),
-                      patch.object(fixture.subprocess, 'Popen', return_value=_BoundedMemoryProcess(b'ok')) as popen):
-                    if kind == 'bounded':
-                        fixture._bounded_process_output([executable], 5, 128)
-                    else:
-                        fixture._snapshot_process([executable], 5, 128, 128, 'FAILED')
-                self.assertEqual(popen.call_args.kwargs['cwd'], fixture.ROOT)
-                self.assertEqual(popen.call_args.kwargs['env'], expected)
-        for value in ({}, {'WSL_INTEROP': ''}):
-            with patch.dict(os.environ, value, clear=True):
-                self.assertEqual(fixture._fixture_process_environment([self.WINDOWS[0]]), expected)
-
-
 
 class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
     """Exercise the existing entrypoint/transport; never call an invented diagnostic API."""
@@ -4734,7 +3728,7 @@ class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
 
         def popen(argv, **kwargs):
             if argv[1:2] == ['--synthetic-diagnostic-probe']:
-                return FailedStopProcess(0 if specialized == 'snapshot-stderr' else 1)
+                return FailedStopProcess()
             selected = ((specialized in {'profile-create', 'profile-stderr'} and argv[1:4] == ['profile', 'create', transport.base])
                         or (specialized == 'inventory' and argv[1:] == ['query', fixture._profile_api_path(transport.base, 'default')]))
             if selected and not injected[0]:
@@ -4762,9 +3756,6 @@ class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
                     if index == 0 and fault == 'replace-owned':
                         diagnostic.rename(diagnostic.with_name(diagnostic.name + '-original'))
                         diagnostic.mkdir(mode=0o700)
-            if argv[0] == 'curl' and specialized in {'snapshot', 'snapshot-stderr'}:
-                fixture._snapshot_process(['/usr/bin/ss', '--synthetic-diagnostic-probe', 'PRIVATE_ARG_CANARY'],
-                                          5, 128, 256, 'SYNTHETIC_SNAPSHOT_FAILURE', require_empty_stderr=True)
             if argv[0] == 'curl' and primary is not None:
                 raise primary
             return original_command(argv)
@@ -5049,11 +4040,6 @@ class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
     def test_failed_inventory_transport_retains_bounded_private_output(self):
         self._assert_specialized_diagnostic('inventory')
 
-    def test_failed_and_stderr_uncertain_snapshot_transport_retain_bounded_output(self):
-        for kind in ('snapshot', 'snapshot-stderr'):
-            with self.subTest(kind=kind):
-                self.setUp()
-                self._assert_specialized_diagnostic(kind)
 
     def test_unapproved_readonly_capture_keeps_specialized_failure_retention_unarmed(self):
         name = 'tsw-q449-' + 'a' * 32 + '-base'
@@ -5061,7 +4047,6 @@ class FailureProvenanceAndPrivateDiagnosticsTests(_FixtureBehaviorTestCase):
             lambda: fixture._create_profile_command(['profile', 'create', name, '--project', 'default'],
                                                     {'config': {'boot.autostart': 'false'}, 'devices': {}}),
             lambda: fixture._inventory_command(['incus', 'project', 'list', '--format', 'json']),
-            lambda: fixture._snapshot_process(['/usr/bin/ss'], 5, 128, 256, 'UNARMED_READ_FAILURE'),
         )
         for reader in readers:
             with self.subTest(reader=reader), tempfile.TemporaryDirectory() as directory:

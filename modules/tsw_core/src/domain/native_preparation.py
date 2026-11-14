@@ -48,7 +48,6 @@ HOST_PORTS_BY_PROFILE = {
 @dataclass(frozen=True)
 class NativeHostFacts:
     platform: str
-    is_wsl: bool
     distribution_id: str
     version_id: str
     architecture: str
@@ -61,6 +60,7 @@ class NativeHostFacts:
     ports_ready: bool
     conflicting_runtime: bool
     network_ready: bool
+    is_wsl: bool = False
     wsl2: bool = False
     systemd_ready: bool = True
 

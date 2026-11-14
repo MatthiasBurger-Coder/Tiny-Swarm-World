@@ -1,5 +1,10 @@
 # BOOT-W01 bootstrap command, host plan and readiness contract
 
+> Current availability: Windows preparation and bridge tooling were removed.
+> Windows paths and commands below describe the recorded audit/design revision,
+> not runnable interfaces in this checkout. Use the [installation guide](../../03-user-guide/user_guide/installation.adoc)
+> for current Linux entry points. Historical acceptance does not qualify current source.
+
 Contract version: 1. Issue: [#453](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/453),
 parent [#452](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/452).
 Source baseline: `346f4a43dbdc43380e7bc703ab185bc06746965b`.

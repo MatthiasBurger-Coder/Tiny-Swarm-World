@@ -82,68 +82,13 @@ PYTHONPATH=. python3 -m tiny_swarm_world platform repair-lxc-proxy-drift --live
 Repair evidence records summary counts and device names. It does not record
 raw provider command output.
 
-== WSL2 NAT Portproxy
+== External WSL2 browser exposure
 
-For WSL2, Tiny Swarm World uses a Windows-side bridge prepared before live
-installation:
-
-[source,text]
-----
-Windows Browser
--> http://127.0.0.1:<service-port> or https://*.tsw.local
--> Windows portproxy
--> current WSL eth0 IPv4
--> Incus/LXC/Docker/Services
-----
-
-Windows portproxy, Firewall and hosts-file changes are not made by
-`install.sh` and are not made implicitly from Linux. Prepare them from
-elevated PowerShell before starting a WSL2 live installation:
-
-[source,powershell]
-----
-Set-ExecutionPolicy -Scope Process Bypass
-.\bootstrap\windows\tws-wsl-bridge.ps1 -Action prerequisites
-.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
-----
-
-The prerequisite action is read-only and requires Windows 10 or 11, a running
-WSL 2 distribution with systemd as PID 1, elevated PowerShell, a running IP
-Helper service, and the Windows Firewall and Service cmdlets. The
-dedicated reproducible setup and repair guide is
-`modules/tsw_windows_wsl/bootstrap/README.windows-wsl-bridge.md`.
-
-The install action registers an automatic Windows service discovery agent. It
-runs periodically, discovers the current WSL IP and reconciles only
-drifted portproxy, Firewall and hosts-file resources. The bridge writes only
-`%ProgramData%\TinySwarmWorld\WslBridge\bridge-state.json`; WSL reads it through
-`/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json`. This protected
-state contains a versioned owned-agent contract, bundle identity, and heartbeat.
-Privileged code does not mirror state into the checkout. During WSL2 live
-preflight, Tiny Swarm World requires the agent to report `ready`, a heartbeat no
-older than five minutes, the current WSL IP, and every external TCP port from
-`modules/tsw_core/infra/config/ports.yaml`. If the state is missing or stale, setup stops before
-platform mutation with a `WINDOWS-WSL-BRIDGE` preflight failure.
-
-After `wsl --shutdown` or another WSL restart, the agent repairs the changed
-address automatically. To request immediate reconciliation from Windows or
-WSL:
-
-[source,powershell]
-----
-Restart-Service -Name TinySwarmWorldWslBridge
-----
-
-[source,bash]
-----
-powershell.exe -NoProfile -Command "Restart-Service -Name TinySwarmWorldWslBridge"
-----
-
-The bridge reads TCP ports and route hostnames from `modules/tsw_core/infra/config/ports.yaml`.
-`modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.config.json` is limited to Windows-side
-settings such as distro selection, listen address, hosts address, discovery
-interval, and additional hostname aliases. Do not maintain a separate Windows
-port list.
+Windows bridge, firewall and portproxy setup tools are no longer shipped.
+Linux installation does not implicitly create Windows forwarding. Existing
+WSL adapters consume externally supplied bindings and retain readiness guards;
+missing bridge prerequisites remain blockers. Disable Windows exposure only
+when that exposure is not required.
 
 == Published Port Classification
 

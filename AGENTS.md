@@ -22,7 +22,7 @@ Before each action, check whether it is necessary to reach the user's goal; omit
 
 ## Project Identity
 
-Tiny Swarm World is a Linux/WSL-only local infrastructure automation project.
+Tiny Swarm World is a Linux-only local infrastructure automation project.
 Its default node-provider direction is managed LXC through Incus for a Docker
 Swarm target environment. It ships guarded workflow boundaries and service-stack
 configuration for Portainer, Nexus, Jenkins, Apache Pulsar, SonarQube, and
@@ -34,39 +34,26 @@ explicit task changes the product scope.
 
 ## Operating Assumptions
 
-- Treat the runtime as WSL or Linux only.
-- For agent-run tests and quality gates, always connect via SSH to
-  `pc@192.168.178.58` and execute inside WSL on that Windows host.
-  This user-requested test-host preference overrides local execution examples.
-  Verify the remote repository path and ensure the tested files match the
-  current task changes before running checks. If SSH or WSL is unavailable,
-  report verification as blocked instead of silently using another host.
-  Never store SSH passwords in repository files or command examples.
-- For every authorized agent-run test or quality gate, read SSH credentials
-  from `~/.access` in the agent user's home directory. Keep credentials out of
-  tool output, logs, command arguments, and repository files. If the file is
-  missing or unusable, report verification as blocked. This credential source
-  does not change the required Windows-host/WSL test target or authorize tests.
-- When the host shell is Windows or PowerShell, execute project Python
-  through WSL; tests and quality gates use the SSH test host specified above.
-- Do not run project Python commands through Windows Python, Windows virtual
-  environments, or PowerShell path invocation such as
-  `& 'D:\Projects\Tiny-Swarm-World_2\.venv\bin\python' ...`.
+- Treat the runtime as native Linux only.
+- For authorized agent-run tests and quality gates, connect via SSH to
+  `matthias@192.168.178.33` and execute directly on that Linux host.
+  Resolve the remote repository path and verify that tested files match the
+  current task changes before running checks. If SSH or the Linux host is
+  unavailable, report verification as blocked instead of using another host.
+- Read SSH credentials from `~/.access` in the agent user's home directory.
+  Keep credentials out of tool output, logs, command arguments and repository
+  files. If credentials are missing or unusable, report verification as blocked.
+  Credentials alone do not authorize tests or quality gates.
+- Use Linux Python;
 - Use POSIX paths and shell commands in examples, scripts, tests, and docs.
-- Do not add new Windows-specific behavior, PowerShell commands, or backslash
-  path examples unless explicitly requested for legacy documentation cleanup.
-- Existing Windows-oriented files are legacy compatibility surface. Do not
-  expand them unless a task explicitly asks for that.
 - Do not introduce external static-analysis CI configuration unless explicitly
   requested.
 
 ## Repository Map
 
-- `modules/tsw_windows_wsl/bootstrap`: Windows/WSL installation preparation, bridge and host diagnostics.
-- `modules/tsw_native_linux/boostrap`: native Linux and shared Linux/WSL installation prerequisites and diagnostics.
+- `modules/tsw_native_linux/boostrap`: native Linux installation prerequisites and diagnostics.
 - `modules/tsw_core`: shared runtime, configuration, bootstrap and Linux tooling.
 - `modules/tsw_native_linux`: native Linux entry points delegating to core.
-- `modules/tsw_windows_wsl`: Windows bootstrap, bridge, WSL handoff and tooling.
 - Root `install.sh` and `tsw`: thin compatibility forwarders to the Linux module.
 - `modules/tsw_core/src/domain`: core business concepts and rules.
 - `modules/tsw_core/src/application`: use cases, orchestration services, and ports.
@@ -79,7 +66,6 @@ explicit task changes the product scope.
 - `modules/tsw_core/infra/config/compose`: image build contexts and related Dockerfiles for stack services.
 - `modules/tsw_core/tests`: shared runtime, architecture, domain, application and adapter tests.
 - `modules/tsw_native_linux/tests`: Linux bootstrap and native qualification tests.
-- `modules/tsw_windows_wsl/tests`: Windows/WSL preparation, bridge and PowerShell fixtures.
 - `documentation`: Product Handbook; `documentation/README.adoc` is the master
   index and `documentation/document.adoc` is the continuous edition. arc42 is
   the architecture part of the handbook.
@@ -152,10 +138,9 @@ inspection.
 
 - Do not start agent-run tests or quality gates during ongoing development.
   Run them when creating a pull request or when the user explicitly requests
-  verification. Providing test-host credentials alone does not authorize a run.
-- Run agent tests and quality gates inside WSL on the SSH test host specified
-  under Operating Assumptions. Resolve the remote checkout path before using
-  `wsl bash -lc` to run commands from its repository root.
+  verification.
+- Run authorized tests and quality gates on the SSH Linux test host specified
+  under Operating Assumptions, from its verified repository root.
 - Preferred quality gate from the repository root:
   `python3 modules/tsw_core/tools/linux/quality_gate.py quality`
 - When verification is authorized, run the nearest relevant sub-gate first:
@@ -172,7 +157,7 @@ inspection.
   command construction, YAML parsing, path handling, repositories, or adapters.
 - Mock command execution, network calls, node-provider or VM operations, and
   Docker operations unless the task explicitly requests an integration run.
-- Keep Linux/WSL behavior as the baseline in tests.
+- Keep Linux behavior as the baseline in tests.
 
 The canonical verification-state policy is
 `documentation/handbook/05-development/process/verification-state-policy.md`. It governs the
@@ -191,7 +176,7 @@ Selenium, or SonarQube success without executed evidence.
 - Keep one canonical source per topic. Architecture lives under
   `documentation/handbook/02-architecture/`; audit registers live under
   `documentation/handbook/06-quality-security/audit/`.
-- Keep documentation aligned with the Linux/WSL-only operating model.
+- Keep documentation aligned with the Linuxonly operating model.
 - Prefer forward-slash paths in documentation and examples.
 - Update the relevant file under `documentation/` when a behavior, workflow, or
   deployment step changes.

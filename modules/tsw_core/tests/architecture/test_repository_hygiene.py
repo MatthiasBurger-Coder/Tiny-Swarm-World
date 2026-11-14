@@ -12,7 +12,6 @@ COMMENT_SCAN_ROOTS = (
     REPOSITORY_ROOT / "modules/tsw_core/src",
     REPOSITORY_ROOT / "modules/tsw_core/tests",
     REPOSITORY_ROOT / "modules/tsw_native_linux",
-    REPOSITORY_ROOT / "modules/tsw_windows_wsl",
     REPOSITORY_ROOT / "modules/tsw_core/tools",
     REPOSITORY_ROOT / "modules/tsw_core/infra",
 )

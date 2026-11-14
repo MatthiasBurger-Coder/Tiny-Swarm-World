@@ -1110,18 +1110,15 @@ def _host_environment_remediation(host_environment: HostEnvironmentReport) -> st
 
 
 def _windows_wsl_bridge_remediation(reason: str) -> str:
-    install = (
-        "Run PowerShell as Administrator: "
-        "modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1 -Action install."
-    )
+    unavailable = "Windows bridge installation tooling is no longer shipped in this checkout."
     restart = (
         "Request immediate discovery/reconcile: "
         "Restart-Service -Name TinySwarmWorldWslBridge."
     )
     disable = "Set TSW_WINDOWS_EXPOSURE=disabled only when Windows localhost exposure is not required."
     if reason in {"wsl_ip_changed", "state_stale_by_age", "agent_not_ready"}:
-        return f"{restart} If the service is missing, {install} {disable}"
-    return f"{install} {disable}"
+        return f"{restart} {unavailable} {disable}"
+    return f"{unavailable} {disable}"
 
 
 def _port_remediation(service: str) -> str:
