@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "eb9bb6c6cbef3d36727a9d709aaf4bf221bd5f094845f6d8092a1b364e0d823e",
+    "documentation/handbook/05-development/workflow/context-pack.md": "d67f0de8ae12e6241f13f3a96212bc7e826233fdaa3f09a40079a22d66952081",
     "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "7d548bb8fbc40281b643a400b4881a30bfa873ea82d8f59beab89e974056ad77",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "cf99f84c4fdcf156faa93fa84b48e7ba394bb1a27f9db5a91afaac9afc203229"
+    "documentation/handbook/05-development/workflow/workflow.md": "e7d82d51736b73f5c344d08ccb55d6527e49199be983462612a5f2a7bdd7096c"
   },
   "slices": [
     "S440O-01",
@@ -1880,7 +1880,7 @@
     "hyperV": "COMPLETELY_EXCLUDED",
     "K8_live_parent": "OPEN",
     "doc_verification": "REQUIRED_DESIGNATED_SSH_NOT_RUN_BY_AUTHOR",
-    "operational_workflow_sha256": "cf99f84c4fdcf156faa93fa84b48e7ba394bb1a27f9db5a91afaac9afc203229",
+    "operational_workflow_sha256": "e7d82d51736b73f5c344d08ccb55d6527e49199be983462612a5f2a7bdd7096c",
     "original_campaign_outcome": "EXPIRED_MANAGER_EXPORT_TIMEOUT_PRIMARY_PRESERVED",
     "actual_recovery_acceptance_sha256": "90f6d172dfae111a5d18426074286afecb0edb14e05723ab153d95e84683d477",
     "actual_originals": "ALL_THREE_RUNNING_SWARM_READY_ORIGINAL_LEADER",
@@ -1891,6 +1891,27 @@
     "archive_source_equality": "NOT_CLAIMED_VENDOR_COMPLETENESS_BOUNDARY",
     "actual_codec_synthetic_tests": "38_PASS_SSH_WSL_NO_ACTUAL_ARCHIVE_OR_IMPORT_PROOF",
     "actual_wsl_auth_read_cleanup": "PASS_MECHANISM_ONLY_NO_LISTENER_OR_K8_ADMISSION",
-    "source_equality_requirement_change": "PROPOSED_PENDING_SEPARATE_EVIDENCE_POLICY_APPROVAL"
+    "source_equality_requirement_change": "PROPOSED_PENDING_SEPARATE_EVIDENCE_POLICY_APPROVAL",
+    "actual_worker1_archive_read": {
+      "run": "e23aca77590c4199b7c63a904832a2dc",
+      "status": "ACCEPTED_HISTORICAL_ARCHIVE_DATA_COLLECTION_ONLY",
+      "archive_sha256": "580d6651de298d1b874ebd6df1a2b2e3f541466a972c1c449aff3eb2ff2391a6",
+      "members": 39543,
+      "current_root_records": 39536,
+      "independent_acceptance_sha256": "aa78b0ce45dc475149c9ef95a496cf7a807ef806ebf420e437993803a1abf8b6",
+      "source_byte_equality": "NOT_CLAIMED",
+      "provider_import": "NOT_RUN",
+      "usable_backup": "NOT_VERIFIED",
+      "adoption_policy_supersession_reset": "NOT_GRANTED"
+    },
+    "subsequent_wsl_capture": {
+      "actual_capture": "NONPASS_INCORRECT_HISTORICAL_DONOR_PIN_BEFORE_STAGING",
+      "private_correction": "REVIEWED_SYNTHETIC_GUARDS_ONLY",
+      "actual_guard_tests": "8_PASS_ZERO_FAILURES_ERRORS_SKIPS_DESIGNATED_SSH58_WSL",
+      "independent_acceptance_sha256": "3c58297d888d974f032084d1c91b18378b58bd2567e037639661d10df8d41e5a",
+      "new_readonly_capture_go_transport750_launcher": "NOT_RUN_FRESH_PREREQUISITES_AND_NEW_GO_REQUIRED",
+      "fixture_product_effect_go": "NOT_GRANTED",
+      "live_fixture_product_reset_K8_parent_acceptance": "NOT_ESTABLISHED"
+    }
   }
 }

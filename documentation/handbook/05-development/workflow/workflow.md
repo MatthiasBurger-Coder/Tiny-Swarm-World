@@ -3912,3 +3912,27 @@ The private archive codec passed 38 synthetic tests on the designated SSH/WSL
 test host; this is not actual archive or import acceptance. The separately
 accepted WSL sudo/read/cleanup pilot proves only that mechanism; no positive
 listener attribution, paired capability, K8, product or EPIC acceptance follows.
+
+
+## S440O-06 actual archive read and WSL capture status — 2026-11-14
+
+The separate read-only Worker 1 archive parse `e23aca77590c4199b7c63a904832a2dc`
+completed: 39,543 archive members and 39,536 current root records were collected.
+Archive SHA-256: `580d6651de298d1b874ebd6df1a2b2e3f541466a972c1c449aff3eb2ff2391a6`.
+Independent data-collection acceptance SHA-256:
+`aa78b0ce45dc475149c9ef95a496cf7a807ef806ebf420e437993803a1abf8b6`.
+This proves archive-derived expectations only. Source-byte equality is not
+claimed; provider import is NOT_RUN and usable backup remains NOT_VERIFIED.
+No adoption, evidence-policy supersession, original deletion or reset follows.
+
+The separate WSL capture remains NONPASS: an incorrect historical donor source
+pin refused admission before staging. The private correction was reviewed and
+its eight targeted synthetic source-guard tests passed on designated SSH58/WSL
+with zero failures, errors or skips. Independent acceptance SHA-256:
+`3c58297d888d974f032084d1c91b18378b58bd2567e037639661d10df8d41e5a`.
+These tests establish no actual capture, fixture, listener, live or product
+acceptance. The newly prepared read-only capture GO/750-second launcher was
+NOT_RUN; later execution requires fresh prerequisites and a new GO. No fixture
+or product-effect GO is granted. Frozen C8 provenance, the expired campaign,
+all-three usable-backup/deletion gates and Hyper-V exclusion remain unchanged.
+K8/live, reset and parent #440 acceptance remain incomplete.

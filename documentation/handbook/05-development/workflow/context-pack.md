@@ -695,3 +695,18 @@ equality; any change to that earlier witness requirement needs separate
 evidence-policy approval. All three accepted usable backups remain mandatory.
 The codec's 38 SSH/WSL synthetic tests and the real WSL sudo/read/cleanup pilot
 do not constitute actual backup, fixture, paired capability or EPIC acceptance.
+
+
+S440O-06 subsequent read-only Worker 1 archive parse e23aca77590c4199b7c63a904832a2dc
+collected 39,543 members/39,536 current root records; archive SHA-256
+580d6651de298d1b874ebd6df1a2b2e3f541466a972c1c449aff3eb2ff2391a6;
+independent collection acceptance aa78b0ce45dc475149c9ef95a496cf7a807ef806ebf420e437993803a1abf8b6.
+Archive expectations only: source-byte equality NOT_CLAIMED, import NOT_RUN,
+usable backup NOT_VERIFIED; no adoption, policy supersession, deletion or reset.
+WSL capture remains NONPASS after wrong historical donor pin rejected admission
+before staging. Private correction reviewed; eight synthetic guardtests on
+SSH58/WSL passed with zero failures/errors/skips; independent acceptance
+3c58297d888d974f032084d1c91b18378b58bd2567e037639661d10df8d41e5a.
+New read-only capture GO/750-second launcher NOT_RUN; fresh prerequisites and new
+GO required. No fixture/product-effect GO or live/fixture/product/reset/K8/parent
+acceptance; frozen C8, original campaign and all-three backup gates unchanged.
