@@ -10,7 +10,8 @@ from tiny_swarm_world.infrastructure.adapters.network_preparation.trusted_proces
 _ENV = observations._ENV
 SOCKET_ARGS = ('/usr/bin/systemctl', 'show', 'incus.socket',
                '--property=LoadState,ActiveState,SubState,UnitFileState,MainPID,Listen', '--no-pager')
-_FIXED_READS = {(*_ENV, 'version'), SOCKET_ARGS, observations._OWNER_ARGS, ('/usr/bin/ss', '-H', '-O', '-ltnp')}
+_FIXED_READS = {(*_ENV, 'version'), SOCKET_ARGS, observations._OWNER_ARGS,
+                ('/usr/bin/sudo', '-n', '--', '/usr/bin/ss', '-H', '-O', '-ltnp')}
 _PROBE_PREFIX = ('/usr/bin/sudo', '-n', '--', '/usr/bin/python3', '-I', '-B', '-c', PROBE)
 _MAX_LINUX_PID = 4_194_304
 _GIT_ENV = ('/usr/bin/env', '-i', 'LC_ALL=C', 'PATH=/usr/sbin:/usr/bin:/sbin:/bin',

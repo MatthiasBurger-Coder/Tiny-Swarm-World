@@ -4,7 +4,7 @@
   "workflow_path": "documentation/handbook/05-development/workflow/workflow.md",
   "branch": "docs/workflow-issue440-open-20261111",
   "baseline": "c40d87ed81101dd582a112fe8b427d84372f36e2",
-  "status": "EXECUTING_TA80_LISTENER_REPAIR_VERIFIED_LOCAL_C8_K8_LIVE_ACCEPTANCE_PENDING",
+  "status": "EXECUTING_TA81_PID_SOURCE_VERIFIED_LOCAL_CHECKPOINT_C8_K8_LIVE_PENDING",
   "process_strand": "workflow execute",
   "execution_profile": "FULL_PATH",
   "affected_areas": [
@@ -58,13 +58,13 @@
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-installation-scoped-incus-profile.adoc": "23c45b5e89584e9754a3ad0787a8d9f9a6db2c162a3de7dabb11e17b97ae1d08",
     "documentation/handbook/02-architecture/arc42/09_decisions/adr-classic-product-component-lifecycle.adoc": "92e2e2695f6254b43b73cc4e30f688b7932dcdc138c8a6e1592a16bc0bd506cd",
     "documentation/handbook/05-development/workflow/authoring-review.md": "f60a8d9443d96ecb1ab4d2b74813cdb2a31946e7291094a4db09c7aaca75720c",
-    "documentation/handbook/05-development/workflow/context-pack.md": "1c1f2161a27043d4f178d8769970dbf6618abd60f2e9b33b8862efa463b03464",
+    "documentation/handbook/05-development/workflow/context-pack.md": "9197a8584c2181046a63126791bccdc6ee22fed42b020ea0db96085d8d54d81c",
     "documentation/handbook/05-development/workflow/prerequisite-ledger.md": "7d548bb8fbc40281b643a400b4881a30bfa873ea82d8f59beab89e974056ad77",
     "documentation/handbook/05-development/workflow/requirement-matrix.md": "7d57dbe1e16f23417a5b8d72be55d4acb38b109ad4bba776bcb20de90efd1e8d",
     "documentation/handbook/05-development/workflow/requirements.json": "70e9beda2f7a7bb1b3f5bce74d37f458727e9cc7f04fe58451f9be33138bea9f",
     "documentation/handbook/05-development/workflow/scenario-plan.md": "4347c4b5261f882409b9368b6d81cde154c911b20d988e20c2ed1b238c0493dd",
     "documentation/handbook/05-development/workflow/workflow.index.md": "f12c50ebe16bec52872f71951627ac0a58590d926da27e31d7383b026d99ca1e",
-    "documentation/handbook/05-development/workflow/workflow.md": "dda70e37b2a3cff5b06b7a001b0625c42b3ee925360284556f80f225e0daf273"
+    "documentation/handbook/05-development/workflow/workflow.md": "e82987b59d5911dddd674f81b1b2d151141677048155a3923b12c6801ebb13b5"
   },
   "slices": [
     "S440O-01",
@@ -82,7 +82,8 @@
     "S440O-13",
     "S440O-14",
     "S440O-R56-01",
-    "S440O-SS-OBSERVATION"
+    "S440O-SS-OBSERVATION",
+    "S440O-SS-PID"
   ],
   "verified_repair_manifest": {
     "modules/tsw_windows_wsl/tools/qualification/wsl_acceptance_guest_switch.ps1": "e42834dbdb7eef4c292074c932a724a10c65798373606f04583d40009a4f962b",
@@ -357,10 +358,9 @@
     "independent_result_audit": "ACCEPTED_FAILED_RESTORED_FIXTURE_NOT_RUN_LATE_SNAPSHOT_RETAINED"
   },
   "current_consultation": {
-    "id": "TA440-20261114-80",
-    "slice_id": "S440O-SS-OBSERVATION",
-    "state": "LOCAL_REPAIR_VERIFICATION_ACCEPTED_FINAL_DOC_ONLY_CHECKPOINT_PENDING",
-    "prior": "TA61_installed_bundle_history"
+    "id": "TA440-20261114-81",
+    "slice_id": "S440O-SS-PID",
+    "state": "LOCAL_SOURCE_GATE_INDEPENDENTLY_ACCEPTED_FINAL_DOC_CHECK_PENDING"
   },
   "diagnostic_TA07_outcome": {
     "classification": "REPRODUCED",
@@ -1694,8 +1694,9 @@
       "full_test_seconds": 353.781
     },
     "quality_acceptance_sha256": "f73a12773ae0495b899a01ace7d57ca0017bd6754f738cfb06cdf05dbccabd4e",
-    "post_gate_doc_only": "REQUIRES_DESIGNATED_SSH_POLICY_AND_DIFF",
-    "hyper_v": "EXCLUDED_EXPLICIT_USER_INSTRUCTION_NO_ACTION_PERFORMED"
+    "post_gate_doc_only": "PASS_EXACT_SSH_POLICY_DIFF_21_HASHES",
+    "hyper_v": "EXCLUDED_EXPLICIT_USER_INSTRUCTION_NO_ACTION_PERFORMED",
+    "checkpoint": "b55487b6574ac5672d1d6415403f0dfd0cd30565"
   },
   "TA61_installed_bundle_history": {
     "id": "TA440-20261114-61",
@@ -1774,5 +1775,42 @@
     "canonical_metadata": "ALL_15_BYTE_IDENTICAL",
     "governing_map_shape": "EXISTING_21_UNCHANGED",
     "product_EPIC_DONE": false
+  },
+  "TA80_consultation_history": {
+    "id": "TA440-20261114-80",
+    "slice_id": "S440O-SS-OBSERVATION",
+    "state": "LOCAL_REPAIR_VERIFICATION_ACCEPTED_FINAL_DOC_ONLY_CHECKPOINT_PENDING",
+    "prior": "TA61_installed_bundle_history"
+  },
+  "TA81": {
+    "source_scope": [
+      "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/observations.py",
+      "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/command_policy.py",
+      "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
+      "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
+      "modules/tsw_core/src/infrastructure/adapters/clients/lxc/command/node_command.py",
+      "modules/tsw_core/tests/infrastructure/process/test_sudo_session.py"
+    ],
+    "native_pid_gap": "CONFIRMED_18_ENDPOINTS_ZERO_ORDINARY_PIDS_ONE_ROOT_PID_EACH",
+    "exact_sudo_read_authorization": "CURRENTLY_MISSING_ON_BOTH_HOSTS",
+    "product_auth_policy_changes": false,
+    "C8": "HELD_PENDING_SOURCE_CORRECTION_AND_GATES",
+    "hyperV": "COMPLETELY_EXCLUDED",
+    "parent": "INCOMPLETE",
+    "sudo_login_session": "REUSE_EXISTING_FLAG_EXACT_NONINTERACTIVE_PREFIX_ONLY_NO_AUTHORITY_GRANT",
+    "quality": {
+      "exit": 0,
+      "targeted_tests": 55,
+      "full_tests_run": 4162,
+      "declared_skips": 37,
+      "failures": 0,
+      "errors": 0,
+      "architecture_tests": 44,
+      "import_contracts": 7,
+      "typechecked_files": 1056,
+      "full_test_seconds": 344.822
+    },
+    "quality_acceptance_sha256": "d4d9e5d851fb25bf27fdcba9380662089480deb122c4d5d16a342aa40515cf79",
+    "post_gate_doc_only": "REQUIRES_DESIGNATED_SSH_POLICY_DIFF"
   }
 }

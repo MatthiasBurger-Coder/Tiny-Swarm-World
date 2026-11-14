@@ -637,3 +637,22 @@ typechecked files. Source and donor/environment guards match. Final three-file
 documentation-only verification and checkpoint pending. C8/K8 and all remaining
 lifecycle acceptance stay separate. Hyper-V is completely excluded by the
 current user instruction; no Hyper-V action occurred in this session.
+
+
+TA81 current continuation: published TA80 source checkpoint b55487b6; native
+ordinary/root comparison confirms PID visibility gap. Four-file source/test
+repair permits only exact noninteractive privileged ss and retained guards.
+Current noninteractive ss authorization is absent on both hosts; C8 freeze/live
+admission held until correction, exact gates and legitimate context admission.
+No Hyper-V target or action is permitted.
+
+TA81 reviewed addition: existing login-session preservation for exact sudo-n
+LXC calls only; own killable group/cleanup and ordinary isolation retained.
+Six source/test files plus three workflow documents are the exact source scope.
+No authentication/session warming is introduced; live readiness remains absent.
+
+TA81 actual local quality accepted: 55 targeted tests, full seven-stage gate,
+4,162 tests/37 declared skips with zero failures/errors; 44 architecture tests,
+seven import contracts, 1,056 typechecked files. Source/environment/donor guards
+match. Final result-only documentation checks and checkpoint pending. Source
+verification grants no sudo authorization, TTY readiness or live admission.

@@ -25,6 +25,7 @@ _UUID = '11111111-1111-1111-1111-111111111111'
 _SOCKET_FRAME = ('LoadState=loaded\nActiveState=active\nSubState=listening\nUnitFileState=enabled\n'
                  'Listen=/var/lib/incus/unix.socket (Stream)\n')
 _EMPTY_MATRIX = '{"admitted_versions":[]}'
+_LISTENER_ARGS = ('/usr/bin/sudo', '-n', '--', '/usr/bin/ss', '-H', '-O', '-ltnp')
 
 
 def effect_runner(versions=('6.0.5', '6.0.5')):
@@ -304,8 +305,10 @@ class FrameRunner:
             return LxcNodeCommandResult(0, 'LoadState=loaded\nActiveState=active\nSubState=listening\nUnitFileState=enabled\nListen=/var/lib/incus/unix.socket (Stream)\n')
         if args[0] == '/usr/bin/systemctl':
             return LxcNodeCommandResult(0, 'LoadState=loaded\nActiveState=active\nUnitFileState=enabled\nMainPID=100\n')
-        if args[0] == '/usr/bin/ss':
+        if tuple(args) in {_LISTENER_ARGS, ('/usr/bin/ss', '-H', '-O', '-ltnp')}:
             return LxcNodeCommandResult(0, '')
+        if args[0] == '/usr/bin/sudo':
+            raise AssertionError('Unexpected privileged command in read-only frame')
         if args[-1] == 'version':
             return LxcNodeCommandResult(0, 'Client version: 6.0.5\nServer version: 6.0.5\n')
         if 'query' not in args or args[args.index('--request') + 1] != 'GET':
@@ -325,12 +328,12 @@ class ListenerFrameRunner(FrameRunner):
         self.listener_result = result
 
     async def run(self, args, timeout_seconds):
-        if args[0] != '/usr/bin/ss':
+        if tuple(args) != _LISTENER_ARGS and args[0] != '/usr/bin/ss':
             return await super().run(args, timeout_seconds)
         self.calls.append(tuple(args))
         if tuple(args) == ('/usr/bin/ss', '-H', '-O', '-ltnpe'):
             return LxcNodeCommandResult(0, self.listener_result.stdout, 'Failed to open cgroup2 by ID\n')
-        if tuple(args) != ('/usr/bin/ss', '-H', '-O', '-ltnp'):
+        if tuple(args) != _LISTENER_ARGS:
             raise AssertionError('Unexpected listener observation command')
         return self.listener_result
 
@@ -343,8 +346,7 @@ class RealObservationFrameTests(unittest.IsolatedAsyncioTestCase):
             observed = await IncusProfileLifecycleRuntime(runner).inspect(intent_fixture())
         self.assertTrue(observed.listeners_clear)
         self.assertFalse(observed.forbidden_listener)
-        self.assertEqual([args for args in runner.calls if args[0] == '/usr/bin/ss'],
-                         [('/usr/bin/ss', '-H', '-O', '-ltnp')])
+        self.assertEqual([args for args in runner.calls if '/usr/bin/ss' in args], [_LISTENER_ARGS])
         managed = 'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=314,fd=8))\n'
         self.assertEqual(dto.listener_rows(managed, intent_fixture()), [('127.0.0.1', 10001, 314)])
 
@@ -352,6 +354,7 @@ class RealObservationFrameTests(unittest.IsolatedAsyncioTestCase):
         results = (
             LxcNodeCommandResult(0, '', 'Failed to open cgroup2 by ID\n'),
             LxcNodeCommandResult(0, '', 'unexpected diagnostic\n'),
+            LxcNodeCommandResult(1, '', 'sudo: a password is required\n'),
             LxcNodeCommandResult(1, ''),
             LxcNodeCommandResult(0, '', timed_out=True),
             LxcNodeCommandResult(0, '', failure_hint='incomplete output'),
@@ -361,8 +364,25 @@ class RealObservationFrameTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(result=result), patch(
                     'tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle.assert_local_socket'), \
                     self.assertRaises(LifecycleStateError):
-                await IncusProfileLifecycleRuntime(runner).run(('/usr/bin/ss', '-H', '-O', '-ltnp'))
-            self.assertEqual(runner.calls, [('/usr/bin/ss', '-H', '-O', '-ltnp')])
+                await IncusProfileLifecycleRuntime(runner).run(_LISTENER_ARGS)
+            self.assertEqual(runner.calls, [_LISTENER_ARGS])
+
+    async def test_listener_privilege_is_limited_to_exact_noninteractive_read_only_arguments(self):
+        commands = (
+            ('/usr/bin/ss', '-H', '-O', '-ltnp'),
+            ('/usr/bin/sudo', '--', '/usr/bin/ss', '-H', '-O', '-ltnp'),
+            ('/usr/bin/sudo', '-n', '/usr/bin/ss', '-H', '-O', '-ltnp'),
+            ('/usr/bin/sudo', '-n', '--', '/bin/ss', '-H', '-O', '-ltnp'),
+            (*_LISTENER_ARGS, '-K'),
+            (*_LISTENER_ARGS, '--kill'),
+            (*_LISTENER_ARGS, 'sport = :10001'),
+            (*_LISTENER_ARGS[:4], '-K'),
+        )
+        for args in commands:
+            runner = AsyncMock()
+            with self.subTest(args=args), self.assertRaises(LifecycleStateError):
+                await IncusProfileLifecycleRuntime(runner).run(args)
+            runner.run.assert_not_called()
 
     async def test_listener_observation_retains_ambiguous_foreign_and_duplicate_refusal(self):
         intent = intent_fixture()
@@ -377,7 +397,7 @@ class RealObservationFrameTests(unittest.IsolatedAsyncioTestCase):
                 observed = await dto.listeners(runtime, intent, 100, True, True, _UUID)
                 self.assertEqual(observed[:3], (forbidden, False, False))
                 self.assertEqual(observed[3], ())
-                runtime.run.assert_awaited_once_with(('/usr/bin/ss', '-H', '-O', '-ltnp'))
+                runtime.run.assert_awaited_once_with(_LISTENER_ARGS)
         runtime = AsyncMock()
         runtime.run.return_value = own
         with patch('tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.observations.listener_proof',

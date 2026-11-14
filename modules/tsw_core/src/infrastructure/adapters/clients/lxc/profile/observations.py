@@ -498,7 +498,7 @@ def listener_rows(raw, intent):
 
 
 async def listeners(runtime, intent, daemon_pid, running, effective, uuid):
-    observed = listener_rows(await runtime.run(('/usr/bin/ss', '-H', '-O', '-ltnp')), intent)
+    observed = listener_rows(await runtime.run(('/usr/bin/sudo', '-n', '--', '/usr/bin/ss', '-H', '-O', '-ltnp')), intent)
     binding = intent.profile.profile
     if binding is None:
         raise LifecycleStateError(_ERROR)

@@ -19,6 +19,7 @@ from tiny_swarm_world.domain.lifecycle.profile_lifecycle import ManagerCreateInt
 from tiny_swarm_world.domain.node_provider import ManagedLxcBackend
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command import LxcNodeCommandResult
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle import IncusProfileLifecycleRuntime
+from tiny_swarm_world.infrastructure.adapters.network_preparation.trusted_process import PROBE
 from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
 from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
@@ -26,6 +27,8 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import J
 from tiny_swarm_world.infrastructure.composition_platform import build_platform_services
 
 _ROOT = Path(__file__).resolve().parents[6]
+_LISTENER_ARGS = ('/usr/bin/sudo', '-n', '--', '/usr/bin/ss', '-H', '-O', '-ltnp')
+_PROBE_ARGS = ('/usr/bin/sudo', '-n', '--', '/usr/bin/python3', '-I', '-B', '-c', PROBE, '201', '100', '202')
 
 
 class OwnedFrameRunner(FrameRunner):
@@ -60,16 +63,40 @@ class OwnedFrameRunner(FrameRunner):
             if '--verify' in args:
                 return LxcNodeCommandResult(0, 'c' * 40 + '\n')
             return LxcNodeCommandResult(0, '')
-        if args[0] == '/usr/bin/ss' and self.live:
+        if tuple(args) == _LISTENER_ARGS:
             self.calls.append(tuple(args))
-            return LxcNodeCommandResult(0, 'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=201,fd=4))\n')
-        if args[0] == '/usr/bin/sudo':
+            stdout = ('LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:* users:(("incusd",pid=201,fd=4))\n'
+                      if self.live else '')
+            return LxcNodeCommandResult(0, stdout)
+        if tuple(args) == ('/usr/bin/ss', '-H', '-O', '-ltnp') and self.live:
+            self.calls.append(tuple(args))
+            return LxcNodeCommandResult(0, 'LISTEN 0 4096 127.0.0.1:10001 0.0.0.0:*\n')
+        if tuple(args) == _PROBE_ARGS:
             self.calls.append(tuple(args))
             return LxcNodeCommandResult(0, json.dumps(dict(listener=process(201), daemon=process(100), manager=process(202))))
+        if args[0] == '/usr/bin/sudo':
+            raise AssertionError('Unexpected privileged command in owned frame')
         return await super().run(args, timeout_seconds)
 
 
 class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_root_owned_listener_observation_requires_privileged_pid_and_existing_trusted_proof(self):
+        intent = intent_fixture()
+        runner = OwnedFrameRunner(_ROOT)
+        runner.activate(intent)
+        with patch('tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle.assert_local_socket'):
+            observed = await IncusProfileLifecycleRuntime(runner).for_observation(intent).inspect(intent)
+        self.assertTrue(observed.listeners_match)
+        self.assertFalse(observed.forbidden_listener)
+        self.assertIn(_LISTENER_ARGS, runner.calls)
+        self.assertIn(_PROBE_ARGS, runner.calls)
+        self.assertFalse(any(args[0] == '/usr/bin/ss' for args in runner.calls))
+        for args in runner.calls:
+            if '/usr/bin/sudo' in args:
+                self.assertIn(args, (_LISTENER_ARGS, _PROBE_ARGS))
+            if 'query' in args:
+                self.assertEqual(args[args.index('--request') + 1], 'GET')
+
     async def test_actual_public_composed_node_and_exposure_verification_are_read_only_and_keep_unbound_writers_blocked(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

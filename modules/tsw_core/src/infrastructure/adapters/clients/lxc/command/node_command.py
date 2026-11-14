@@ -38,7 +38,10 @@ class AsyncLxcNodeCommandRunner:
         args: Sequence[str],
         timeout_seconds: float,
     ) -> LxcNodeCommandResult:
-        result = await run_async_process(args, timeout=timeout_seconds)
+        if tuple(args[:2]) == ('/usr/bin/sudo', '-n'):
+            result = await run_async_process(args, timeout=timeout_seconds, preserve_login_session=True)
+        else:
+            result = await run_async_process(args, timeout=timeout_seconds)
         return LxcNodeCommandResult(
             result.returncode, result.stdout, result.stderr, result.timed_out, result.failure_hint,
         )

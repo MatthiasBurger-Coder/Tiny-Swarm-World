@@ -2,7 +2,7 @@
 
 Workflow ID: issue-440-open-acceptance
 workflowVersion: 2.0
-Status: EXECUTING; TA80 scoped listener repair VERIFIED_LOCAL; C8/K8 and lifecycle live acceptance pending; EPIC incomplete
+Status: EXECUTING; TA81 privileged PID observation VERIFIED_LOCAL; source checkpoint/C8/K8/live acceptance pending; EPIC incomplete
 Issue: [#440](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/440)
 Branch: `docs/workflow-issue440-open-20261111`
 Committed authoring baseline: `c40d87ed81101dd582a112fe8b427d84372f36e2`
@@ -3606,3 +3606,176 @@ the earlier native Hyper-V VM/inventory authorization. This session launched no
 Hyper-V query, elevation, VM change or VM test. Native product qualification
 requires an admitted Linux target within the remaining preservation boundaries;
 existing authorized native listener-maintenance scope grants no product reset.
+
+
+## TA81 — fixed noninteractive listener PID inventory, 2026-11-14
+
+TA80 source checkpoint `b55487b6574ac5672d1d6415403f0dfd0cd30565` is published
+and verified. Its source quality and final documentation results retain their
+exact scope. Before C8 freeze, a fresh native Linux read-only comparison found
+all 18 catalog endpoints but zero process IDs for ordinary UID 1000. The root
+read saw identical endpoints with exactly one PID each. This defect predates
+both ss flag variants and prevents the required independent ownership proof.
+
+Requirement, Architecture, Python, Test, Security and DevOps reviews accept
+only the fixed read argv `sudo -n -- /usr/bin/ss -H -O -ltnp` in the existing
+observer and exact allowlist. Keep strict stderr/error/timeout/PID and trusted
+process checks. No interactive input, password handling, fallback, sudoers,
+proc permissions or file capabilities. Existing privileged Python PROBE remains
+separate and exact. Its authorization does not prove the new command is allowed.
+
+Both ordinary host operators currently receive exit 1 and interactive
+authentication required for the exact proposed command. Record this actual
+prerequisite state; do not warm sessions or infer live authorization from unit
+results. A separately legitimate execution context must prove exact command
+authorization before live effects. Hyper-V remains completely excluded.
+
+Update only the six declared source/test files. Shared frame runners must
+dispatch exact privileged ss before the distinct exact PROBE prefix; reject
+arbitrary sudo and obsolete command forms. Regression-first uses the real
+observer with a running manager, PID-hidden ordinary output, privileged PID
+output and the actual trusted proof parser. Denied authorization, malformed
+PID data, foreign/duplicate listeners and proof failures remain blocked.
+
+The C8 helper remains inactive. Replace its planned three-blob construction
+with a separately reviewed six-blob successor only after exact source gates
+and publication. Retain C7/K7 and all old attempts/proofs. New paired C8 results
+and cap-only K8 admission are still required; no lifecycle or parent completion
+is claimed. This repair is serial after the published TA80 checkpoint.
+
+Requirement matrix and preflight:
+`.tiny-swarm/evidence/issue-440-open/consultations/TA440-20261114-81/`.
+Done criteria for bounded source checkpoint: regression/required local gates
+and independent source review accepted; live authorization and qualification
+remain separately open and block parent DONE.
+
+```yaml
+{
+  "slice_id": "S440O-SS-PID",
+  "profile": "FULL_PATH",
+  "owner": "Senior Python Automation Developer",
+  "secondary_reviewers": [
+    "Senior Requirement Engineer",
+    "Senior System Architect",
+    "Senior Tester",
+    "Senior Security Sandbox Engineer",
+    "Senior DevOps"
+  ],
+  "affected_files": [
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/observations.py",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/command_policy.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/command/node_command.py",
+    "modules/tsw_core/tests/infrastructure/process/test_sudo_session.py"
+  ],
+  "affected_modules": [
+    "scoped Incus profile observation and exact privileged reads"
+  ],
+  "affected_contracts": [
+    "noninteractive privileged listener PID inventory; unchanged trusted process proof",
+    "existing login-session preservation only for exact noninteractive sudo prefix"
+  ],
+  "dependencies": [
+    "S440O-SS-OBSERVATION"
+  ],
+  "parallel_group": "serial-ss-pid",
+  "parallel_execution_eligible": false,
+  "requires_isolated_worktree": true,
+  "requires_serialized_live_validation": true,
+  "file_locks": [
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/observations.py",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/command_policy.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261114-81/**",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/command/node_command.py",
+    "modules/tsw_core/tests/infrastructure/process/test_sudo_session.py"
+  ],
+  "module_locks": [
+    "scoped Incus profile observation"
+  ],
+  "contract_locks": [
+    "fixed privileged read; no interactive or unprivileged fallback"
+  ],
+  "architecture_locks": [
+    "existing privileged observation and trusted ownership boundaries"
+  ],
+  "allowed_write_scope": [
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/observations.py",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/profile/command_policy.py",
+    "modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_lifecycle.py",
+    "modules/tsw_core/tests/infrastructure/adapters/lifecycle/test_profile_observation.py",
+    "documentation/handbook/05-development/workflow/context-pack.json",
+    "documentation/handbook/05-development/workflow/context-pack.md",
+    "documentation/handbook/05-development/workflow/workflow.md",
+    ".tiny-swarm/evidence/issue-440-open/consultations/TA440-20261114-81/**",
+    "modules/tsw_core/src/infrastructure/adapters/clients/lxc/command/node_command.py",
+    "modules/tsw_core/tests/infrastructure/process/test_sudo_session.py"
+  ],
+  "quality_gates": {
+    "targeted": [
+      "PYTHONPATH=. python3 -m unittest modules.tsw_core.tests.infrastructure.adapters.clients.test_lxc_profile_lifecycle modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_profile_observation modules.tsw_core.tests.application.services.test_installation_profile modules.tsw_core.tests.application.services.test_profile_change modules.tsw_core.tests.infrastructure.adapters.lifecycle.test_profile_change modules.tsw_core.tests.infrastructure.process.test_sudo_session"
+    ],
+    "required": [
+      "python3 modules/tsw_core/tools/linux/quality_gate.py quality",
+      "git diff --check"
+    ]
+  },
+  "documentation": {
+    "arc42": "Existing scoped observer and privileged PROBE architecture checked; same adapter-only read authority.",
+    "adr": "No new ADR; no sudoers/authentication policy or credential model change."
+  },
+  "stop_conditions": [
+    "Files outside declared locks",
+    "Password input, interactive sudo, auth warming, proc ACL/capability/sudoers changes in product correction",
+    "Stderr suppression, lost PID/ownership proof or unprivileged fallback",
+    "Failed or unverifiable required gate/source match",
+    "C8/K8 frozen/admitted using old hashes or old qualification credit"
+  ]
+}
+```
+
+
+### TA81 reviewed login-session preservation scope
+
+Source inspection found the generic LXC command adapter starts a new session
+for all commands, unlike the existing network/Incus preparation adapters. That
+would discard legitimate terminal sudo timestamps even with correct PID read
+arguments. Four-role and Security/DevOps reviews accept reusing the existing
+`preserve_login_session=True` flag only for the exact `('/usr/bin/sudo', '-n')`
+prefix. Preserve original argv, timeout and result mapping; other commands keep
+default session isolation. The shared executor still creates its own killable
+process group and retains timeout/cancellation cleanup. Add only node_command.py
+and the existing test_sudo_session.py to the declared locks. No new process,
+credential or authentication framework. The private outer driver still requires
+separate legitimate session propagation before any live authorization claim.
+
+
+### TA81 actual local source verification
+
+The two exact regression methods first failed as expected on SSH58 Ubuntu WSL:
+PID-hidden ordinary observation at listener_rows and the missing NodeRunner
+login-session flag. Independent review accepted the RED result. After the three
+production changes, all 55 nearest tests passed in 0.799 seconds. Full local
+quality returned exit 0: verification policy, complexity over 415 modules, lint,
+seven import contracts, 44 architecture tests, typecheck over 1,056 files and
+4,162 tests in 344.822 seconds with 37 declared skips and no failures/errors.
+All 1,816 source/mode entries and own environment/donor guards matched.
+Independent acceptance SHA-256:
+`d4d9e5d851fb25bf27fdcba9380662089480deb122c4d5d16a342aa40515cf79`.
+
+The source correction and independent Architecture/Security reviews are local
+acceptance only. Both-host exact sudo command authorization remains absent in
+the retained checks; private outer-driver TTY/session propagation remains
+unverified. C8/K8 and product live qualification remain held. No authorization,
+Portainer/component outcome, external quality result or parent DONE is inferred.
+Only the three result/status documents change after this full source run;
+exact designated SSH documentation-policy/diff verification precedes the
+bounded source checkpoint. Source/test blobs remain the tested bytes.
