@@ -55,8 +55,6 @@ FILES = (
     'modules/tsw_native_linux/tests/tools/test_native_runtime_inventory.py',
     'modules/tsw_core/src/domain/native_preparation.py',
     'modules/tsw_core/src/infrastructure/adapters/host/native_preparation.py',
-    'modules/tsw_windows_wsl/tools/qualification/windows_firewall_snapshot.ps1',
-    'modules/tsw_windows_wsl/tools/qualification/windows_firewall_certificate.ps1',
 )
 LIMIT = 8 * 1024 * 1024
 HOST_LOCK_PARENT = Path('/run/tsw-epic440-native-maintenance')
@@ -993,7 +991,7 @@ def validate_paused_admission(activation: Any, intent: dict[str, Any], intent_sh
             and isinstance(resource.get('candidate'), dict)
             and resource['candidate'].get('provider_config_sha256') == intent['provider_config_sha256']
             and all(type(check) is bool and check for check in resource['checks'].values()), 'RESOURCE_ADMISSION_NOT_PASS')
-    require(isinstance(route, dict) and route.get('schema_version') == 'tsw.route-state.v2'
+    require(isinstance(route, dict) and route.get('schema_version') == 'tsw.route-state.v3'
             and route.get('source_commit') == source and route.get('target_host') == HOST,
             'ROUTE_ADMISSION_INVALID')
     require(isinstance(go, dict) and {key: value for key, value in go.items() if key not in DYNAMIC_GO_KEYS} == intent['fixture']

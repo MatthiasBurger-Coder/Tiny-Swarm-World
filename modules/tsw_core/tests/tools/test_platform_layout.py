@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-
-from modules.tsw_windows_wsl.tools.build_windows_preparation_manifest import ASSETS
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -39,19 +36,3 @@ class PlatformLayoutTests(unittest.TestCase):
             )
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_windows_handoff_and_release_proof_cover_same_relocated_assets(self):
-        adapter = (ROOT / "modules/tsw_windows_wsl/bootstrap/preparation/Adapters.ps1").read_text()
-        asset_list = re.search(r"\$assets=@\(([^\n]+)\)", adapter)
-        self.assertIsNotNone(asset_list)
-        assert asset_list is not None
-        self.assertEqual(set(re.findall(r"'([^']+)'", asset_list[1])), set(ASSETS))
-
-        entrypoint = (ROOT / "modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1").read_text()
-        required_list = entrypoint.split("$requiredAssets=@(", 1)[1].split(")", 1)[0]
-        required_assets = set(re.findall(r"'([^']+)'", required_list))
-        self.assertTrue(required_assets.issubset(ASSETS))
-        self.assertIn("modules/tsw_windows_wsl/bootstrap/preparation/linux-handoff.sh", required_assets)
-        for relative in ASSETS:
-            with self.subTest(asset=relative):
-                self.assertTrue((ROOT / relative).is_file())

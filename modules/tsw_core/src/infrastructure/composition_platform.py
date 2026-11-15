@@ -39,7 +39,6 @@ from .composition_runtime import (
     NodeProviderConfigYamlRepository,
     NodeProviderSelectionRequest,
     NodeProviderSelectionService,
-    Path,
     PlatformDestroyWorkflow,
     PlatformExposeWorkflow,
     PlatformInitWorkflow,
@@ -64,7 +63,6 @@ from .composition_runtime import (
     _build_post_install_preflight_service_for_request,
     _build_preflight_service_for_request,
     _build_workflow_progress_sink,
-    _build_wsl_host_preparation,
     _cluster_docker_steps,
     _cluster_swarm_bootstrap_steps,
     _cluster_verify_steps,
@@ -74,7 +72,6 @@ from .composition_runtime import (
     _lxc_proxy_listen_address,
     _new_installation_trace_correlation_id,
     _node_provider_request_from_config,
-    _operator_config_float,
     _platform_destroy_steps,
     _platform_expose_steps,
     _platform_init_pre_apply_guard,
@@ -87,12 +84,11 @@ from .composition_runtime import (
     build_host_environment_detector,
     default_project_paths,
     default_setup_manifest,
-    os,
 )
 from . import composition_runtime as _runtime
 
 _BOUNDARY_FUNCTION_NAMES = frozenset(["build_host_preparation_service","build_platform_services"])
-_RUNTIME_SYMBOL_NAMES = frozenset(["AsyncLxcNodeCommandRunner","ClusterWorkflows","CommandWorkflow","DEFAULT_LXC_MANAGER_PROXY_PROFILE","DEFAULT_SETUP_SERVICE_PROFILE","HostPreparationAdapterFactory","HostPreparationService","LiveConsent","LoggerFactory","LxcContainerDockerRuntime","LxcDockerInstallService","LxcNodeProvider","LxcProviderPreflightProbe","LxcProxyDeviceRuntime","LxcProxyDriftRepairService","LxcServiceExposureService","LxcSwarmBootstrapService","NodeProviderConfigYamlRepository","NodeProviderSelectionRequest","NodeProviderSelectionService","Path","PlatformDestroyWorkflow","PlatformExposeWorkflow","PlatformInitWorkflow","PlatformReconcileWorkflow","PlatformRepairLxcProxyDriftWorkflow","PlatformResetWorkflow","PlatformServices","PlatformVerifyWorkflow","PlatformWorkflows","PortUI","ServiceStackProfile","SetupWorkflowPhase","SocatManager","VerificationEvidenceLocalRepository","WslResourceInspector","WslSocatExposureAdapter","_ProviderSelectedLxcDockerRuntime","_ProviderSelectedLxcProxyDeviceRuntime","_ProviderSelectedLxcSwarmRuntime","_build_method_trace_sink","_build_native_linux_host_preparation","_build_post_install_preflight_service_for_request","_build_preflight_service_for_request","_build_workflow_progress_sink","_build_wsl_host_preparation","_cluster_docker_steps","_cluster_swarm_bootstrap_steps","_cluster_verify_steps","_lxc_docker_apt_mirror_configuration","_lxc_docker_registry_mirror_configuration","_lxc_manager_node","_lxc_proxy_listen_address","_new_installation_trace_correlation_id","_node_provider_request_from_config","_operator_config_float","_platform_destroy_steps","_platform_expose_steps","_platform_init_pre_apply_guard","_platform_init_steps","_platform_reconcile_steps","_platform_repair_lxc_proxy_drift_steps","_platform_reset_steps","_platform_verify_steps","_wsl_lxc_lifecycle_capability_available","build_host_environment_detector","default_project_paths","default_setup_manifest","os","build_host_preparation_service","build_platform_services"])
+_RUNTIME_SYMBOL_NAMES = frozenset(["AsyncLxcNodeCommandRunner","ClusterWorkflows","CommandWorkflow","DEFAULT_LXC_MANAGER_PROXY_PROFILE","DEFAULT_SETUP_SERVICE_PROFILE","HostPreparationAdapterFactory","HostPreparationService","LiveConsent","LoggerFactory","LxcContainerDockerRuntime","LxcDockerInstallService","LxcNodeProvider","LxcProviderPreflightProbe","LxcProxyDeviceRuntime","LxcProxyDriftRepairService","LxcServiceExposureService","LxcSwarmBootstrapService","NodeProviderConfigYamlRepository","NodeProviderSelectionRequest","NodeProviderSelectionService","PlatformDestroyWorkflow","PlatformExposeWorkflow","PlatformInitWorkflow","PlatformReconcileWorkflow","PlatformRepairLxcProxyDriftWorkflow","PlatformResetWorkflow","PlatformServices","PlatformVerifyWorkflow","PlatformWorkflows","PortUI","ServiceStackProfile","SetupWorkflowPhase","SocatManager","VerificationEvidenceLocalRepository","WslResourceInspector","WslSocatExposureAdapter","_ProviderSelectedLxcDockerRuntime","_ProviderSelectedLxcProxyDeviceRuntime","_ProviderSelectedLxcSwarmRuntime","_build_method_trace_sink","_build_native_linux_host_preparation","_build_post_install_preflight_service_for_request","_build_preflight_service_for_request","_build_workflow_progress_sink","_cluster_docker_steps","_cluster_swarm_bootstrap_steps","_cluster_verify_steps","_lxc_docker_apt_mirror_configuration","_lxc_docker_registry_mirror_configuration","_lxc_manager_node","_lxc_proxy_listen_address","_new_installation_trace_correlation_id","_node_provider_request_from_config","_platform_destroy_steps","_platform_expose_steps","_platform_init_pre_apply_guard","_platform_init_steps","_platform_reconcile_steps","_platform_repair_lxc_proxy_drift_steps","_platform_reset_steps","_platform_verify_steps","_wsl_lxc_lifecycle_capability_available","build_host_environment_detector","default_project_paths","default_setup_manifest","build_host_preparation_service","build_platform_services"])
 
 
 def _refresh_runtime_symbols() -> None:
@@ -109,38 +105,11 @@ def build_host_preparation_service(
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
 ) -> HostPreparationService:
-    _, resolved_services = persisted_runtime_selection(DEFAULT_SETUP_SERVICE_PROFILE, resolved_services)
-    service_exposure = persisted_service_exposure(resolved_services, service_exposure)
-    project_paths = default_project_paths()
-    registry_path = Path(
-        os.getenv(
-            "TSW_WINDOWS_BRIDGE_PORT_REGISTRY_PATH",
-            str(project_paths.config_root / "ports.yaml"),
-        )
-    )
-    timeout_seconds = _operator_config_float(
-        "TSW_WINDOWS_BRIDGE_TIMEOUT_SECONDS",
-        120.0,
-        minimum=1.0,
-    )
-    def build_wsl_adapter():
-        from tiny_swarm_world.infrastructure.host_bindings import windows_bridge_binding
-
-        binding = windows_bridge_binding(project_paths.repository_root)
-        return _build_wsl_host_preparation(
-            script_path=binding.script, config_path=binding.config,
-            registry_path=registry_path, timeout_seconds=timeout_seconds,
-            **_selected_bridge_options(resolved_services, service_exposure),
-        )
-
     return HostPreparationService(
         build_host_environment_detector(),
         {
             HostEnvironmentKind.NATIVE_LINUX: HostPreparationAdapterFactory(
                 _build_native_linux_host_preparation
-            ),
-            HostEnvironmentKind.WSL2: HostPreparationAdapterFactory(
-                build_wsl_adapter
             ),
         },
         live_consent,

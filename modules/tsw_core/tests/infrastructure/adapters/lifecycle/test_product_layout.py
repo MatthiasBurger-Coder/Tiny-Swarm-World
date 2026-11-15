@@ -68,7 +68,7 @@ class ProductLayoutTests(unittest.TestCase):
     def test_config_members_accept_both_release_layouts_and_deny_escapes(self):
         for path in ('infra/config/ports.yaml', 'modules/tsw_core/infra/config/ports.yaml'):
             self.assertEqual(configuration_member(path), Path('config/ports.yaml'))
-        for path in ('../infra/config', '/infra/config', 'modules/tsw_windows_wsl/infra/config', 'infra/../secret'):
+        for path in ('../infra/config', '/infra/config', 'modules/unrelated/infra/config', 'infra/../secret'):
             with self.subTest(path=path), self.assertRaises(LifecycleStateError):
                 configuration_member(path)
 

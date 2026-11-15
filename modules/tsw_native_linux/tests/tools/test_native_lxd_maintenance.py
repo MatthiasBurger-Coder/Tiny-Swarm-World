@@ -648,7 +648,7 @@ class PausedAdmissionTests(unittest.TestCase):
             'target_host': maintenance.HOST, 'platform': 'native_linux', 'scenario_id': 'R449-33',
             'source_commit': 'a' * 40, 'decision': 'PASS', 'checks': dict.fromkeys(maintenance.RESOURCE_CHECKS, True),
             'candidate': {'provider_config_sha256': 'c' * 64}})
-        route = maintenance.canonical({'schema_version': 'tsw.route-state.v2', 'source_commit': 'a' * 40,
+        route = maintenance.canonical({'schema_version': 'tsw.route-state.v3', 'source_commit': 'a' * 40,
                                       'target_host': maintenance.HOST, 'approved_route_state_sha256': 'd' * 64})
         go = maintenance.canonical(static | {'decision': 'GO', 'resource_admission_sha256': maintenance.digest(resource),
                                              'approved_route_state_sha256': 'd' * 64})
@@ -703,7 +703,7 @@ class PausedAdmissionTests(unittest.TestCase):
                 intent = {'provider_config_sha256': 'c' * 64}
                 intent_raw = maintenance.canonical(intent)
                 port.fixture_sha = maintenance.digest(intent_raw)
-                route_raw = b'{"schema_version":"tsw.route-state.v2"}'
+                route_raw = b'{"schema_version":"tsw.route-state.v3"}'
                 activation = {'expires_at_utc': (datetime.now(timezone.utc) + timedelta(minutes=25)).isoformat()}
                 captured: dict[str, bytes] = {}
                 def save(name: str, value: Any) -> None:
@@ -853,6 +853,18 @@ class PausedAdmissionTests(unittest.TestCase):
                 self.assertFalse(maintenance.preserved_snapshot(original, bad))
         self.assertEqual(original['preserve']['incus_projects'][0]['pools'][0]['image_cache'], [])
 
+    def test_retired_route_artifact_schema_is_rejected_before_go_validation(self) -> None:
+        intent, activation, resource, route, go, now = self.inputs()
+        old = json.loads(route)
+        old['schema_version'] = 'tsw.route-state.v2'
+        route = maintenance.canonical(old)
+        activation['route_sha256'] = maintenance.digest(route)
+        with patch.object(maintenance.fixture, 'validate_go') as checked:
+            with self.assertRaisesRegex(maintenance.MaintenanceError, 'ROUTE_ADMISSION_INVALID'):
+                maintenance.validate_paused_admission(activation, intent, 'e' * 64,
+                                                      resource, route, go, 'a' * 40, now)
+        checked.assert_not_called()
+
 
 
 class RecoveryAdmissionCorrectionTests(unittest.TestCase):
@@ -947,14 +959,12 @@ class RecoveryAdmissionCorrectionTests(unittest.TestCase):
 
 
 
-class SharedSnapshotIntentBindingTests(unittest.TestCase):
-    def test_native_static_intent_pins_the_same_asset_and_preserves_existing_pin_indices(self) -> None:
+class NativeIntentBindingTests(unittest.TestCase):
+    def test_native_static_intent_pins_only_native_assets(self) -> None:
         self.assertEqual(maintenance.FILES[4], 'modules/tsw_core/tools/linux/qualification/incus_profile_listener_fixture.py')
         self.assertEqual(maintenance.FILES[5], 'modules/tsw_core/tests/infrastructure/adapters/clients/test_lxc_profile_listener_fixture.py')
         self.assertEqual(maintenance.FILES[6], 'documentation/handbook/05-development/workflow/workflow.md')
         self.assertEqual(maintenance.FILES[6], maintenance.fixture.ACTIVE_WORKFLOW)
-        self.assertEqual(maintenance.FILES[12], str(maintenance.fixture.WINDOWS_SNAPSHOT_REL))
-        self.assertEqual(maintenance.FILES[13], str(maintenance.fixture.WINDOWS_CERTIFICATE_REL))
         source = 'a' * 40
         run = 'b' * 32
         profile, base_profile, instance = (f'tsw-q449-{run}-{suffix}' for suffix in ('profile', 'base', 'fixture'))
@@ -963,8 +973,8 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
             'workflow_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[6]).read_bytes()),
             'runner_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[4]).read_bytes()),
             'test_sha256': maintenance.digest((maintenance.ROOT / maintenance.FILES[5]).read_bytes()),
-            'windows_snapshot_sha256': maintenance.digest((maintenance.ROOT / maintenance.fixture.WINDOWS_SNAPSHOT_REL).read_bytes()),
-            'windows_certificate_sha256': maintenance.digest((maintenance.ROOT / maintenance.fixture.WINDOWS_CERTIFICATE_REL).read_bytes()),
+
+
             'issue447_inventory_sha256': 'c' * 64,
             'target': {'host': maintenance.HOST, 'endpoint': 'unix://', 'project': 'default', 'server_version': '6.0.5',
                        'run_id': run, 'profile': profile, 'base_profile': base_profile, 'instance': instance,
@@ -972,7 +982,7 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
             'proxy': {'listen': 'tcp:127.0.0.1:61000', 'connect': 'tcp:127.0.0.1:8080', 'bind': 'host'},
             'cleanup': [instance, profile, base_profile],
             'reviews': dict.fromkeys(maintenance.fixture.REVIEW_KEYS, 'APPROVED'),
-            'windows_rules_unchanged': True, 'external_routes_enabled': False,
+             'external_routes_enabled': False,
             'default_profile_sha256': 'e' * 64, 'fixture_base_profile_sha256': 'f' * 64,
             'default_profile_used_by': [],
         }
@@ -984,15 +994,10 @@ class SharedSnapshotIntentBindingTests(unittest.TestCase):
             forged['fixture']['workflow_sha256'] = invalid_workflow
             with self.assertRaisesRegex(maintenance.fixture.FixtureError, 'SOURCE_BINDING_MISMATCH'):
                 maintenance.validate_fixture_intent(forged, source)
-        for field in ('windows_snapshot_sha256', 'windows_certificate_sha256'):
-            for field_value in (None, '0' * 64):
-                forged = copy.deepcopy(intent)
-                if field_value is None:
-                    del forged['fixture'][field]
-                else:
-                    forged['fixture'][field] = field_value
-                with self.subTest(field=field, field_value=field_value), self.assertRaises((maintenance.MaintenanceError, maintenance.fixture.FixtureError)):
-                    maintenance.validate_fixture_intent(forged, source)
+        forged = copy.deepcopy(intent)
+        forged['fixture']['windows_snapshot_sha256'] = '0' * 64
+        with self.assertRaisesRegex(maintenance.MaintenanceError, 'FIXTURE_INTENT_INVALID'):
+            maintenance.validate_fixture_intent(forged, source)
 
 
 

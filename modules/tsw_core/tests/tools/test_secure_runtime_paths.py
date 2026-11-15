@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,8 +8,6 @@ from pathlib import Path
 from modules.tsw_core.tests.e2e.classic import run_classic_acceptance
 from modules.tsw_native_linux.tools.live.secure_runtime_paths import (
     NATIVE_LINUX,
-    WINDOWS_MOUNTED,
-    assess_secret_file,
     classify_path,
     ensure_secure_directory,
 )
@@ -25,45 +24,6 @@ class TestSecureRuntimePaths(unittest.TestCase):
             run_classic_acceptance.CLASSIC_E2E_COMMAND[-1],
         )
 
-    def test_drvfs_path_is_rejected_even_when_stat_reports_0600(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            storage = root / "storage"
-            storage.mkdir()
-            storage.chmod(0o700)
-            secret = storage / "live.env"
-            secret.write_text("TSW_TEST_SECRET=not-written-to-evidence\n", encoding="utf-8")
-            secret.chmod(0o600)
-
-            assessment = assess_secret_file(
-                secret,
-                host="wsl2",
-                mountinfo_reader=lambda: _mountinfo(root, "9p", "drvfs"),
-            )
-
-        self.assertEqual(WINDOWS_MOUNTED, assessment.filesystem_classification)
-        self.assertFalse(assessment.allowed)
-        self.assertIn("filesystem_not_linux_native", assessment.reasons())
-
-    def test_wsl_native_path_is_accepted_when_owner_and_modes_are_verified(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            storage = root / "storage"
-            storage.mkdir()
-            storage.chmod(0o700)
-            secret = storage / "live.env"
-            secret.write_text("TSW_TEST_SECRET=not-written-to-evidence\n", encoding="utf-8")
-            secret.chmod(0o600)
-
-            assessment = assess_secret_file(
-                secret,
-                host="wsl2",
-                mountinfo_reader=lambda: _mountinfo(root, "ext4", "/dev/vda"),
-            )
-
-        self.assertEqual("wsl_linux", assessment.filesystem_classification)
-        self.assertTrue(assessment.allowed)
-        self.assertEqual("true", assessment.to_safe_dict()["accepted"])
 
     def test_native_host_classifies_without_reading_file_contents(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -89,6 +49,20 @@ class TestSecureRuntimePaths(unittest.TestCase):
 
             self.assertTrue(assessment.allowed)
             self.assertEqual(0o700, evidence.stat().st_mode & 0o777)
+
+    def test_new_evidence_ancestors_are_private_with_group_writable_umask(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = root / "state" / "installation" / "evidence"
+            previous_umask = os.umask(0o002)
+            try:
+                assessment = ensure_secure_directory(evidence)
+            finally:
+                os.umask(previous_umask)
+
+            self.assertTrue(assessment.allowed)
+            for path in (evidence, evidence.parent, evidence.parent.parent):
+                self.assertEqual(0o700, path.stat().st_mode & 0o777)
 
     def test_e2e_summary_does_not_propagate_secret_like_output(self) -> None:
         secret = "previously-exposed-value"
@@ -153,12 +127,6 @@ class TestSecureRuntimePaths(unittest.TestCase):
             {"count": 1, "failed": [{"name": "setup"}]},
             summary["phase_results"],
         )
-
-
-def _mountinfo(root: Path, filesystem_type: str, source: str) -> str:
-    return (
-        f"36 25 0:36 / {root} rw,relatime - {filesystem_type} {source} rw\n"
-    )
 
 
 if __name__ == "__main__":

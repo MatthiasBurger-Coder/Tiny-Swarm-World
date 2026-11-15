@@ -8,16 +8,15 @@ ifndef::user-reference-prefix[]
 endif::[]
 
 Tiny Swarm World is developed and operated from a Linux or WSL shell.
-Windows-native product execution is not supported. The elevated Windows bridge
-prework documented for default WSL2 browser exposure is a supported host setup
-step; project automation itself continues to run from Linux or WSL.
+Windows-native product execution is not supported. Windows preparation and
+bridge installers have been removed; use the Linux entry points on a prepared
+host. Existing WSL runtime guards still require applicable external bindings.
 
 == Quick start: preparation then installation
 
 Obtain a complete trusted release or checkout and enter its root. The currently
 exercised installer path requires retained Git metadata for secret-ignore checks;
-a plain source ZIP or `git archive` is insufficient. A release manifest proves
-Windows preparation asset membership but does not replace that installer check.
+a plain source ZIP or `git archive` is insufficient.
 When Git is available, acquire the checkout in the ordinary Linux user's home:
 
 [source,bash]
@@ -39,67 +38,13 @@ ordinary sudo-capable account; only individual privileged stages elevate. Review
 each plan and type exact `yes` when requested. Installation requires separate live
 approval. Network access to Ubuntu packages, Python and image registries is needed.
 
-On Windows 11 x86_64, from the complete trusted Windows checkout in elevated
-PowerShell:
-
-[source,powershell]
-----
-./setup_wsl.ps1 -Distro Ubuntu-26.04
-----
-
-The guided entrypoint shows the selected distro, observed ordinary user and matching
-Linux-native checkout before requesting installation consent. Once Windows
-prerequisites are ready, it runs Linux preparation, then installation only on
-success; both retain their own consent and verification. Windows never runs
-product Python. Missing Windows prerequisites delegate to existing guarded
-preparation, whose ordinary Apply currently blocks as unqualified. This entrypoint
-does not establish a qualified clean-host walkthrough. Do not add qualification
-flags simply to bypass a blocker. Follow
-link:{user-guide-prefix}windows-preparation.md[Windows preparation] for the exact
-authorized-target, source proof and recovery requirements.
-
-Use `-Help` without host probes or dependencies, `-Preflight` for read-only
-readiness, or `-DryRun` for the preparation plan. `-Json` is read-only inventory
-output; JSON Apply is blocked without prompting. `-Profile default` and
-`-Profile service-access` delegate existing preparation/installer presets;
-minimal/custom remain blocked until the shared selective setup boundary exists.
-No reset or qualification bypass is exposed. Delegated exit codes, including
-restart-required 3 and partial 4, propagate unchanged.
-
-Select the exact registered Ubuntu distro; custom names require matching
-`-UbuntuRelease 24.04` or `26.04`. If missing, a canonical selected distribution
-is installed only during approved preparation. Complete first-launch ordinary
-account creation interactively. Place the matching checkout under that user's
-Linux home (`~/Tiny-Swarm-World` default); `-LinuxCheckout` selects another owned
-Linux-native path. Preparation does not copy the Windows checkout. If system
-Python is absent for the read-only source probe, run `modules/tsw_native_linux/boostrap/prepare_linux.sh` in that
-Linux checkout first, then rerun Windows preparation. This prerequisite can add
-a command to the short path; it is not hidden automatic Windows execution.
-
-Expect pauses for Windows feature activation, selected-distro/systemd restart,
-capacity changes or new Incus group membership. Perform the reported scoped
-restart or full logout/login, then rerun `./setup_wsl.ps1` with the same target,
-release, profile and checkout options plus `-Resume`. Resume reobserves the
-existing protected preparation state and requests fresh consent; it does not
-reuse saved approval. Use WSL-wide shutdown only when the reviewed resource plan explicitly
-reports that scope; it affects all WSL2 registrations. Otherwise use the reported
-selected-distro restart. Never delete state to force readiness.
-Preserve reviewed configuration and credential overrides between terminals.
-
-The current service-access allocation plans 19 GiB node RAM plus 2 GiB WSL
-overhead, eight allocated CPU threads and 150 GiB usable disk, in addition to
-Windows reserve. A 16 GiB Windows host cannot fit it. Review actual capacity before
-apply; the plan preserves existing unrelated settings and blocks collisions.
-Preflight/dry-run are read-only; they do not establish authenticated service health.
+Windows-side setup is no longer shipped. Preparation and installation use the
+Linux commands above; any required external host integration must already exist.
 
 [mermaid]
 ----
 flowchart TD
-  A[Trusted complete checkout] --> B{Host}
-  B -->|Native Ubuntu| C[Linux preparation]
-  B -->|Windows and WSL2| D[Windows preparation and qualification guard]
-  D --> E[Interactive account and Linux checkout]
-  E --> C
+  A[Trusted complete checkout on prepared Linux host] --> C[Linux preparation]
   C --> F{Observed ready?}
   F -->|No| G[Reported remedy or scoped restart]
   G --> C
@@ -197,125 +142,6 @@ and governed by the surrounding organization. When stronger or environment-
 specific credentials are required, provide them through the documented
 protected operator override or applicable Infisical path; do not edit the
 catalog or copy passwords into evidence.
-
-== Windows 11 / WSL2: Start Here
-
-This is the canonical first-install route for Windows users. Windows prepares
-the selected WSL distribution, resources and browser bridge; all TSW product
-commands execute inside Ubuntu. Do not separately install host Docker as a
-substitute for the managed-node runtime: the default `lxc_native` provider
-runs Docker Engine and Swarm **inside Incus-managed nodes**.
-
-=== 1. Check the target and available capacity
-
-* Windows 11 x86_64 with hardware virtualization enabled; an explicitly selected
-  supported Ubuntu 24.04 or 26.04 WSL2 distribution.
-* WSL2 with working systemd (PID 1), cgroups and user namespaces. Incus needs
-  usable storage, networking, and ordinary-user access.
-* Linux-native owned checkout (for example
-  `/home/<user>/projects/Tiny-Swarm-World`); do not use `/mnt/c` or `/mnt/d`
-  for the ordinary installation, protected secrets or evidence.
-* Python 3.12 or newer and venv, Git, Incus for the default backend; `socat`
-  where WSL forwarding is necessary. Optional CLI helpers include `curl` and
-  `jq`. The Linux preparation script plans the missing dependencies; do not
-  assume all packages must be manually preinstalled.
-* The `service-access` WSL preflight currently checks a 16 GiB RAM,
-  eight-thread and 150 GiB free-disk host minimum. This **does not** establish
-  sufficient aggregate capacity for the configured managed nodes. The
-  Windows W05 resource plan currently accounts for 19 GiB node memory plus
-  2 GiB WSL overhead (= 21 GiB minimum planned WSL RAM), Windows RAM/CPU
-  reserve and disk/swap requirements. Its observed plan is authoritative:
-  a 16 GiB Windows host cannot fit that default allocation. Other profiles
-  and customized node configurations may require different resources.
-  See link:{user-guide-prefix}windows-preparation.md[Windows preparation and
-  capacity planning] for the exact model and blockers.
-
-=== 2. Inspect Windows safely (elevated PowerShell)
-
-Use a complete trusted release/checkout. Preflight and dry-run are read-only:
-
-[source,powershell]
-----
-./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Help
-./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Distro Ubuntu-24.04 -Preflight
-./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Distro Ubuntu-24.04 -DryRun -Json
-----
-
-Select the exact existing distro; for a non-canonical registration, provide the
-explicit matching `-UbuntuRelease`. WSL1 is not silently converted. Preflight
-does not install missing Windows features, launch a stopped distro, or repair a
-blocked host. Apply/qualification and approval are separate, guarded operations,
-not an unattended setup shortcut. Follow the displayed remedies, restart scope
-and recheck. Windows `READY` means Windows capability readiness only; it does
-not mean Linux preparation or services have passed.
-
-=== 3. Prepare Ubuntu and run installation
-
-Keep the checkout in the ordinary user's Linux home. The Windows preparation
-handoff prints the exact distribution/user-specific command. Run that command
-interactively rather than reconstructing another distro's command. Within the
-selected Ubuntu checkout, the corresponding Linux stages are:
-
-[source,bash]
-----
-./modules/tsw_native_linux/boostrap/prepare_linux.sh --dry-run
-./modules/tsw_native_linux/boostrap/prepare_linux.sh
-./modules/tsw_native_linux/boostrap/prepare_linux.sh --preflight
-./install.sh
-----
-
-Approve each mutating preparation stage only after reviewing its plan. A pending
-account/group change or restart requires the reported operator action and a
-fresh preflight before proceeding. Installation is not automatically started
-after a blocked or partial preparation. Ordinary installation reconciles
-existing state; do not use `--confirm-reset` for routine recovery.
-
-The normal setup sequence is: verify Incus on the WSL host; prepare managed
-Incus manager/worker nodes; install or verify Docker Engine inside those nodes;
-bootstrap and verify their Docker Swarm; configure routing; deploy selected
-services; verify runtime and browser access. Host `docker info` is **not**
-proof of managed-node readiness.
-
-=== 4. Verify the installed stack
-
-Use the existing <<verify-installed-runtime,Verify The Runtime>> checks, including
-`incus list` and `incus exec swarm-manager -- docker node ls`. For Windows
-browser access, confirm the owned WSL bridge and the configured routes using
-link:{user-guide-prefix}windows-preparation.md[Windows preparation] and
-link:{user-guide-prefix}network-preparation.md[network preparation].
-A DNS entry or bridge heartbeat alone does not prove an authenticated Portainer
-login. Follow link:{user-guide-prefix}usage.adoc#open-the-services[Service access
-and login] for the service URL and effective credentials, and
-link:{user-guide-prefix}troubleshooting.adoc#first-response[Troubleshooting]
-for failures.
-
-=== Responsibility and status overview
-
-[cols="2,3,3",options="header"]
-|===
-| Stage | Owner/entry point | Success means
-| Windows prerequisites, WSL lifecycle and resource plan
-| `modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1`
-| Windows capability observed ready, **not** an installed TSW
-| Windows browser bridge
-| Owned Windows bridge, normally orchestrated by Windows preparation
-| Routing agent/configuration ready, **not** endpoint/login verification
-| Linux packages, Python, Incus access/resources and kernel/network preparation
-| `modules/tsw_native_linux/boostrap/prepare_linux.sh`
-| Linux stages observed ready for install
-| Runtime stack and managed Docker Swarm
-| `install.sh` / TSW setup
-| Managed node and deployment verification still required
-| Browser/service credentials
-| User guide usage + tested service endpoint
-| Separately verified browser access and login
-|===
-
-The older manual `modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.ps1` entry points documented
-under <<windows-wsl-prework>> are bridge-specific operational controls, not an
-alternative end-to-end first-install recipe. Use the canonical Windows
-preparation handoff unless the documented recovery or bridge procedure calls
-for those controls explicitly.
 
 == Prerequisites
 
@@ -906,87 +732,8 @@ the generated access model, dashboard, health targets, and browser matrix only
 when the corresponding service is enabled by the selected configuration.
 
 [[windows-wsl-prework]]
-==== Complete The Required Windows Prework For WSL2
-
-When running Tiny Swarm World in WSL2 with the default Windows exposure, prepare
-the Windows side *before* starting `install.sh`. The installer deliberately
-stops before platform mutation when this bridge is missing, degraded, or stale.
-
-First confirm from Windows PowerShell that the intended WSL2 distribution is
-running and uses `systemd` as PID 1:
-
-[source,powershell]
-----
-wsl --list --verbose
-wsl -d <DistributionName> --exec sh -lc "ps -p 1 -o comm="
-----
-
-The second command must print `systemd`. Then open *PowerShell as
-Administrator* in the Tiny Swarm World repository root. If this is not the
-Windows default WSL distribution, first set its exact name in
-`modules/tsw_windows_wsl/bootstrap/tws-wsl-bridge.config.json` instead of keeping the automatic
-`"distro": "auto"` selection. Then run:
-
-[source,powershell]
-----
-Set-ExecutionPolicy -Scope Process Bypass
-.\bootstrap\windows\tws-wsl-bridge.ps1 -Action prerequisites
-.\bootstrap\windows\tws-wsl-bridge.ps1 -Action install
-----
-
-The first service installation opens a Windows credential dialog. Use the
-Windows account that owns the WSL distribution and enter its normal Windows
-password, not the Windows Hello PIN. The password is passed to the Windows
-Service Control Manager and is not stored in the repository.
-
-Installation publishes a protected runtime bundle below
-`%ProgramData%\TinySwarmWorld\WslBridge`; the service does not execute mutable
-files directly from the checkout. Re-run the elevated `-Action install` after
-reviewed bridge, configuration, or port-registry changes to upgrade that
-bundle.
-
-The protected heartbeat is stored at
-`%ProgramData%\TinySwarmWorld\WslBridge\bridge-state.json` and read from WSL via
-`/mnt/c/ProgramData/TinySwarmWorld/WslBridge/bridge-state.json`. The service does
-not write a checkout mirror. Hosts with a non-default WSL automount must expose
-the canonical ProgramData location before live setup.
-
-The tracked default uses `"listenAddress": "0.0.0.0"` and managed inbound
-Firewall rules, so its listeners are not limited to Windows loopback. Review
-the bridge configuration and Windows network profile before installation when
-the host is connected to an untrusted network.
-
-Verify the completed prework before returning to the WSL shell:
-
-[source,powershell]
-----
-Get-Service -Name TinySwarmWorldWslBridge
-.\bootstrap\windows\tws-wsl-bridge.ps1 -Action status
-----
-
-The service must report `Running`, and bridge discovery must report `READY`.
-The service then keeps the Windows portproxy, Firewall, `*.tsw.local` hosts
-entries, and current WSL address aligned automatically.
-
-Only when Windows browser and localhost exposure are intentionally not needed,
-disable that contract explicitly in the WSL shell before installation:
-
-[source,bash]
-----
-export TSW_WINDOWS_EXPOSURE=disabled
-----
-
-If all prerequisites pass but `-Action install` reports
-`The Windows bridge service ACL did not reach the required exact state.`,
-inspect for a leftover `.bridge-state.json.<id>.bak` file using
-link:{user-guide-prefix}troubleshooting.adoc#windows-wsl-bridge-acl[the bridge ACL recovery steps].
-That procedure explains the Windows administrator commands, deletion of the
-confirmed backup, bridge reinstallation, and return to the WSL installer.
-The filesystem exception `--allow-wsl-windows-filesystem` does not bypass or
-repair bridge preparation.
-
-See `modules/tsw_windows_wsl/bootstrap/README.windows-wsl-bridge.md` for distro selection, repair,
-status, verification, and uninstall details.
+Windows bridge preparation scripts are no longer included. This checkout does
+not configure Windows browser forwarding or certificate trust.
 
 ==== Linux Shell Name Resolution
 

@@ -224,7 +224,9 @@ def ensure_secure_directory(path: Path) -> RuntimePathAssessment:
     existed = before.exists
     if existed and before.mode != 0o700:
         raise RuntimeError("existing evidence directory must already be owner-only")
-    path.mkdir(parents=True, exist_ok=True)
+    if not path.parent.exists():
+        ensure_secure_directory(path.parent)
+    path.mkdir(mode=0o700, exist_ok=True)
     if not existed:
         path.chmod(0o700)
     assessment = assess_evidence_directory(path)

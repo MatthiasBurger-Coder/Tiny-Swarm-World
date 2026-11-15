@@ -1,8 +1,0 @@
-{
-  "distro": "auto",
-  "listenAddress": "0.0.0.0",
-  "hostsAddress": "127.0.0.1",
-  "firewallRulePrefix": "Tiny Swarm World",
-  "discoveryIntervalMinutes": 1,
-  "hostNames": []
-}

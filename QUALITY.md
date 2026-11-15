@@ -18,8 +18,7 @@ model, and live-infrastructure restrictions.
 ## Runtime
 
 - Run commands from the repository root.
-- Use Linux or WSL. Do not use Windows-native command examples for normal
-  development verification.
+- Use native Linux.
 - Prefer `python3`.
 - `modules/tsw_core/tools/linux/quality_gate.py` configures `PYTHONPATH=.` for its own checks.
 - Install the project with `python3 -m pip install --no-deps -e .` before development checks.
@@ -27,10 +26,10 @@ model, and live-infrastructure restrictions.
   `modules/tsw_core`; no source-directory aliases are required.
 - Type checking builds an offline wheel with the installed build tools, verifies
   that every production Python file is included byte-for-byte, and checks its
-  declared package namespaces plus all three test trees in a fresh mypy cache.
+  declared package namespaces plus both test trees in a fresh mypy cache.
   Install `requirements-dev.txt` before running the gate.
 - Test discovery uses `modules` with the repository as its top-level directory,
-  covering all three module test trees.
+  covering both module test trees.
 
 ## Build Tool Authority
 

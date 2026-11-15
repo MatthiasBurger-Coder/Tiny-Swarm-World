@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tiny-swarm-world"
 version = "0.2.0"
-description = "Linux/WSL local infrastructure automation for Tiny Swarm World"
+description = "Linux local infrastructure automation for Tiny Swarm World"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

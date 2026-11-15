@@ -1,13 +1,12 @@
 # Tiny Swarm World
 
-The [Product Handbook](documentation/README.adoc) is the master documentation
+The [Product Handbook](documentation/README.adocDas is the master documentation
 index for product foundations, architecture, usage, operations, development,
 quality, security, audits and release evidence. Read the
 [continuous edition](documentation/document.adoc) for the assembled handbook.
 
-Installation prerequisites live in [`modules/tsw_windows_wsl/bootstrap`](modules/tsw_windows_wsl/bootstrap) for
-Windows/WSL and [`modules/tsw_native_linux/boostrap`](modules/tsw_native_linux/boostrap) for native Linux and shared
-Linux/WSL preparation. [`tools`](tools) contains quality, audit and developer tools.
+Installation prerequisites live in [`modules/tsw_native_linux/boostrap`](modules/tsw_native_linux/boostrap).
+Quality, audit and developer tools live in [`modules/tsw_core/tools/linux`](modules/tsw_core/tools/linux).
 See [directory responsibilities and system handoff](documentation/handbook/05-development/manuals/tools-layout.md).
 
 Tiny Swarm World creates a local development and test environment with Docker
@@ -16,8 +15,7 @@ services. It provisions managed Linux containers through Incus and runs Docker
 Engine inside those containers.
 
 The current implementation is the **Classic profile** for internal development
-and testing. Native Ubuntu 24.04/26.04 x86_64 and Windows 11 with Ubuntu WSL2
-are bootstrap candidates. Historical W09 runs verified bounded scenarios on selected existing Ubuntu 26.04 hosts;
+and testing. Native Ubuntu 24.04/26.04 x86_64 hosts are bootstrap candidates. Historical W09 runs verified bounded scenarios on selected existing Ubuntu 26.04 hosts;
 this candidate has not been live-qualified. Clean-host installation and global release
 qualification remain unverified.
 See the [bootstrap completion audit](documentation/handbook/07-evidence-release/evidence/issue-462-bootstrap-completion-audit.md)
@@ -49,42 +47,13 @@ manual pip/venv steps are unnecessary.
 ./install.sh
 ```
 
-**Windows 11 / WSL2:** from the complete trusted Windows checkout, open elevated
-PowerShell and select the exact distribution. For example:
-
-```powershell
-./modules/tsw_windows_wsl/bootstrap/prepare_windows.ps1 -Distro Ubuntu-26.04
-```
-
-Before the handoff, create the ordinary Ubuntu account interactively when
-prompted and place the matching checkout in its Linux home (`~/Tiny-Swarm-World`
-by default); Windows preparation does not copy it. If the source probe reports
-missing system Python, first run `modules/tsw_native_linux/boostrap/prepare_linux.sh` from that Linux checkout,
-then rerun Windows preparation. This boundary can add commands to the short path.
-Use `-LinuxCheckout` for another Linux-native location; custom distro names also
-need the matching `-UbuntuRelease`.
-
-Once available, copy the printed `handoff.operator_command` into the interactive
-PowerShell console. That second command selects the observed Linux user and
-checkout, runs Linux preparation, and starts installation only when preparation
-succeeds. Product Python runs entirely in WSL.
-
-**Current Windows limitation:** ordinary Apply is unqualified and blocked.
-The short path describes the delivered handoff, not an unattended clean-host
-success promise. `-Preflight` / `-DryRun` inspect without mutation. Qualification
-requires a separately authorized recoverable target and exact source/plan binding;
-see [Windows preparation](documentation/handbook/03-user-guide/user_guide/windows-preparation.md#qualification-and-consent).
-A closed W09 issue does not remove this guard. A plain extracted archive also
-needs the trusted release source proof for Windows qualification and does not
-resolve the installer's Git-metadata limitation.
 
 Review each plan before typing exact `yes`; installation has its own live approval.
 Use `./modules/tsw_native_linux/boostrap/prepare_linux.sh --dry-run` or `./install.sh --preflight` for read-only checks.
 Do not run the whole installer with sudo. Internet access to Ubuntu packages,
 locked Python dependencies and container registries is required. The current
-service-access plan needs at least 21 GiB WSL RAM for configured nodes/overhead,
-plus Windows reserve, eight allocated CPU threads and 150 GiB usable disk; a
-16 GiB Windows host cannot fit it. Inspect the actual capacity plan; customized
+service-access plan needs at least 21 GiB RAM for configured nodes/overhead,
+eight CPU threads and 150 GiB usable disk. Inspect the actual capacity plan; customized
 nodes/profiles can differ. Docker runs inside managed Incus nodes.
 
 A reboot, selected-distro restart or new `incus-admin` membership pauses the path.
@@ -92,8 +61,6 @@ Perform only the reported restart/logout action, reopen the ordinary-user shell,
 and rerun preparation with the same distribution, profile and credential/config
 selection. Fresh observation and consent are required; dependent installation
 stays stopped. Ordinary install reconciles and preserves managed data/credentials.
-WSL `--confirm-reset` is a separate deprecated destructive operation, never a
-routine recovery flag.
 
 If blocked, follow the named stage and next command: authenticate with `sudo -v`
 in the preparation terminal for elevation failures; log out/in for stale groups;
@@ -145,7 +112,7 @@ the protected `live-installation.env` override file is:
 ```
 
 This is `$HOME/.local/state/tiny-swarm-world/live-installation.env` for the
-Linux/WSL user who ran the installer. If you selected another location through
+Linux user who ran the installer. If you selected another location through
 `TSW_INSTALL_ENV_FILE`, use that path instead. In the installation shell, show
 the selected path without printing any passwords:
 
@@ -219,9 +186,8 @@ and redact diagnostics before sharing them.
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
 | `setup run --live` | Run the broader setup workflow without a reset; it still changes infrastructure. |
-| `modules/tsw_native_linux/boostrap/prepare_linux.sh` | Prepare shared native/WSL2 Ubuntu prerequisites and Incus access/resources with staged confirmation. |
+| `modules/tsw_native_linux/boostrap/prepare_linux.sh` | Prepare Ubuntu prerequisites and Incus access/resources with staged confirmation. |
 | `install.sh` on native Linux | Verify preparation, then run setup without a reset. |
-| `install.sh` on WSL2 | Reconcile existing managed state; explicit WSL `--confirm-reset` alone selects deprecated destructive compatibility. |
 | Product upgrade | `product upgrade` controls the bounded TSW release transition; see the [product upgrade guide](documentation/handbook/03-user-guide/user_guide/product-upgrades.md) for prerequisites and qualification limits. |
 | Component update | `services updates` and `services update` inspect and plan selected components; `platform update` retains the single stack-service image transition contract. |
 

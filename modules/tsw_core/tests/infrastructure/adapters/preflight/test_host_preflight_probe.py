@@ -24,7 +24,7 @@ from tiny_swarm_world.infrastructure.adapters.preflight import (
     ensure_common_executable_paths,
 )
 
-TEST_BRIDGE_STATE_PATH = Path("modules/tsw_windows_wsl/bootstrap/.tws-wsl-bridge.state.json")
+TEST_BRIDGE_STATE_PATH = Path("external-host/.tws-wsl-bridge.state.json")
 
 
 class TestHostPreflightProbe(unittest.TestCase):
@@ -420,7 +420,7 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertFalse(status.prepared)
         self.assertEqual(status.reason, "state_missing")
         self.assertEqual(status.missing_ports, (80, 10000))
-        self.assertEqual(status.state_path, "modules/tsw_windows_wsl/bootstrap/.tws-wsl-bridge.state.json")
+        self.assertEqual(status.state_path, "external-host/.tws-wsl-bridge.state.json")
 
     def test_windows_wsl_bridge_status_accepts_current_ip_and_all_expected_ports(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -897,7 +897,7 @@ def _write_os_signal(root: Path, *parts: str, text: str) -> None:
 
 
 def _write_bridge_state(root: Path, *, wsl_ip: str, ports: tuple[int, ...]) -> None:
-    target = root / "modules/tsw_windows_wsl/bootstrap" / ".tws-wsl-bridge.state.json"
+    target = root / "external-host" / ".tws-wsl-bridge.state.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "contractVersion": 2,

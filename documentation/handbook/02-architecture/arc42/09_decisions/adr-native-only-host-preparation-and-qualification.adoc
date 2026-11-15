@@ -1,0 +1,44 @@
+= ADR: Native Linux Host Preparation and Qualification
+
+*Date:* 2026-11-14
+*Status:* Accepted by explicit operator instruction to remove Windows support
+from the remaining proof and qualification paths.
+
+== Context
+
+The Windows module and its bridge/preparation scripts were deleted. Native
+Incus qualification still required hashes and certificates produced by those
+missing scripts. This made native tests and source-bound approval validation
+depend on a retired platform. Standard host preparation also registered a WSL
+adapter whose host-binding manifest was no longer supplied.
+
+== Decision
+
+Standard host preparation registers only the native Linux adapter. Requests
+for WSL host preparation return the existing unsupported-host blocked result.
+
+Incus listener qualification admits only the bound native Linux target.
+Windows firewall/portproxy snapshots, certificates, interoperability environment
+forwarding and PowerShell execution are removed. The runner rejects Windows
+executables. Native maintenance source pins include no Windows assets.
+
+The closed approval schema excludes Windows proof fields and rejects old
+approvals containing them. Native listener/Incus route hashes no longer include
+a Windows snapshot. Captured route artifacts use `tsw.route-state.v3`.
+
+Linux target identity, source/workflow/test hashes, review requirements,
+resource limits, private evidence, fixture receipts, route preservation and
+ownership-checked cleanup remain mandatory. Changing source and the approval
+schema requires fresh approval before any future live qualification.
+
+== Consequences
+
+Native tests no longer read deleted Windows assets. Windows-only proof tests
+are retired; native multi-project inventory and lifecycle tests remain.
+Linux filesystem and upgrade safety failures remain failures and cannot be
+removed or marked successful as part of retiring Windows support.
+
+Earlier Windows/WSL ADRs and evidence retain their historical text and hashes.
+Their preparation/proof decisions no longer authorize current qualification.
+Legacy host detection and model types elsewhere in core do not establish
+current Windows host-preparation support. This change performs no live effects.

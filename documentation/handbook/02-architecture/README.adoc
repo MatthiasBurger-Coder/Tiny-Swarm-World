@@ -135,3 +135,5 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/02-architecture/core-module.md[Shared core module]
 
 * link:arc42/09_decisions/adr-scoped-route-policy-profile-identity.adoc[Scoped route policy and profile identity]
+
+* link:{handbook-root}handbook/02-architecture/arc42/09_decisions/adr-native-only-host-preparation-and-qualification.adoc[Native Linux host preparation and qualification]
