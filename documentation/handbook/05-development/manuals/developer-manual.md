@@ -49,6 +49,10 @@ These commands do not prepare Incus or verify installed services.
 
 ## Quality
 
+The trusted SonarCloud workflow reads test roots from the checked-out
+candidate's `sonar-project.properties`. The CI contract checks that these
+paths cover every existing module test tree.
+
 Locations follow the [bootstrap and developer-tool layout](tools-layout.md):
 installation prerequisites live in `modules/tsw_windows_wsl/bootstrap` and `modules/tsw_native_linux/boostrap`;
 quality, audit, packaging and developer tools live in `tools`.

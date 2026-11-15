@@ -542,7 +542,9 @@ class TestHostPreflightProbe(unittest.TestCase):
             self.assertTrue(probe.port_matches_expected_service(9000, "Portainer"))
 
     def test_port_matches_expected_service_rejects_unknown_http_service(self):
-        probe = HostPreflightProbe(Path.cwd())
+        runner = MagicMock()
+        runner.run_text.return_value = subprocess.CompletedProcess((), 0, "[]", "")
+        probe = HostPreflightProbe(Path.cwd(), process_runner=runner)
         response = MagicMock()
         response.__enter__.return_value = response
         response.status = 200
@@ -710,7 +712,9 @@ class TestHostPreflightProbe(unittest.TestCase):
         self.assertEqual(request.full_url, "http://127.0.0.1:9527/")
 
     def test_port_matches_expected_service_rejects_empty_nginx_404_for_service_access(self):
-        probe = HostPreflightProbe(Path.cwd())
+        runner = MagicMock()
+        runner.run_text.return_value = subprocess.CompletedProcess((), 0, "[]", "")
+        probe = HostPreflightProbe(Path.cwd(), process_runner=runner)
         error = urllib.error.HTTPError(
             url="http://127.0.0.1:80/",
             code=404,
