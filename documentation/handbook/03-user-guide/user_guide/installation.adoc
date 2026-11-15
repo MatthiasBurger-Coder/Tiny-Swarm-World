@@ -403,6 +403,25 @@ Review each proposed stage before entering `yes`. A successful preparation and
 installer preflight confirm prerequisites only; service endpoints and logins
 remain unverified until the installation and applicable service checks complete.
 
+Before the first live installation, provision the local Incus container image
+alias configured in `node-providers/provider_config.yaml` (`ubuntu-24.04` by
+default). Scoped setup requires a local image fingerprint before creating its
+installation profile; host preparation does not populate the image cache.
+Inspect the upstream image, approve its fingerprint, then copy that exact image:
+
+[source,bash]
+----
+incus image info images:ubuntu/24.04
+# Replace APPROVED_FINGERPRINT with the inspected 64-character fingerprint.
+incus image copy images:APPROVED_FINGERPRINT local: --alias ubuntu-24.04
+incus image info ubuntu-24.04
+----
+
+These commands modify the local image cache and require operator approval.
+Do not replace an existing alias without reviewing its current fingerprint.
+An absent local alias blocks scoped setup before node creation; preserve any
+checkpoint and inspect its state before retrying.
+
 New persisted `incus-admin` membership returns RESTART_REQUIRED/3; log out and
 log back in (opening another shell in the same login may retain stale groups),
 then rerun `modules/tsw_native_linux/boostrap/prepare_linux.sh`. No resource mutations follow an access restart.
