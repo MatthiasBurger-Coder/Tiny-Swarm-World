@@ -2,6 +2,7 @@
 import asyncio
 from copy import copy
 from collections.abc import Awaitable, Callable
+from contextlib import suppress
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError, ManifestRepository
 from tiny_swarm_world.application.ports.lifecycle.installation_profile import (
@@ -264,9 +265,8 @@ async def settle_effect(effect: Awaitable[None]) -> None:
     except asyncio.CancelledError as cancellation:
         while not worker.done():
             try:
-                await asyncio.shield(worker)
-            except asyncio.CancelledError:
-                continue
+                with suppress(asyncio.CancelledError):
+                    await asyncio.shield(worker)
             except Exception:
                 break
         # Consume the child exception without changing cancellation ownership.

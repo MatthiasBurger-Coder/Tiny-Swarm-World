@@ -98,15 +98,19 @@ def prepare_arguments(argv: Sequence[str] | None) -> tuple[list[str], MigrationA
     return ["services", "migration-check"], request
 
 
+def _non_admitting_result(result: object) -> bool:
+    return (type(result) is MigrationAdmissionResult
+            and result.status in {MigrationAdmissionStatus.BLOCKED_UNKNOWN, MigrationAdmissionStatus.BLOCKED_UNSUPPORTED}
+            and result.applied is False and result.qualified is False)
+
+
 def run_migration_check(request: object) -> None:
     try:
         if type(request) is not MigrationAdmissionRequest:
             _emit_blocked()
         with build_migration_admission_service() as service:
             result = service.evaluate(request)
-        if (type(result) is not MigrationAdmissionResult
-                or result.status not in {MigrationAdmissionStatus.BLOCKED_UNKNOWN, MigrationAdmissionStatus.BLOCKED_UNSUPPORTED}
-                or result.applied is not False or result.qualified is not False):
+        if not _non_admitting_result(result):
             _emit_blocked()
         print(json.dumps({"status": result.status.value, "source": "operator_local_unverified",
                           "applied": False, "qualified": False}, separators=(",", ":"), ensure_ascii=True))

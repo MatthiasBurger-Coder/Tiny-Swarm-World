@@ -70,7 +70,7 @@ class VersionedManifestStagingRepository:
             fs.write_changed(parent, content, current, lock, identity, self._check_lock, attempt)
             return WriteResult(WriteStatus.SUCCESS, self._token(content))
 
-    def compare_and_swap(self, record: UnadoptedV2Record, expected: CasToken, catalog: ComponentCatalog,
+    def compare_and_swap(self, record: object, expected: object, catalog: ComponentCatalog,
                          exposure: SwaggerMode, listen_address: str) -> WriteResult:
         attempt = fs.ReplaceAttempt()
         try:

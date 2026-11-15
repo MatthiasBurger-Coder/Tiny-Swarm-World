@@ -1,5 +1,6 @@
 import io
 import re
+import subprocess
 import tokenize
 import unittest
 from pathlib import Path
@@ -28,6 +29,18 @@ ENV_TEMPLATE_KEY_PATTERN = re.compile(r"^\s*(?:export\s+)?(TSW_[A-Z0-9_]+)\s*=",
 
 
 class TestRepositoryHygiene(unittest.TestCase):
+    def test_local_operator_environment_is_ignored_and_untracked(self):
+        tracked = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", ".env"],
+            cwd=REPOSITORY_ROOT, capture_output=True, timeout=10,
+        )
+        ignored = subprocess.run(
+            ["git", "check-ignore", "-q", "--", ".env"],
+            cwd=REPOSITORY_ROOT, capture_output=True, timeout=10,
+        )
+        self.assertNotEqual(tracked.returncode, 0)
+        self.assertEqual(ignored.returncode, 0)
+
     def test_legacy_non_production_leftovers_are_removed(self):
         forbidden_paths = (
             REPOSITORY_ROOT / "docker" / "swarm" / "prepere.py",

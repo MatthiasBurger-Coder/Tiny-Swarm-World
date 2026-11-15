@@ -14,7 +14,7 @@ from modules.tsw_core.tests.domain.lifecycle.test_scoped_route_policy import mak
 from tiny_swarm_world.application.ports.lifecycle.versioned_manifest import (
     ABSENT_TOKEN, CasToken, ReadStatus, TokenKind, WriteStatus,
 )
-from tiny_swarm_world.domain.lifecycle.manifest_v2_record import create_v2_record, encode_v2_record
+from tiny_swarm_world.domain.lifecycle.manifest_v2_record import UnadoptedV2Record, create_v2_record, encode_v2_record
 from tiny_swarm_world.domain.lifecycle.scoped_route_policy import SwaggerMode
 from tiny_swarm_world.infrastructure.adapters.lifecycle import versioned_manifest_repository as adapter
 
@@ -105,6 +105,15 @@ class VersionedStagingTests(unittest.TestCase):
                 self.assertIs(self.write(self.record, token).status, WriteStatus.BLOCKED)
             staging.assert_not_called()
             self.assertFalse(self.path.exists())
+
+    def test_record_subclass_blocks_before_filesystem_access(self) -> None:
+        class RecordSubclass(UnadoptedV2Record):
+            pass
+
+        record = object.__new__(RecordSubclass)
+        with patch.object(adapter.fs, 'staging') as staging:
+            self.assertIs(self.write(record, ABSENT_TOKEN).status, WriteStatus.BLOCKED)
+        staging.assert_not_called()
 
     def test_concurrent_processes_share_stable_lock_and_only_one_wins(self) -> None:
         initial = self.write(self.record, ABSENT_TOKEN)
