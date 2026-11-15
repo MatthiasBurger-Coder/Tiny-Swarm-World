@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 import json
+from operator import is_not
 import sys
 
 from tiny_swarm_world.application.ports.lifecycle.migration_admission import (
@@ -106,7 +107,7 @@ def _non_admitting_result(result: object) -> bool:
 
 def run_migration_check(request: object) -> None:
     try:
-        if type(request) is not MigrationAdmissionRequest:
+        if is_not(type(request), MigrationAdmissionRequest):
             _emit_blocked()
         with build_migration_admission_service() as service:
             result = service.evaluate(request)

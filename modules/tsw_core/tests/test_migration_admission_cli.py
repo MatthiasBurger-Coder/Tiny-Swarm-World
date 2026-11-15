@@ -20,6 +20,7 @@ from tiny_swarm_world.application.ports.lifecycle.migration_admission import (
 )
 from tiny_swarm_world.domain.lifecycle.scoped_route_policy import SwaggerMode
 from tiny_swarm_world.infrastructure.adapters.cli import dispatcher
+from tiny_swarm_world.infrastructure.adapters.cli.migration_admission import run_migration_check
 from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -30,6 +31,26 @@ BLOCKED_UNSUPPORTED = dict(BLOCKED_UNKNOWN, status="BLOCKED_UNSUPPORTED")
 
 
 class MigrationCheckCliTests(unittest.IsolatedAsyncioTestCase):
+    def test_request_subclass_and_forged_identity_block_before_service_construction(self) -> None:
+        class RequestSubclass(MigrationAdmissionRequest):
+            pass
+
+        class RequestLookalike:
+            def __getattribute__(self, name: str) -> object:
+                if name == '__class__':
+                    return MigrationAdmissionRequest
+                return super().__getattribute__(name)
+
+        for request in (RequestSubclass('6.0.5', SwaggerMode.NOT_APPLICABLE, '127.0.0.1'), RequestLookalike()):
+            with self.subTest(actual_type=type(request).__name__):
+                output = StringIO()
+                with patch('tiny_swarm_world.infrastructure.adapters.cli.migration_admission.build_migration_admission_service') as build, \
+                        redirect_stdout(output), self.assertRaises(SystemExit) as stopped:
+                    run_migration_check(request)
+                self.assertEqual(stopped.exception.code, 2)
+                self.assertEqual(json.loads(output.getvalue()), BLOCKED_UNKNOWN)
+                build.assert_not_called()
+
     async def test_all_option_orders_and_equals_are_early_non_admitting(self) -> None:
         choices = (("--version", "6.0.5"), ("--exposure", "not_applicable"),
                    ("--listen-address", "127.0.0.1"))
