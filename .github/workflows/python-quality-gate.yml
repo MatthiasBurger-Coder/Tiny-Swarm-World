@@ -60,7 +60,7 @@ jobs:
 
       - name: Generate Sonar Coverage Handoff
         run: |
-          PYTHONPATH=. python3 -m coverage run --branch -m unittest discover -s modules -t .
+          PYTHONPATH=. python3 -m coverage run --branch --source=modules -m unittest discover -s modules -t .
           python3 -m coverage xml -o coverage.xml
 
       - name: Upload Sonar Coverage Handoff

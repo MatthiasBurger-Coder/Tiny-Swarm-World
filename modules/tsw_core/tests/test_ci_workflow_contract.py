@@ -18,10 +18,11 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertTrue(expected)
         for path in expected:
             self.assertTrue((REPOSITORY_ROOT / path).is_dir(), path)
+        actual = {str(path.relative_to(REPOSITORY_ROOT))
+                  for path in (REPOSITORY_ROOT / "modules").glob("*/tests") if path.is_dir()}
+        self.assertEqual(expected, actual)
         overrides = re.findall(r"-Dsonar.tests=(\S+)", self._workflow("sonar_external_gate.yml"))
-        self.assertEqual(len(overrides), 2)
-        for override in overrides:
-            self.assertEqual(set(override.split(",")), expected)
+        self.assertEqual(overrides, [], "Use sonar-project.properties from the checked-out candidate.")
 
     def test_python_quality_gate_runs_the_canonical_gate_on_push_and_pull_request(self) -> None:
         workflow = self._workflow("python-quality-gate.yml")
@@ -33,6 +34,8 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("pip install --require-hashes -r requirements.lock", workflow)
         self.assertIn("pip install --no-deps -e .", workflow)
         self.assertIn("actions/upload-artifact@", workflow)
+        self.assertIn("coverage run --branch --source=modules -m unittest discover -s modules -t .", workflow)
+        self.assertNotIn("--ignore-errors", workflow)
         self.assertIn("if-no-files-found: error", workflow)
         self.assertNotIn("pip install -r requirements-dev.txt", workflow)
         self.assertNotIn("install.sh", workflow)
