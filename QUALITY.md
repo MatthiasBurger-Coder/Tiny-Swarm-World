@@ -18,7 +18,7 @@ model, and live-infrastructure restrictions.
 ## Runtime
 
 - Run commands from the repository root.
-- Use native Linux. 
+- Use native Linux.
 - Prefer `python3`.
 - `modules/tsw_core/tools/linux/quality_gate.py` configures `PYTHONPATH=.` for its own checks.
 - Install the project with `python3 -m pip install --no-deps -e .` before development checks.
