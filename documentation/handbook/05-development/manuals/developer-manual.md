@@ -52,6 +52,8 @@ These commands do not prepare Incus or verify installed services.
 The trusted SonarCloud workflow reads test roots from the checked-out
 candidate's `sonar-project.properties`. The CI contract checks that these
 paths cover every existing module test tree.
+Coverage collection is scoped to `modules` so temporary test-driver files
+are excluded while repository modules remain measured.
 
 Locations follow the [bootstrap and developer-tool layout](tools-layout.md):
 installation prerequisites live in `modules/tsw_windows_wsl/bootstrap` and `modules/tsw_native_linux/boostrap`;

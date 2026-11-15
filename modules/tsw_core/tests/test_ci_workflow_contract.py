@@ -34,6 +34,8 @@ class CiWorkflowContractTests(unittest.TestCase):
         self.assertIn("pip install --require-hashes -r requirements.lock", workflow)
         self.assertIn("pip install --no-deps -e .", workflow)
         self.assertIn("actions/upload-artifact@", workflow)
+        self.assertIn("coverage run --branch --source=modules -m unittest discover -s modules -t .", workflow)
+        self.assertNotIn("--ignore-errors", workflow)
         self.assertIn("if-no-files-found: error", workflow)
         self.assertNotIn("pip install -r requirements-dev.txt", workflow)
         self.assertNotIn("install.sh", workflow)
