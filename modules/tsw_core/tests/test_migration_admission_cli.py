@@ -109,6 +109,20 @@ class MigrationCheckCliTests(unittest.IsolatedAsyncioTestCase):
                 service.evaluate.assert_called_once_with(
                     MigrationAdmissionRequest("6.0.5", SwaggerMode.NOT_APPLICABLE, "127.0.0.1"))
 
+    async def test_result_boolean_lookalikes_remain_non_admitting(self) -> None:
+        arguments = ACTION + ['--version', '6.0.5', '--exposure', 'not_applicable',
+                              '--listen-address', '127.0.0.1']
+        for field in ('applied', 'qualified'):
+            with self.subTest(field=field):
+                result = MigrationAdmissionResult(MigrationAdmissionStatus.BLOCKED_UNSUPPORTED)
+                object.__setattr__(result, field, 0)
+                service = Mock(evaluate=Mock(return_value=result))
+                out = StringIO()
+                with patch('tiny_swarm_world.infrastructure.adapters.cli.migration_admission.build_migration_admission_service',
+                           return_value=nullcontext(service)), redirect_stdout(out), self.assertRaises(SystemExit):
+                    await dispatcher.main(arguments)
+                self.assertEqual(json.loads(out.getvalue()), BLOCKED_UNKNOWN)
+
     async def test_invalid_grammar_is_redacted_before_load_or_runtime(self) -> None:
         good = ["--version", "6.0.5", "--exposure", "published", "--listen-address", "127.0.0.1"]
         cases = (ACTION, ACTION + good[:-2], ACTION + good + ["--version", "SECRET"],

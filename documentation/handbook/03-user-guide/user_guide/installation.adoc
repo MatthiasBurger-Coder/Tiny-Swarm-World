@@ -658,6 +658,9 @@ credentials; a future production or shared deployment must use operator-owned
 credentials instead. An existing file with empty entries still needs values
 before standalone preflight can pass.
 
+Keep operator `.env` files local and ignored by Git. The tracked template is
+`.env.example`; the installer preflight rejects a tracked `.env`.
+
 Copy `.env.example` only when you need to provide an explicit operator
 override:
 
