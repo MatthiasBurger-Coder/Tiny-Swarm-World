@@ -500,6 +500,16 @@ class RealCacheDeliveryTests(unittest.TestCase):
 
 
 class ProductRefusalContractTests(unittest.TestCase):
+    def test_parser_refusal_preserves_module_invocation_identity(self):
+        import __main__
+        from importlib.machinery import ModuleSpec
+
+        spec = ModuleSpec('qualification_host', loader=None)
+        with patch.object(__main__, '__spec__', spec):
+            raw = cases.parser_refusal(list(cases.REFUSALS['refuse-product-target'].args))
+            self.assertTrue(raw.startswith(b'usage: -c '))
+            self.assertIs(__main__.__spec__, spec)
+
     @staticmethod
     def output(status='refused', diagnostic='missing live confirmation'):
         value = {'status': status, 'diagnostics': [diagnostic]}

@@ -211,14 +211,18 @@ def refusal_spec(case: str, args: list[str]) -> RefusalSpec:
 
 def parser_refusal(args: list[str]) -> bytes:
     """Exact current public parser output, with the actual -c CLI program name."""
+    import __main__
     from contextlib import redirect_stderr
     import io
     import sys
     from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
     stream = io.StringIO()
     previous = sys.argv
+    previous_spec = __main__.__spec__
     try:
         sys.argv = ['-c']
+        # Python 3.14 argparse prefers the invoking module's spec over argv[0].
+        __main__.__spec__ = None
         with redirect_stderr(stream):
             try:
                 parse_args(args)
@@ -228,6 +232,7 @@ def parser_refusal(args: list[str]) -> bytes:
                 raise UpgradeError('REFUSAL_PARSER_CONTRACT')
     finally:
         sys.argv = previous
+        __main__.__spec__ = previous_spec
     raw = stream.getvalue().encode()
     require(raw.startswith(b'usage: -c ') and raw.endswith(
         b'-c: error: product upgrade requires --to 0.5.0 and exactly one of --preview or --live\n'),
