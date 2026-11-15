@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import hashlib
+from operator import is_not
 from pathlib import Path
+from typing import cast
 
 from tiny_swarm_world.application.ports.lifecycle.versioned_manifest import (
     ABSENT_TOKEN, CasToken, ReadResult, ReadStatus, TokenKind, WriteResult, WriteStatus,
@@ -74,10 +76,12 @@ class VersionedManifestStagingRepository:
                          exposure: SwaggerMode, listen_address: str) -> WriteResult:
         attempt = fs.ReplaceAttempt()
         try:
-            if type(expected) is not CasToken or type(record) is not UnadoptedV2Record:
+            if is_not(type(expected), CasToken) or is_not(type(record), UnadoptedV2Record):
                 return WriteResult(WriteStatus.BLOCKED)
-            token = CasToken(expected.kind, expected.digest)
-            checked = validate_v2_wire(record.wire(), catalog, exposure=exposure, listen_address=listen_address)
+            typed_expected = cast(CasToken, expected)
+            typed_record = cast(UnadoptedV2Record, record)
+            token = CasToken(typed_expected.kind, typed_expected.digest)
+            checked = validate_v2_wire(typed_record.wire(), catalog, exposure=exposure, listen_address=listen_address)
             content = encode_v2_record(checked)
             if len(content) > LIMIT:
                 return WriteResult(WriteStatus.BLOCKED)
