@@ -36,20 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return render_guided_selection_preview(
                 Path.cwd(), minimal=args.selection_plan == "minimal", services=args.services,
             )
-        runtime = host.detect_host_runtime(os.environ)
-        native = runtime.name == "native_linux"
-        if native and args.confirm_reset:
-            raise SimpleInstallerError(
-                "Native installation is non-destructive. Use a separately confirmed platform reset."
-            )
-        if args.confirm_reset:
-            if args.preflight or args.dry_run:
-                raise SimpleInstallerError("Read-only installation cannot request reset.")
-            print("DEPRECATED: --confirm-reset requests destructive WSL fresh-reset. Prefer a separately confirmed platform reset, then ./install.sh.", file=sys.stderr)
-        if runtime.name == "wsl2" and not args.confirm_reset:
-            host.authorize_project_filesystem(
-                runtime, Path.cwd(), allow_wsl_windows_filesystem=False, env=os.environ
-            )
+        runtime = _authorize_install_runtime(args)
         _ensure_native_python(True, entrypoint_args, is_wsl=runtime.name == "wsl2")
         env = _prepare_bootstrap_environment(os.environ, Path.cwd())
         options = values.InstallerOptions(
@@ -66,14 +53,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         exit_code = build_installation_service().run(options, env=env, cwd=Path.cwd())
         if exit_code == 0 and not (args.preflight or args.dry_run):
-            if args.guided_report:
-                _print_guided_credential_reference(env)
-            else:
-                _print_operator_credentials(env)
+            report = _print_guided_credential_reference if args.guided_report else _print_operator_credentials
+            report(env)
         return exit_code
     except (values.InstallerError, SimpleInstallerError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
+
+
+def _authorize_install_runtime(args: argparse.Namespace) -> values.HostRuntime:
+    runtime = host.detect_host_runtime(os.environ)
+    if args.confirm_reset:
+        if runtime.name == "native_linux":
+            raise SimpleInstallerError(
+                "Native installation is non-destructive. Use a separately confirmed platform reset."
+            )
+        if args.preflight or args.dry_run:
+            raise SimpleInstallerError("Read-only installation cannot request reset.")
+        print("DEPRECATED: --confirm-reset requests destructive WSL fresh-reset. Prefer a separately confirmed platform reset, then ./install.sh.", file=sys.stderr)
+    elif runtime.name == "wsl2":
+        host.authorize_project_filesystem(
+            runtime, Path.cwd(), allow_wsl_windows_filesystem=False, env=os.environ
+        )
+    return runtime
 
 
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:

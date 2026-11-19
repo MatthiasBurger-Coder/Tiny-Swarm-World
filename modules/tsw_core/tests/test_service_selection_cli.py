@@ -44,6 +44,25 @@ class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
             host.assert_not_called()
             install.assert_not_called()
 
+    def test_guided_preview_blocks_when_persisted_state_is_unreadable(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lifecycle = build_installation_lifecycle_service(Path(__file__).resolve().parents[3])
+            manifest = root / "manifest.json"
+            manifest.write_text("invalid fixture state", encoding="utf-8")
+            lifecycle.manifests = JsonManifestRepository(manifest)
+            with (
+                patch.object(bootstrap, "_ensure_native_python"),
+                patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service",
+                      return_value=lifecycle),
+                contextlib.redirect_stdout(io.StringIO()) as output,
+                contextlib.redirect_stderr(io.StringIO()) as diagnostics,
+            ):
+                self.assertEqual(bootstrap.main(("--selection-plan", "minimal")), 2)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("installation state could not be read", diagnostics.getvalue())
+            self.assertEqual(manifest.read_text(encoding="utf-8"), "invalid fixture state")
+
     async def preview(self, options, service, config_root=None):
         with patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.cwd", return_value=config_root or Path.cwd()), patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service", return_value=service), patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.ensure_common_executable_paths") as paths, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_application_logger") as logger, contextlib.redirect_stdout(io.StringIO()) as output:
             await main(options + ["--json"])
