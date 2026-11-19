@@ -60,8 +60,23 @@ same terminal and retry. If Incus requests a login refresh, log out and back in,
 then rerun the same setup command. Use the terminal installer so it can read
 live approval.
 
+With Python dependencies already prepared, preview minimal or custom component
+selection through the Classic service catalog.
+
+[source,bash]
+----
+./setup_linux.sh --dry-run --profile minimal
+./setup_linux.sh --dry-run --profile custom --services jenkins
+----
+
+These previews show the dependency closure, including mandatory Incus and
+Portainer. `SELECTION_PLAN_READY` means the component list is valid. Host preflight
+and guided application of these selections are pending.
+
 Setup delegates to ordinary installation, which reconciles managed resources.
-Check service access separately using the checks in this guide. Fresh-host and
+The guided completion report states preparation, installation and service access
+separately and points to the credentials source. Check service access using the
+checks in this guide. Fresh-host and
 repeat-run live qualification for the combined command is tracked in
 https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/495[#495].
 

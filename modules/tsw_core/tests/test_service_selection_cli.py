@@ -10,6 +10,7 @@ from unittest.mock import patch
 from tiny_swarm_world.__main__ import main
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
 from tiny_swarm_world.infrastructure.adapters.cli.parser import parse_args
+from tiny_swarm_world.infrastructure.adapters.installation import bootstrap
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service
 from modules.tsw_core.tests.application.services.test_lifecycle import adoption_fixture
@@ -18,6 +19,49 @@ from modules.tsw_core.tests.application.services.test_lifecycle import adoption_
 class SelectionCliTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         use_fake_composition_locks(self)
+
+    def test_guided_preview_uses_canonical_closure_without_runtime_or_writes(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lifecycle = build_installation_lifecycle_service(Path(__file__).resolve().parents[3])
+            lifecycle.manifests = JsonManifestRepository(root / "state" / "manifest.json")
+            with (
+                patch.object(bootstrap, "_ensure_native_python"),
+                patch.object(bootstrap.host, "detect_host_runtime") as host,
+                patch.object(bootstrap, "build_installation_service") as install,
+                patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service",
+                      return_value=lifecycle),
+                contextlib.redirect_stdout(io.StringIO()) as output,
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(bootstrap.main(("--selection-plan", "minimal")), 0)
+                self.assertEqual(bootstrap.main(("--selection-plan", "custom", "--services=jenkins")), 0)
+                self.assertEqual(bootstrap.main(("--selection-plan", "custom", "--services=unknown")), 2)
+                self.assertEqual(bootstrap.main(("--selection-plan", "custom", "--services=jenkins,jenkins")), 2)
+            self.assertIn("Resolved services: incus, portainer\n", output.getvalue())
+            self.assertIn("Resolved services: incus, portainer, nexus, jenkins\n", output.getvalue())
+            self.assertEqual(list(root.iterdir()), [])
+            host.assert_not_called()
+            install.assert_not_called()
+
+    def test_guided_preview_blocks_when_persisted_state_is_unreadable(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lifecycle = build_installation_lifecycle_service(Path(__file__).resolve().parents[3])
+            manifest = root / "manifest.json"
+            manifest.write_text("invalid fixture state", encoding="utf-8")
+            lifecycle.manifests = JsonManifestRepository(manifest)
+            with (
+                patch.object(bootstrap, "_ensure_native_python"),
+                patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service",
+                      return_value=lifecycle),
+                contextlib.redirect_stdout(io.StringIO()) as output,
+                contextlib.redirect_stderr(io.StringIO()) as diagnostics,
+            ):
+                self.assertEqual(bootstrap.main(("--selection-plan", "minimal")), 2)
+            self.assertEqual(output.getvalue(), "")
+            self.assertIn("installation state could not be read", diagnostics.getvalue())
+            self.assertEqual(manifest.read_text(encoding="utf-8"), "invalid fixture state")
 
     async def preview(self, options, service, config_root=None):
         with patch("tiny_swarm_world.infrastructure.adapters.cli.selection.Path.cwd", return_value=config_root or Path.cwd()), patch("tiny_swarm_world.infrastructure.adapters.cli.selection.build_installation_lifecycle_service", return_value=service), patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.ensure_common_executable_paths") as paths, patch("tiny_swarm_world.infrastructure.adapters.cli.dispatcher.build_application_logger") as logger, contextlib.redirect_stdout(io.StringIO()) as output:

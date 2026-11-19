@@ -17,7 +17,9 @@ from tiny_swarm_world.application.services.credential_resolution import (
     CREDENTIAL_SOURCE_MAP_ENVIRONMENT,
     decode_source_metadata,
 )
-from tiny_swarm_world.infrastructure.adapters.installation.bootstrap import main, _print_operator_credentials
+from tiny_swarm_world.infrastructure.adapters.installation.bootstrap import (
+    main, _print_guided_credential_reference, _print_operator_credentials,
+)
 from tiny_swarm_world.infrastructure.adapters.installation.bootstrap_configuration import (
     SimpleInstallerError,
     _load_explicit_bootstrap_override,
@@ -30,6 +32,44 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
 class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
+    def test_guided_report_omits_configured_endpoint_and_account_values(self):
+        runtime = installer.HostRuntime("native_linux", "test")
+        env = {"TSW_PORTAINER_URL": "http://user:secret@localhost:10001",
+               "TSW_INFISICAL_LOGIN_EMAIL": "private@example.com"}
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._ensure_native_python"),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._prepare_bootstrap_environment", return_value=env),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0),
+            redirect_stdout(io.StringIO()) as output,
+        ):
+            env["TSW_INSTALL_ENV_FILE"] = str(Path(directory) / "absent.env")
+            self.assertEqual(main(("--guided-report",)), 0)
+        self.assertIn("Credential source:", output.getvalue())
+        self.assertNotIn("user:secret", output.getvalue())
+        self.assertNotIn("private@example.com", output.getvalue())
+
+    def test_guided_credential_reference_prints_path_without_loading_content(self):
+        with tempfile.TemporaryDirectory() as directory, redirect_stdout(io.StringIO()) as output:
+            source = Path(directory) / "operator.env"
+            source.write_text("TSW_PORTAINER_ADMIN_PASSWORD=fixture-password\n", encoding="utf-8")
+            source.chmod(0o600)
+            _print_guided_credential_reference({"TSW_INSTALL_ENV_FILE": str(source)})
+        self.assertIn(str(source), output.getvalue())
+        self.assertNotIn("fixture-password", output.getvalue())
+
+    def test_guided_options_reject_modes_with_conflicting_side_effects(self):
+        commands = (
+            ("--selection-plan", "minimal", "--confirm-reset"),
+            ("--selection-plan", "custom"),
+            ("--guided-report", "--dry-run"),
+        )
+        for command in commands:
+            with self.subTest(command=command), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as exit:
+                main(command)
+            self.assertEqual(exit.exception.code, 2)
+
     def test_native_missing_system_dependencies_restarts_in_prepared_venv(self):
         runtime = installer.HostRuntime("native_linux", "test")
         with tempfile.TemporaryDirectory() as temporary_dir:
