@@ -27,7 +27,7 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/01-product/contracts/bootstrap.md[bootstrap.md]
 * link:{handbook-root}handbook/01-product/contracts/installation-manifest.md[installation-manifest.md]
 * link:{handbook-root}handbook/01-product/contracts/lifecycle.md[lifecycle.md]
-* link:{handbook-root}handbook/01-product/contracts/one-command-setup.md[one-command-setup.md — UX-01 target contract; wrappers not implemented]
+* link:{handbook-root}handbook/01-product/contracts/one-command-setup.md[one-command-setup.md — UX-01 contract and UX-04 native handoff]
 * link:{handbook-root}handbook/01-product/contracts/service-selection.md[service-selection.md]
 
 === epics
