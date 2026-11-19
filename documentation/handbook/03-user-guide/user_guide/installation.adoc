@@ -41,6 +41,30 @@ approval. Network access to Ubuntu packages, Python and image registries is need
 Windows-side setup is no longer shipped. Preparation and installation use the
 Linux commands above; any required external host integration must already exist.
 
+=== Guided native Ubuntu setup candidate
+
+The guided command requires Git and a trusted checkout. In an interactive
+ordinary-user terminal, preview and apply from the checkout root.
+
+[source,bash]
+----
+./setup_linux.sh --dry-run
+./setup_linux.sh
+----
+
+Use `--profile default` to select the other compatibility preset. The setup
+command reviews and runs the existing package, Python, Incus and network stages
+before previewing installation. Each mutating stage requires its own approval.
+If a preparation stage reports an authentication problem, run `sudo -v` in the
+same terminal and retry. If Incus requests a login refresh, log out and back in,
+then rerun the same setup command. Use the terminal installer so it can read
+live approval.
+
+Setup delegates to ordinary installation, which reconciles managed resources.
+Check service access separately using the checks in this guide. Fresh-host and
+repeat-run live qualification for the combined command is tracked in
+https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/495[#495].
+
 [mermaid]
 ----
 flowchart TD
