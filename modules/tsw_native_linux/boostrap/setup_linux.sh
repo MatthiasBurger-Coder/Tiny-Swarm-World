@@ -4,10 +4,11 @@ set -Eeuo pipefail
 
 usage() {
   printf '%s\n' \
-    'Usage: ./setup_linux.sh [--help | --preflight | --dry-run] [--profile default|service-access] [--verbose]' \
-    'Guided setup candidate for native Ubuntu 24.04/26.04 x86_64.' \
-    'Default profile: service-access. Requires Git, a trusted checkout and an ordinary user.' \
-    'Preflight and dry-run inspect readiness without writing configuration or evidence.' \
+    'Usage: ./setup_linux.sh [--help | --preflight | --dry-run] [--profile default|service-access|minimal|custom] [--services IDS] [--verbose]' \
+    'Classic setup candidate for native Ubuntu 24.04/26.04 x86_64.' \
+    'Default profile: service-access. Minimal and custom are available for read-only planning.' \
+    'Custom requires comma-separated canonical service IDs. Requires Git, a trusted checkout and an ordinary user.' \
+    'Preflight and preset dry-runs inspect readiness without writing configuration or evidence.' \
     'Apply requires an interactive terminal and separate preparation and install consent.'
 }
 
@@ -18,6 +19,7 @@ blocked() {
 
 mode=apply
 profile=
+services=
 verbose=false
 while (($#)); do
   case "$1" in
@@ -28,14 +30,24 @@ while (($#)); do
     --profile)
       [[ -z "$profile" ]] || blocked 'Specify at most one profile.'
       case "${2:-}" in
-        default|service-access) profile="$2" ;;
-        *) blocked 'Available setup profiles are default and service-access.' ;;
+        default|service-access|minimal|custom) profile="$2" ;;
+        *) blocked 'Choose default, service-access, minimal or custom.' ;;
       esac
+      shift 2 ;;
+    --services)
+      [[ -z "$services" && -n "${2:-}" && "$2" != -* ]] ||
+        blocked 'Supply one comma-separated list of canonical service IDs.'
+      services="$2"
       shift 2 ;;
     --verbose) verbose=true; shift ;;
     *) blocked 'Unsupported argument. See ./setup_linux.sh --help.' ;;
   esac
 done
+if [[ "$profile" == custom ]]; then
+  [[ -n "$services" ]] || blocked 'The custom profile requires --services.'
+else
+  [[ -z "$services" ]] || blocked '--services requires the custom profile.'
+fi
 if [[ "$mode" == -h || "$mode" == --help ]]; then
   usage
   exit 0
@@ -89,6 +101,16 @@ infra="$PWD/modules/tsw_core/infra"
   blocked 'Use the checkout’s own repository and infrastructure paths, or use the advanced commands.'
 export TSW_REPOSITORY_ROOT="$PWD" TSW_INFRA_ROOT="$infra"
 
+if [[ "$profile" == minimal || "$profile" == custom ]]; then
+  [[ "$mode" == --dry-run ]] ||
+    blocked 'Use --dry-run to inspect this selection. Guided selective apply and host preflight require the selection-aware preparation handoff.'
+  selection=(--selection-plan "$profile")
+  if [[ -n "$services" ]]; then selection+=(--services="$services"); fi
+  "$install" "${selection[@]}" || blocked 'Selection planning failed.'
+  printf 'SELECTION_PLAN_READY. Host and service readiness are unverified.\n'
+  exit 0
+fi
+
 profile="${profile:-service-access}"
 profile_args=(--service-profile "$profile")
 printf -v rerun '%q --profile %q' "$PWD/setup_linux.sh" "$profile"
@@ -113,5 +135,7 @@ printf 'Type yes to proceed to installation for profile %s at source %s: ' "$pro
 IFS= read -r answer && [[ "$answer" == yes ]] || blocked 'Installation consent missing. Rerun setup to review the plan again.'
 [[ "$(git rev-parse --verify HEAD 2>/dev/null)" == "$revision" ]] ||
   blocked 'Checkout revision changed. Rerun setup to review the plan again.'
-run_stage install "$install" "${profile_args[@]}"
-printf 'INSTALLATION_COMPLETE: The installer finished successfully. Verify service access separately.\n'
+run_stage install "$install" "${profile_args[@]}" --guided-report
+printf '%s\n' 'Host preparation: complete.' 'INSTALLATION_COMPLETE: The installer finished successfully.' \
+  'Service access: unverified from guided setup. Use the installation evidence to inspect readiness.'
+printf 'Review the setup plan again with %s --dry-run\n' "$rerun"

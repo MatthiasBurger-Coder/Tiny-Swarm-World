@@ -30,6 +30,24 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
 class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
+    def test_guided_report_omits_configured_endpoint_and_account_values(self):
+        runtime = installer.HostRuntime("native_linux", "test")
+        env = {"TSW_PORTAINER_URL": "http://user:secret@localhost:10001",
+               "TSW_INFISICAL_LOGIN_EMAIL": "private@example.com"}
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._ensure_native_python"),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._prepare_bootstrap_environment", return_value=env),
+            patch("tiny_swarm_world.application.services.installation.InstallationService.run", return_value=0),
+            redirect_stdout(io.StringIO()) as output,
+        ):
+            env["TSW_INSTALL_ENV_FILE"] = str(Path(directory) / "absent.env")
+            self.assertEqual(main(("--guided-report",)), 0)
+        self.assertIn("Credential source:", output.getvalue())
+        self.assertNotIn("user:secret", output.getvalue())
+        self.assertNotIn("private@example.com", output.getvalue())
+
     def test_native_missing_system_dependencies_restarts_in_prepared_venv(self):
         runtime = installer.HostRuntime("native_linux", "test")
         with tempfile.TemporaryDirectory() as temporary_dir:

@@ -3,11 +3,13 @@ from argparse import ArgumentParser, Namespace
 import json
 from pathlib import Path
 import re
+import sys
 
 import yaml
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.service_selection import ServiceSelectionService
+from tiny_swarm_world.domain.lifecycle.selection import SelectionError
 from tiny_swarm_world.infrastructure.composition import build_installation_lifecycle_service, preview_installation_routes
 
 
@@ -67,6 +69,33 @@ def run_selection_preview(args: Namespace) -> None:
                       "execution": "not performed (read-only preview)",
                       "data_policy": "deployments and persistent data are retained"},
                      sort_keys=True, indent=None if args.json else 2))
+
+def render_guided_selection_preview(root: Path, *, minimal: bool, services: str | None) -> int:
+    try:
+        requested = parse_service_ids(services) if services is not None else None
+    except ValueError as error:
+        print(f"BLOCKED: {error}", file=sys.stderr)
+        return 2
+    try:
+        lifecycle = build_installation_lifecycle_service(root)
+        plan = ServiceSelectionService(lifecycle.manifests, lifecycle.catalog).preview(
+            requested=requested, minimal=minimal,
+        )
+    except SelectionError as error:
+        print(f"BLOCKED: {error}", file=sys.stderr)
+        return 2
+    except (LifecycleStateError, ValueError):
+        print("BLOCKED: The local catalog or installation state could not be read.", file=sys.stderr)
+        return 2
+    print(f"Requested services: {', '.join(plan.requested_services) or 'foundations only'}")
+    print(f"Resolved services: {', '.join(plan.resolved_services)}")
+    for name, reasons in plan.selection_reasons.items():
+        reason = "mandatory foundation" if reasons == (name,) else f"required by {', '.join(reasons)}"
+        print(f"  {name}: {reason}")
+    if plan.removals:
+        print(f"Existing services outside this selection: {', '.join(plan.removals)}. Removal apply is unavailable.")
+    return 0
+
 
 def validate_selection_args(parser: ArgumentParser, args: Namespace) -> None:
     if args.component_update_command:

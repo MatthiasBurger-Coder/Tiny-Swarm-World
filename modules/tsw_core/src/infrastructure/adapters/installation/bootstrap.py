@@ -29,6 +29,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         entrypoint_args = tuple(sys.argv[1:] if argv is None else argv)
         args = _parse_args(entrypoint_args)
+        if args.selection_plan:
+            _ensure_native_python(True, entrypoint_args)
+            from tiny_swarm_world.infrastructure.adapters.cli.selection import render_guided_selection_preview
+
+            return render_guided_selection_preview(
+                Path.cwd(), minimal=args.selection_plan == "minimal", services=args.services,
+            )
         runtime = host.detect_host_runtime(os.environ)
         native = runtime.name == "native_linux"
         if native and args.confirm_reset:
@@ -59,7 +66,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         exit_code = build_installation_service().run(options, env=env, cwd=Path.cwd())
         if exit_code == 0 and not (args.preflight or args.dry_run):
-            _print_operator_credentials(env)
+            if args.guided_report:
+                _print_guided_credential_reference(env)
+            else:
+                _print_operator_credentials(env)
         return exit_code
     except (values.InstallerError, SimpleInstallerError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
@@ -92,6 +102,9 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         action="store_true",
         help="Preview Linux/WSL reconciliation without mutation.",
     )
+    read_only.add_argument("--selection-plan", choices=("minimal", "custom"), help=argparse.SUPPRESS)
+    parser.add_argument("--services", help=argparse.SUPPRESS)
+    parser.add_argument("--guided-report", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--confirm-reset",
         action="store_true",
@@ -115,7 +128,22 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
             "applied override in protected Linux-native evidence."
         ),
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if (args.services is not None) != (args.selection_plan == "custom"):
+        parser.error("The custom selection profile requires --services.")
+    if args.selection_plan and (args.confirm_reset or args.non_interactive_live_approval or args.guided_report):
+        parser.error("Selection planning cannot apply changes.")
+    if args.guided_report and (args.confirm_reset or args.preflight or args.dry_run):
+        parser.error("The guided report requires a reconciliation run.")
+    return args
+
+
+def _print_guided_credential_reference(env: Mapping[str, str]) -> None:
+    path = configuration._paths_from_env(env, Path.cwd()).secret_env_file
+    if path.is_file():
+        print(f"Protected operator credential source: {str(path)!r}")
+    else:
+        print("Credential source: use configured operator overrides or the internal test credential catalog.")
 
 
 def _print_operator_credentials(env: Mapping[str, str]) -> None:

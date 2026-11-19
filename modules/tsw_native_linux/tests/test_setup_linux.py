@@ -61,6 +61,7 @@ exit "${MOCK_PREPARE_EXIT:-0}"
 printf 'install %s\\n' "$*" >> "$CALLS"
 case "$1" in
   --preflight|--dry-run) exit "${MOCK_PLAN_EXIT:-0}" ;;
+  --selection-plan) exit "${MOCK_SELECTION_EXIT:-0}" ;;
   *) exit "${MOCK_INSTALL_EXIT:-0}" ;;
 esac
 """)
@@ -104,7 +105,8 @@ esac
         self.assertIn("--dry-run", help_result.stdout)
         for arguments in (
             ("--help", "--confirm-reset"), ("--preflight", "--dry-run"),
-            ("--profile",), ("--profile", "classic"), ("--profile", "minimal"),
+            ("--profile",), ("--profile", "classic"), ("--profile", "custom"),
+            ("--services", "jenkins"), ("--profile", "minimal", "--services", "jenkins"),
             ("--non-interactive-live-approval",), ("--install-dir", "/other"),
         ):
             with self.subTest(arguments=arguments):
@@ -137,6 +139,20 @@ esac
                 ])
                 self.calls.unlink()
 
+    def test_selective_dry_run_delegates_without_host_preparation(self) -> None:
+        self._require_ordinary_user()
+        result = self._command("--dry-run", "--profile", "minimal")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("SELECTION_PLAN_READY", result.stdout)
+        self.assertEqual(self._observed(), ["install --selection-plan minimal"])
+        self.calls.unlink()
+
+        self.env["MOCK_SELECTION_EXIT"] = "2"
+        result = self._command("--dry-run", "--profile", "custom", "--services", "unknown")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertNotIn("SELECTION_PLAN_READY", result.stdout)
+        self.assertEqual(self._observed(), ["install --selection-plan custom --services=unknown"])
+
     def test_apply_requires_terminal_and_one_checkout(self) -> None:
         self._require_ordinary_user()
         result = self._command()
@@ -153,7 +169,7 @@ esac
         self.env["MOCK_PREPARE_CONSENT"] = "1"
         preview = ["prepare --service-profile service-access",
                    "install --dry-run --service-profile service-access"]
-        install = ["install --service-profile service-access"]
+        install = ["install --service-profile service-access --guided-report"]
         declined = self._guided(b"yes\nno\n")
         self.assertEqual(declined.returncode, 2, declined.stderr)
         self.assertEqual(self._observed(), preview)
@@ -202,4 +218,4 @@ esac
         result = self._guided(b"yes\n")
         self.assertEqual(result.returncode, 1)
         self.assertIn(b"install (child exit 17)", result.stderr)
-        self.assertEqual(self._observed()[-1], "install --service-profile service-access")
+        self.assertEqual(self._observed()[-1], "install --service-profile service-access --guided-report")
