@@ -40,7 +40,7 @@ def lines(shell, command):
 def node_inventory(shell, names):
     if not names or len(set(names)) != len(names):
         raise LifecycleStateError('Original manager/worker topology is unavailable.')
-    ids = task_ids(shell, "docker node ls --no-trunc --format '{{.ID}}'")
+    ids = task_ids(shell, "docker node ls --quiet")
     template = '{"id":{{json .ID}},"hostname":{{json .Description.Hostname}},"state":{{json .Status.State}},"availability":{{json .Spec.Availability}}}'
     rows = lines(shell, 'docker node inspect --format ' + shlex.quote(template) + ' -- ' + ' '.join(ids))
     if (len(rows) != len(ids) or any(not isinstance(row, dict) or set(row) != {'id', 'hostname', 'state', 'availability'} for row in rows)
