@@ -64,7 +64,23 @@ def parse_rules(saved: str) -> dict[str, list[tuple[str, ...]]]:
     return rules
 
 
-def verify_no_foreign_denies(rules: dict[str, list[tuple[str, ...]]], *, ufw: bool) -> None:
+def disjoint_docker_deny(rule: tuple[str, ...], rules: dict[str, list[tuple[str, ...]]],
+                         bridges: tuple[Bridge, ...]) -> bool:
+    import re
+
+    if not bridges or len(rule) != 7:
+        return False
+    interface = rule[2]
+    return (
+        rule == ("!", "-i", interface, "-o", interface, "-j", "DROP")
+        and re.fullmatch(r"docker0|br-[0-9a-f]{12}", interface) is not None
+        and all(interface not in {bridge.name, bridge.egress} for bridge in bridges)
+        and ("-o", interface, "-j", "DOCKER") in rules.get("DOCKER-BRIDGE", ())
+    )
+
+
+def verify_no_foreign_denies(rules: dict[str, list[tuple[str, ...]]], *, ufw: bool,
+                            bridges: tuple[Bridge, ...] = ()) -> None:
     for chain in rules:
         if chain.startswith("nat:"):
             continue
@@ -79,6 +95,8 @@ def verify_no_foreign_denies(rules: dict[str, list[tuple[str, ...]]], *, ufw: bo
             if "-g" in rule:
                 raise NetworkPreparationFailure("Unknown firewall goto ordering; preserve its owner.")
             if not any(verdict in rule for verdict in ("DROP", "REJECT")):
+                continue
+            if chain == "DOCKER" and disjoint_docker_deny(rule, rules, bridges):
                 continue
             if chain == "FORWARD" and rule == ("-j", "DROP") and "DOCKER-FORWARD" in rules:
                 continue
