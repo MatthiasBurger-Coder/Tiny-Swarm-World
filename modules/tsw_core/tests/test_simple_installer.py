@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -28,10 +29,37 @@ from tiny_swarm_world.infrastructure.adapters.installation.bootstrap_configurati
 )
 
 
+from tiny_swarm_world.infrastructure.adapters.installation.guided_observation import guided_observation
+
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
 class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
+    def test_guided_observation_binds_effective_configuration_and_port_ownership(self):
+        port = {"category": "PORT", "check_id": "PORT-10001", "message": "available",
+                "evidence": {"port": "10001", "service": "Portainer"}}
+        env = {"TSW_PORTAINER_ADMIN_PASSWORD": "fixture-value"}
+        nonce = "a" * 64
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            inventory = json.dumps({"checks": [port]})
+            initial = guided_observation(nonce, env, root, inventory)
+            self.assertFalse(initial[1])
+            self.assertEqual(guided_observation(nonce, {**env, "SHLVL": "3"}, root, inventory), initial)
+            changed_config = guided_observation(nonce, {"TSW_PORTAINER_ADMIN_PASSWORD": "changed"}, root, inventory)
+            port["evidence"]["source"] = "existing_expected_service"
+            changed_ports = guided_observation(nonce, env, root, json.dumps({"checks": [port]}))
+            self.assertNotEqual(changed_config[0], initial[0])
+            self.assertNotEqual(changed_ports[0], initial[0])
+            port["evidence"]["source"] = "installation_owned_proxy"
+            port["evidence"]["observation_sha256"] = "b" * 64
+            owned = guided_observation(nonce, env, root, json.dumps({"checks": [port]}))
+            port["evidence"]["observation_sha256"] = "c" * 64
+            drifted = guided_observation(nonce, env, root, json.dumps({"checks": [port]}))
+            self.assertNotEqual(drifted[0], owned[0])
+            self.assertEqual(list(root.iterdir()), [])
+
     def test_guided_report_omits_configured_endpoint_and_account_values(self):
         runtime = installer.HostRuntime("native_linux", "test")
         env = {"TSW_PORTAINER_URL": "http://user:secret@localhost:10001",

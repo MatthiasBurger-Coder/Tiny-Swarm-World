@@ -10,6 +10,8 @@ from tiny_swarm_world.application.ports.installation import (
     InstallerPaths,
     HostRuntime,
     InstallerError,
+    GuidedPlanRefused,
+    CommittedGuidedInstallation,
     _GitProbeResult,
     _EvidenceProbeSnapshot,
     WindowsWslBridgeGuardResult,
@@ -148,6 +150,59 @@ class TestInstallationService(unittest.TestCase):
         self.evidence.append.assert_any_call(
             Path("/evidence"), {"reset_skipped_for_native_reconcile": "yes"}
         )
+
+    def test_stale_guided_observation_blocks_before_snapshot_and_mutation(self):
+        self.configuration.validate_read_only.return_value = ("a" * 64, False)
+        with self.assertRaisesRegex(GuidedPlanRefused, "changed after consent"):
+            self.run_install(
+                native_reconcile=True, confirm_reset=False, guided_plan_nonce="b" * 64,
+                expected_guided_plan="c" * 64,
+            )
+        self.configuration.snapshot.assert_not_called()
+        self.evidence.directory.assert_not_called()
+        self.process.phase.assert_not_called()
+
+    def test_guided_resume_delegates_scoped_recovery_only_when_retained(self):
+        self.configuration.validate_read_only.return_value = ("a" * 64, True)
+        self.assertEqual(self.run_install(
+            native_reconcile=True, confirm_reset=False, guided_plan_nonce="b" * 64,
+            expected_guided_plan="a" * 64, guided_resume=True,
+        ), 0)
+        self.assertTrue(self.process.phase.call_args.args[3].guided_resume)
+
+    def test_guided_resume_refuses_uncertain_installation_without_scoped_intent(self):
+        self.configuration.validate_read_only.return_value = ("a" * 64, False)
+        with self.assertRaisesRegex(GuidedPlanRefused, "No unsettled scoped installation intent"):
+            self.run_install(
+                native_reconcile=True, confirm_reset=False, guided_plan_nonce="b" * 64,
+                guided_resume=True, dry_run=True,
+            )
+        self.configuration.snapshot.assert_not_called()
+        self.process.phase.assert_not_called()
+
+    def test_committed_guided_resume_cannot_authorize_a_different_profile_or_apply(self):
+        self.configuration.validate_read_only.return_value = (
+            "a" * 64, CommittedGuidedInstallation("service-access", "b" * 64),
+        )
+        for options in ({"dry_run": True, "service_profile": "default"},
+                        {"expected_guided_plan": "a" * 64}):
+            with self.subTest(options=options), self.assertRaisesRegex(
+                GuidedPlanRefused, "matching read-only recovery plan"
+            ):
+                self.run_install(native_reconcile=True, confirm_reset=False, guided_plan_nonce="b" * 64,
+                                 guided_resume=True, **options)
+        self.configuration.snapshot.assert_not_called()
+        self.process.phase.assert_not_called()
+
+    def test_unsettled_scoped_recovery_requires_explicit_recovery_intent(self):
+        self.configuration.validate_read_only.return_value = ("a" * 64, True)
+        with self.assertRaisesRegex(GuidedPlanRefused, "scoped lifecycle operation is pending"):
+            self.run_install(
+                native_reconcile=True, confirm_reset=False, guided_plan_nonce="b" * 64,
+                dry_run=True,
+            )
+        self.configuration.snapshot.assert_not_called()
+        self.process.phase.assert_not_called()
 
     def test_native_read_only_has_no_mutating_ports_or_snapshot(self):
         for mode in ("preflight_only", "dry_run"):

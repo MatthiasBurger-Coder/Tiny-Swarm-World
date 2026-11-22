@@ -1,6 +1,6 @@
 """CLI option parsing and transport request construction."""
 
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, SUPPRESS
 from collections.abc import Sequence
 
 from tiny_swarm_world.application.services.platform.workflow.types import (
@@ -34,6 +34,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
         action="store_true",
         help="Run static preflight validation without executing live infrastructure commands.",
     )
+    parser.add_argument("--recovery-port-preflight", action="store_true", help=SUPPRESS)
     parser.add_argument(
         "--live",
         action="store_true",
@@ -155,7 +156,17 @@ def parse_args(argv: Sequence[str] | None = None) -> Namespace:
     _validate_provider_args(parser, args)
     _assign_network_command(parser, args)
     _assign_workflow(parser, args)
+    _validate_recovery_preflight(parser, args)
     return args
+
+
+def _validate_recovery_preflight(parser: ArgumentParser, args: Namespace) -> None:
+    if not args.recovery_port_preflight:
+        return
+    if (args.workflow_namespace, args.workflow_action) != ("setup", "run") or not args.preflight:
+        parser.error("Recovery listener inventory requires setup run --preflight.")
+    if args.live or args.approve_live or args.confirm or args.recover or args.preview:
+        parser.error("Recovery listener inventory is read-only.")
 
 
 def _validate_provider_args(parser: ArgumentParser, args: Namespace) -> None:

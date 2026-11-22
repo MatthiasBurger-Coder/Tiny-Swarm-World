@@ -35,6 +35,20 @@ class TestInstallScript(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
+    def test_simple_installer_help_without_third_party_site_packages(self):
+        completed = subprocess.run(
+            [sys.executable, "-S", "-m", "modules.tsw_core.src.simple_installer", "--help"],
+            cwd=REPOSITORY_ROOT,
+            env={**os.environ, "PYTHONPATH": str(REPOSITORY_ROOT)},
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=10,
+        )
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("--service-profile", completed.stdout)
+
     def test_install_runs_reset_before_setup_and_records_evidence(self):
         with _install_script_fixture() as fixture:
             result = fixture.run()

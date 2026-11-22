@@ -15,6 +15,60 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.swarm_stack_runt
 
 
 class TestLxcSwarmStackRuntime(unittest.TestCase):
+    def test_scoped_reconcile_reuses_only_an_exact_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            docker = root / 'docker'
+            docker.write_text('''#!/bin/bash
+set -eu
+case "$1 $2" in
+  'stack config') cat -- "$4"; printf '%s\\n' "$IMAGE" ;;
+  'stack deploy')
+    printf '%s\\n' deploy >> "$MOCK_STATE/calls"
+    printf '%s\\n' "$IMAGE" > "$MOCK_STATE/spec"
+    test ! -f "$MOCK_STATE/fail"
+    ;;
+  'service ls') if [ -f "$MOCK_STATE/spec" ]; then printf '%s\\n' service-id; fi ;;
+  'service inspect') cat "$MOCK_STATE/spec" ;;
+  'config ls'|'network ls'|'secret ls') ;;
+  *) exit 2 ;;
+esac
+''', encoding='utf-8')
+            docker.chmod(0o700)
+
+            def manager_shell(script, *, input_text=None):
+                path = shlex.quote(str(root) + ':' + os.environ['PATH'])
+                return subprocess.run(
+                    ('sh', '-lc', f'export PATH={path}; {script}'),
+                    input=input_text, text=True, capture_output=True, check=True,
+                    env={**os.environ, 'MOCK_STATE': str(root)},
+                )
+
+            runtime = LxcSwarmStackRuntime(
+                remote_stack_root=str(root / 'stacks'), service_list_timeout_seconds=30,
+                run_manager_shell=manager_shell, run_node_shell=Mock(), prepare_stack_assets=Mock(),
+                ensure_stack_prerequisites=Mock(), verified_reconcile=True,
+            )
+            definition = StackDefinition(name='demo', compose_content='services: {demo: {image: "${IMAGE}"}}')
+            receipt = root / 'stacks/demo/.tsw-deployment-proof'
+            runtime.deploy_stack(definition, {'IMAGE': 'demo:1'})
+            before = receipt.stat()
+            runtime.deploy_stack(definition, {'IMAGE': 'demo:1'})
+            self.assertEqual((root / 'calls').read_text(), 'deploy\n')
+            self.assertEqual(receipt.stat().st_mtime_ns, before.st_mtime_ns)
+            self.assertEqual(before.st_mode & 0o777, 0o600)
+
+            (root / 'spec').write_text('foreign drift\n')
+            runtime.deploy_stack(definition, {'IMAGE': 'demo:1'})
+            self.assertEqual((root / 'calls').read_text(), 'deploy\ndeploy\n')
+            (root / 'fail').touch()
+            with self.assertRaises(subprocess.CalledProcessError):
+                runtime.deploy_stack(definition, {'IMAGE': 'demo:2'})
+            self.assertFalse(receipt.exists())
+            (root / 'fail').unlink()
+            runtime.deploy_stack(definition, {'IMAGE': 'demo:2'})
+            self.assertEqual((root / 'calls').read_text(), 'deploy\n' * 4)
+
     def test_explicit_portainer_pair_reaches_remote_interpolation_without_ambient_images(self):
         shell = Mock(return_value=subprocess.CompletedProcess([], 0, stdout='', stderr=''))
         runtime = LxcSwarmStackRuntime(remote_stack_root='/remote/stacks', service_list_timeout_seconds=30,

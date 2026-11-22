@@ -400,11 +400,42 @@ class RealObservationFrameTests(unittest.IsolatedAsyncioTestCase):
                 runtime.run.assert_awaited_once_with(_LISTENER_ARGS)
         runtime = AsyncMock()
         runtime.run.return_value = own
-        with patch('tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.observations.listener_proof',
-                   side_effect=LifecycleStateError('Untrusted listener')) as proof, \
+        with patch.object(dto, 'owned_runtime_read', return_value=({}, 200)), \
+                patch.object(dto, 'listener_proof', side_effect=LifecycleStateError('Untrusted listener')) as proof, \
                 self.assertRaises(LifecycleStateError):
             await dto.listeners(runtime, intent, 100, True, True, _UUID)
-        proof.assert_awaited_once_with(runtime, 314, 100, intent, _UUID)
+        proof.assert_awaited_once_with(runtime, 314, 100, 200)
+
+    async def test_full_listener_inventory_bounds_manager_reads_and_checks_drift(self):
+        intent = intent_fixture()
+        binding = intent.profile.profile
+        second = binding.routes[0].model_copy(update={
+            'device_name': 'tsw-proxy-16080', 'listen_port': 16080, 'connect_port': 16080,
+        })
+        intent = intent.model_copy(update={'profile': intent.profile.model_copy(update={
+            'profile': binding.model_copy(update={'routes': (*binding.routes, second)}),
+        })})
+        rows = [('127.0.0.1', 10001, 314), ('127.0.0.1', 16080, 315)]
+        proofs = [{'listener': {'pid': pid}, 'daemon': {'pid': 100}, 'manager': {'pid': 200, 'start': '5'}}
+                  for _, _, pid in rows]
+        original = ({'status': 'Running'}, 200)
+        for drift in (None, 'process', 'manager', 'listener'):
+            current = deepcopy(proofs)
+            if drift == 'process':
+                current[1]['manager']['start'] = '6'
+            final_manager = ({'status': 'Running'}, 201) if drift == 'manager' else original
+            final_rows = rows[:-1] if drift == 'listener' else list(reversed(rows))
+            with self.subTest(drift=drift), patch.object(dto, 'read_listeners', side_effect=[rows, final_rows]), \
+                    patch.object(dto, 'owned_runtime_read', side_effect=[original, final_manager]) as manager, \
+                    patch.object(dto, 'listener_proof', side_effect=current) as prove:
+                if drift:
+                    with self.assertRaises(LifecycleStateError):
+                        await dto.listeners(AsyncMock(), intent, 100, True, True, _UUID)
+                else:
+                    result = await dto.listeners(AsyncMock(), intent, 100, True, True, _UUID)
+                    self.assertEqual(result, (False, True, False, tuple(map(dto.digest, proofs))))
+                    self.assertEqual(manager.await_count, 2)
+                self.assertEqual(prove.await_count, 2)
 
     async def test_actual_command_adapter_collects_strict_complete_frame_without_exporting_raw_metadata(self):
         from dataclasses import asdict

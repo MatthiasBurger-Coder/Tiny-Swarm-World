@@ -68,7 +68,8 @@ class Runtime:
             preservation_sha256=s['preservation'], base_profiles_sha256=s['base'],
             profile_state=s['profile'], instance_state=s['instance'],
             effective_routes_match=s['profile'] == 'exact' and s['instance'] in {'stopped', 'running'},
-            forbidden_listener=s['forbidden'], listeners_match=s['instance'] == 'running',
+            forbidden_listener=s['forbidden'],
+            listeners_match=s['instance'] == 'running' and s.get('listeners_ready', True),
             listeners_clear=s['instance'] != 'running', observation_sha256=sha, instance_uuid=s['uuid'], workers=tuple(
                 WorkerObservation(worker.node_name, s.get('workers', {}).get(worker.node_name, {}).get('state', 'absent'),
                     s.get('workers', {}).get(worker.node_name, {}).get('uuid'), True) for worker in intent.workers))
@@ -187,6 +188,23 @@ class ProfileLifecycleTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(LifecycleStateError):
             await self.run_profile(recovery=True)
         self.assertFalse(any('delete' in call for call in self.runtime.calls))
+
+    async def test_pending_manager_start_adopts_exact_listeners_when_they_are_observed(self):
+        self.runtime.state['listeners_ready'] = False
+        with self.assertRaises(LifecycleStateError):
+            await self.run_profile()
+        pending = self.journal.current
+        self.assertEqual((pending.stage, pending.previous_stage, pending.pending_action),
+                         ('recoverable', 'routes-verified', 'instance-start'))
+        self.assertEqual(self.runtime.state['instance'], 'running')
+        self.assertEqual(self.runtime.calls.count('instance-start'), 1)
+
+        self.runtime.state['listeners_ready'] = True
+        reconciled = await self.run_profile(recovery=True)
+        self.assertEqual(reconciled.stage, 'completed')
+        self.assertIsNone(reconciled.pending_action)
+        self.assertEqual(reconciled.instance_uuid, pending.instance_uuid)
+        self.assertEqual(self.runtime.calls, ['profile-create', 'instance-init', 'instance-start'])
 
     async def test_checkpoint_interruptions_before_and_after_every_normal_generation(self):
         for generation in range(10):
@@ -333,6 +351,38 @@ class SelectedWorkerTests(unittest.IsolatedAsyncioTestCase):
         self.runtime, self.journal, self.lock = Runtime(), Journal(), FakeInstallationLock()
         self.service = InstallationProfileService(SimpleNamespace(load=admitted_fixture), self.runtime,
             self.journal, SimpleNamespace(load=lambda: SimpleNamespace(manifest=None)), self.lock)
+
+    async def test_resume_verifies_prior_worker_without_changing_pending_worker_checkpoint(self):
+        from tiny_swarm_world.application.services.profile_setup import ensure_worker
+
+        first, second = 'swarm-worker-1', 'swarm-worker-2'
+        matrix = admitted_fixture()
+        with self.lock.exclusive('setup') as lease:
+            await self.service.run(self.intent, consent=CONSENT, lease=lease)
+            private = copy(self.service)
+            private.runtime = self.runtime.for_operation(lease, self.intent)
+            with self.journal.exclusive(lease):
+                completed = await ensure_worker(private, self.journal.load(), matrix, lease, first, False)
+                await ensure_worker(private, completed, matrix, lease, first, False)
+                self.assertIs(self.journal.load(), completed)
+
+                self.runtime.faults['worker-start:' + second] = 'not-applied'
+                with self.assertRaises(LifecycleStateError):
+                    await ensure_worker(private, completed, matrix, lease, second, False)
+                pending = self.journal.load()
+                self.assertEqual((pending.pending_action, pending.pending_node), ('worker-start', second))
+                with self.assertRaises(LifecycleStateError):
+                    await ensure_worker(private, pending, matrix, lease, first, False)
+
+                await ensure_worker(private, pending, matrix, lease, first, True)
+                self.assertIs(self.journal.load(), pending)
+                del self.runtime.faults['worker-start:' + second]
+                await ensure_worker(private, pending, matrix, lease, second, True)
+
+        self.assertIsNone(self.journal.load().pending_action)
+        self.assertEqual(self.runtime.calls.count('worker-start:' + first), 1)
+        self.assertEqual(self.runtime.calls.count('worker-init:' + second), 1)
+        self.assertEqual(self.runtime.calls.count('worker-start:' + second), 2)
 
     async def test_manager_then_each_exact_worker_is_stopped_verified_started_and_uuid_bound(self):
         from tiny_swarm_world.application.services.profile_setup import ensure_worker, require_workers_running

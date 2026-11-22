@@ -2,7 +2,7 @@ import unittest
 from dataclasses import dataclass, replace
 from collections.abc import Mapping, Sequence
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 from modules.tsw_core.tests.support.sonar_safe_literals import token_marker
 
 from tiny_swarm_world.application.ports.configuration import ConfigurationSourceLoadError
@@ -10,7 +10,7 @@ from tiny_swarm_world.application.ports.preflight import (
     PortHostPreflightProbe,
     PortPlatformPreflight,
 )
-from tiny_swarm_world.application.services.platform.preflight_service import PreflightService
+from tiny_swarm_world.application.services.platform.preflight_service import PreflightService, RecoveryPortProof
 from tiny_swarm_world.domain.configuration import (
     ConfigurationFinding,
     ConfigurationStatus,
@@ -807,6 +807,67 @@ class TestPreflightService(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.passed)
         self.assertIn("PORT-10001", failed_by_id)
         self.assertIn("occupied", failed_by_id["PORT-10001"].message)
+
+    async def test_static_recovery_preflight_accepts_exact_proxy_ownership_before_ingress_responds(self):
+        observation = "a" * 64
+        observe = AsyncMock(return_value=RecoveryPortProof(frozenset({80, 443}), observation))
+        evidence_writer = Mock()
+        configuration = default_preflight_configuration(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        result = await PreflightService(
+            _fake_probe(port_availability={80: False, 443: False}, expected_service_ports={80: False, 443: False}),
+            configuration,
+            evidence_writer=evidence_writer,
+            recovery_port_observer=observe,
+        ).run()
+
+        by_id = {check.check_id: check for check in result.checks}
+        self.assertTrue(result.passed)
+        observe.assert_awaited_once()
+        self.assertEqual(evidence_writer.mock_calls, [])
+        for port in (80, 443):
+            check = by_id[f"PORT-{port}"]
+            self.assertTrue(check.passed)
+            self.assertEqual(check.evidence["source"], "installation_owned_proxy")
+            self.assertEqual(check.evidence["observation_sha256"], observation)
+            self.assertNotIn("already serving", check.message)
+
+    async def test_recovery_does_not_accept_an_unproved_occupied_port(self):
+        configuration = default_preflight_configuration(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        proof = RecoveryPortProof(frozenset({80}), "b" * 64)
+        for observe, failed in (
+            (None, {"PORT-80", "PORT-443"}),
+            (AsyncMock(return_value=None), {"PORT-80", "PORT-443"}),
+            (AsyncMock(return_value=proof), {"PORT-443"}),
+        ):
+            with self.subTest(failed=failed, observer=observe is not None):
+                result = await PreflightService(
+                    _fake_probe(port_availability={80: False, 443: False}, expected_service_ports={80: False, 443: False}),
+                    configuration,
+                    recovery_port_observer=observe,
+                ).run()
+                self.assertEqual({check.check_id for check in result.failed_checks}, failed)
+
+    async def test_wsl_preflight_never_invokes_native_recovery_proof(self):
+        observe = AsyncMock(return_value=RecoveryPortProof(frozenset({80}), "c" * 64))
+        configuration = default_preflight_configuration(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        probe = _fake_probe(host_environment=_wsl2_environment(), port_availability={80: False})
+        baseline = await PreflightService(probe, configuration).run()
+        result = await PreflightService(probe, configuration, recovery_port_observer=observe).run()
+
+        self.assertEqual(result.checks, baseline.checks)
+        observe.assert_not_awaited()
+
+    async def test_native_recovery_requires_proxy_proof_even_when_the_service_responds(self):
+        observe = AsyncMock(return_value=None)
+        configuration = default_preflight_configuration(service_profile=ServiceStackProfile.SERVICE_ACCESS)
+        result = await PreflightService(
+            _fake_probe(port_availability={80: False}, expected_service_ports={80: True}),
+            configuration,
+            recovery_port_observer=observe,
+        ).run()
+
+        self.assertIn("PORT-80", {check.check_id for check in result.failed_checks})
+        observe.assert_awaited_once()
 
     async def test_service_access_profile_blocks_unexpected_local_http_ingress_listener(self):
         configuration = default_preflight_configuration(

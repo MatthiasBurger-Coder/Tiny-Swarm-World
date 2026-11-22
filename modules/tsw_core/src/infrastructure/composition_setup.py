@@ -177,6 +177,7 @@ def build_setup_services(
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         **selection_kwargs,
+        recover_scoped_setup=bool(getattr(profile_operation, "recovery", False)),
     )
     artifact_compose_repository = ComposeFileRepositoryYaml(
         project_paths=project_paths,

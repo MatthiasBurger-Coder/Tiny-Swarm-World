@@ -10,6 +10,7 @@ from tiny_swarm_world.application.ports import installation as values
 from tiny_swarm_world.infrastructure.adapters.installation import (
     host,
     configuration,
+    guided_observation as guided,
     process,
 )
 from tiny_swarm_world.infrastructure.composition_installation import (
@@ -38,7 +39,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         runtime = _authorize_install_runtime(args)
         _ensure_native_python(True, entrypoint_args, is_wsl=runtime.name == "wsl2")
-        env = _prepare_bootstrap_environment(os.environ, Path.cwd())
+        env = _prepare_bootstrap_environment(guided.without_binding(os.environ), Path.cwd())
         options = values.InstallerOptions(
             service_profile="default"
             if args.profile == "classic"
@@ -50,12 +51,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             native_reconcile=not args.confirm_reset,
             preflight_only=args.preflight,
             dry_run=args.dry_run,
+            guided_plan_nonce=args.guided_plan_nonce,
+            expected_guided_plan=args.expected_guided_plan,
+            guided_resume=args.guided_resume,
         )
+        guided.require_interactive_apply(options, interactive=sys.stdin.isatty())
         exit_code = build_installation_service().run(options, env=env, cwd=Path.cwd())
         if exit_code == 0 and not (args.preflight or args.dry_run):
             report = _print_guided_credential_reference if args.guided_report else _print_operator_credentials
             report(env)
-        return exit_code
+        return guided.installer_exit(exit_code, guided=args.guided_plan)
+    except values.GuidedPlanRefused as error:
+        print(f"BLOCKED: {error}", file=sys.stderr)
+        return guided.GUIDED_PLAN_REFUSED
     except (values.InstallerError, SimpleInstallerError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
@@ -107,6 +115,8 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     read_only.add_argument("--selection-plan", choices=("minimal", "custom"), help=argparse.SUPPRESS)
     parser.add_argument("--services", help=argparse.SUPPRESS)
     parser.add_argument("--guided-report", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--guided-plan", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--guided-resume", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--confirm-reset",
         action="store_true",
@@ -137,6 +147,7 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         parser.error("Selection planning cannot apply changes.")
     if args.guided_report and (args.confirm_reset or args.preflight or args.dry_run):
         parser.error("The guided report requires a reconciliation run.")
+    guided.parse_guided_binding(parser, args)
     return args
 
 

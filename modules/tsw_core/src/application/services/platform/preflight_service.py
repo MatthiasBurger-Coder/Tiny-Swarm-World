@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import dataclass
 
 from tiny_swarm_world.application.ports.operation_result import OperationError
 from tiny_swarm_world.application.services.shared.operation_results import failure_from_exception, failures_to_evidence
-from collections.abc import Mapping
 
 from tiny_swarm_world.application.ports.configuration import (
     ConfigurationSourceLoadError,
@@ -54,6 +55,14 @@ from tiny_swarm_world.domain.preflight.resources import (
 )
 
 
+@dataclass(frozen=True)
+class RecoveryPortProof:
+    """Native TCP reservations proven by the scoped recovery observer."""
+
+    ports: frozenset[int]
+    observation_sha256: str
+
+
 class PreflightService(PortPlatformPreflight):
     def __init__(
         self,
@@ -75,6 +84,7 @@ class PreflightService(PortPlatformPreflight):
         require_existing_secret_storage_file: bool = True,
         secret_source: PortConfigurationSource | None = None,
         construction: PreflightConstruction = PreflightConstruction.CUSTOM,
+        recovery_port_observer: Callable[[], Awaitable[RecoveryPortProof | None]] | None = None,
     ):
         self.construction = construction
         self.host_probe = host_probe
@@ -93,6 +103,7 @@ class PreflightService(PortPlatformPreflight):
         self.secret_storage_path = secret_storage_path
         self.include_secret_checks = include_secret_checks
         self.include_port_checks = include_port_checks
+        self.recovery_port_observer = recovery_port_observer
         self.require_existing_secret_storage_file = (
             require_existing_secret_storage_file
         )
@@ -171,11 +182,7 @@ class PreflightService(PortPlatformPreflight):
                 self._cpu_check(),
                 self._memory_check(),
                 self._disk_check(),
-                *(
-                    self._port_checks(host_environment)
-                    if self.include_port_checks
-                    else ()
-                ),
+                *await self._observed_port_checks(host_environment),
                 *secret_checks,
                 *self._ignore_policy_checks(),
                 self._forbidden_secret_fingerprint_check(),
@@ -722,9 +729,24 @@ class PreflightService(PortPlatformPreflight):
             severity=PreflightSeverity.RESOURCE_GATED,
         )
 
+    async def _observed_port_checks(
+        self, host_environment: HostEnvironmentReport,
+    ) -> tuple[PreflightCheck, ...]:
+        if not self.include_port_checks:
+            return ()
+        observer = self.recovery_port_observer
+        if observer is not None and host_environment.environment is HostEnvironmentKind.NATIVE_LINUX:
+            return self._port_checks(
+                host_environment, recovery_port_proof=await observer(), require_owned_ports=True,
+            )
+        return self._port_checks(host_environment)
+
     def _port_checks(
         self,
         host_environment: HostEnvironmentReport | None = None,
+        *,
+        recovery_port_proof: RecoveryPortProof | None = None,
+        require_owned_ports: bool = False,
     ) -> tuple[PreflightCheck, ...]:
         checks: list[PreflightCheck] = []
         managed_bridge_ports: frozenset[int] = frozenset()
@@ -740,6 +762,18 @@ class PreflightService(PortPlatformPreflight):
                         {"port": str(required_port.port), "service": required_port.service},
                     )
                 )
+                continue
+            ownership = _recovery_port_check(required_port, recovery_port_proof)
+            if ownership is not None:
+                checks.append(ownership)
+                continue
+            if require_owned_ports:
+                checks.append(_failed(
+                    check_id, PreflightCategory.PORT,
+                    f"Port {required_port.port} for {required_port.service} is occupied without scoped ownership proof.",
+                    "Verify the retained installation and exact Incus listeners before retrying.",
+                    {"port": str(required_port.port), "service": required_port.service},
+                ))
                 continue
             if self.host_probe.port_matches_expected_service(
                 required_port.port,
@@ -986,6 +1020,25 @@ class PreflightService(PortPlatformPreflight):
             "Remove hardcoded/default secrets or route them through ignored secret sources.",
             {"fingerprint_ids": ",".join(found)},
         )
+
+
+def _recovery_port_check(
+    required_port: RequiredPort,
+    proof: RecoveryPortProof | None,
+) -> PreflightCheck | None:
+    if proof is None or required_port.port not in proof.ports:
+        return None
+    return _passed(
+        f"PORT-{required_port.port}",
+        PreflightCategory.PORT,
+        f"Port {required_port.port} is reserved by the retained installation's Incus proxy.",
+        {
+            "port": str(required_port.port),
+            "service": required_port.service,
+            "source": "installation_owned_proxy",
+            "observation_sha256": proof.observation_sha256,
+        },
+    )
 
 
 def _passed(

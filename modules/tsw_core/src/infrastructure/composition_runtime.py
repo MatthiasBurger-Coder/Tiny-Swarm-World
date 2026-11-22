@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from . import composition_selection_options as selection_policy
+from .composition_profile_runtime import recovery_port_observer
 
 from .composition_selection import persisted_service_exposure, persisted_runtime_selection, selection_options, includes_service, selected_preflight, artifact_targets, scoped_stack_environment, needs_registry_images
 
@@ -645,6 +646,7 @@ def build_preflight_service(
     include_port_checks: bool = True,
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
+    recover_scoped_setup: bool = False,
 ) -> PreflightService:
     service_profile, resolved_services = persisted_runtime_selection(service_profile, resolved_services)
     service_exposure = persisted_service_exposure(resolved_services, service_exposure)
@@ -677,6 +679,9 @@ def build_preflight_service(
             )
         )),
         require_existing_secret_storage_file=False,
+        recovery_port_observer=recovery_port_observer(
+            recover_scoped_setup, project_paths.repository_root, service_profile,
+        ),
         include_secret_checks=include_secret_checks,
         include_port_checks=include_port_checks,
     )
@@ -1037,6 +1042,7 @@ def _build_preflight_service_for_request(
     allow_wsl_windows_filesystem: bool = False,
     resolved_services: tuple[str, ...] | None = None,
     service_exposure: Mapping[str, str] | None = None,
+    recover_scoped_setup: bool = False,
 ) -> PreflightService:
     if configuration_validation is not None and resolved_services is not None:
         configuration_validation = configuration_validation.for_scopes(set(resolved_services) | {"platform", "deployment"})
@@ -1066,6 +1072,9 @@ def _build_preflight_service_for_request(
         secret_storage_probe=build_secret_storage_probe(),
         secret_storage_path=_operator_configuration_env_file().as_posix(),
         require_existing_secret_storage_file=False,
+        recovery_port_observer=recovery_port_observer(
+            recover_scoped_setup, paths.repository_root, service_profile,
+        ),
     )
 
 

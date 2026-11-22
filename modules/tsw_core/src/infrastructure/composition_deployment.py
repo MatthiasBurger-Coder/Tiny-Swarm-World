@@ -255,6 +255,7 @@ def build_lxc_deployment_services(
             certificate_secret_name=traefik_tls_cert_secret_name,
             private_key_secret_name=traefik_tls_key_secret_name,
         ),
+        verified_reconcile=profile_operation is not None and update_stack_name is None,
     )
     swarm_runtime = DockerSwarmRuntime(delegate=lxc_swarm_runtime)
     stack_environment = _deployment_stack_environment(selected_service_profile, resolved_services) if resolved_services is not None else _deployment_stack_environment(selected_service_profile)

@@ -21,6 +21,7 @@ PROFILE_MINIMUM_FREE_DISK_BYTES = {
 }
 SUPPORTED_UBUNTU_RELEASES = ("24.04", "26.04")
 HOST_PACKAGES = (
+    "apparmor",
     "ca-certificates",
     "curl",
     "dnsmasq-base",

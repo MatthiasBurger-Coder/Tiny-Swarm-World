@@ -40,6 +40,7 @@ class LxcSwarmStackRuntime:
         prepare_stack_assets: StackAssetPreparer,
         ensure_stack_prerequisites: StackPrerequisiteEnsurer,
         external_secret_exists: Callable[[str], bool] | None = None,
+        verified_reconcile: bool = False,
     ) -> None:
         self.remote_stack_root = remote_stack_root.rstrip("/")
         self.service_list_timeout_seconds = service_list_timeout_seconds
@@ -48,6 +49,7 @@ class LxcSwarmStackRuntime:
         self._prepare_stack_assets = prepare_stack_assets
         self._ensure_stack_prerequisites = ensure_stack_prerequisites
         self._external_secret_exists = external_secret_exists or self.external_secret_exists
+        self._verified_reconcile = verified_reconcile
 
     def deploy_stack(
         self,
@@ -57,23 +59,36 @@ class LxcSwarmStackRuntime:
         self._ensure_stack_prerequisites(stack_definition.name, stack_definition)
         remote_dir = f"{self.remote_stack_root}/{stack_definition.name}"
         compose_path = f"{remote_dir}/docker-compose.yml"
-        script = (
-            f"set -e; mkdir -p {_quote_remote_path(remote_dir)}; "
-            f"cat > {_quote_remote_path(compose_path)}"
-        )
+        if self._verified_reconcile:
+            from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.stack_asset_writer import asset_write_script
+
+            script = asset_write_script(compose_path, stack_definition.compose_content)
+        else:
+            script = (
+                f"set -e; mkdir -p {_quote_remote_path(remote_dir)}; "
+                f"cat > {_quote_remote_path(compose_path)}"
+            )
         self._run_manager_shell(script, input_text=stack_definition.compose_content)
         self._prepare_stack_assets(stack_definition.name, remote_dir)
         environment = {
             "TSW_REMOTE_STACK_ROOT": self.remote_stack_root,
             **dict(stack_environment or {}),
         }
-        self._run_manager_shell(
-            f"{_stack_environment_prefix(environment)} "
+        environment_prefix = _stack_environment_prefix(environment)
+        deploy = (
+            f"{environment_prefix} "
             "docker stack deploy --detach=true --resolve-image never "
             "--with-registry-auth "
             f"-c {_quote_remote_path(compose_path)} "
             f"{shlex.quote(stack_definition.name)}"
         )
+        if self._verified_reconcile:
+            from tiny_swarm_world.infrastructure.adapters.clients.lxc.swarm.stack_deploy_receipt import reconcile_script
+
+            reconcile = reconcile_script(remote_dir, compose_path, stack_definition.name, environment_prefix, deploy)
+            self._run_manager_shell("exec bash -s", input_text=reconcile)
+        else:
+            self._run_manager_shell(deploy)
 
     def stack_exists(self, stack_name: str) -> bool:
         result = self._run_manager_shell(

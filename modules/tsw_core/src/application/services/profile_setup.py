@@ -127,11 +127,18 @@ async def ensure_worker(service, checkpoint, matrix, lease, node_name, recovery)
         raise LifecycleStateError('Selected worker creation requires the original completed manager phase.')
     if node_name not in {worker.node_name for worker in checkpoint.intent.workers}:
         raise LifecycleStateError('Worker is outside the admitted topology.')
-    if checkpoint.pending_action is not None and (checkpoint.pending_node != node_name or not recovery):
+    if checkpoint.pending_action is not None and (not recovery or checkpoint.pending_node is None):
         raise LifecycleStateError('Resume the exact pending worker operation explicitly.')
     observed = await observe_checkpoint(service, checkpoint, matrix)
     require_running(observed)
     worker = next(item for item in observed.workers if item.node_name == node_name)
+    already_verified = (worker.state == 'running' and worker.no_proxy and worker.instance_uuid is not None
+                        and checkpoint.worker_uuids.get(node_name) == worker.instance_uuid)
+    if checkpoint.pending_node != node_name:
+        if already_verified:
+            return checkpoint
+        if checkpoint.pending_action is not None:
+            raise LifecycleStateError('Resume the exact pending worker operation explicitly.')
     if worker.state == 'absent':
         checkpoint, observed = await worker_write(service, checkpoint, matrix, lease, observed, node_name, 'worker-init')
         worker = next(item for item in observed.workers if item.node_name == node_name)

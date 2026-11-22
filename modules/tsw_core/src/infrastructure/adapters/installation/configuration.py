@@ -23,6 +23,7 @@ from tiny_swarm_world.application.ports.installation import (
     DEFAULT_NATIVE_LINUX_VENV,
     DEFAULT_SECRET_ENV_FILE,
     HostRuntime,
+    GuidedObservation,
     InstallerError,
     InstallerOptions,
     InstallerPaths,
@@ -35,7 +36,7 @@ def _validate_native_installation_read_only(
     env: Mapping[str, str],
     cwd: Path,
     host_runtime: HostRuntime,
-) -> None:
+) -> GuidedObservation | None:
     from tiny_swarm_world.infrastructure.adapters.installation.credentials import (
         _ensure_default_config_exports,
     )
@@ -121,6 +122,7 @@ def _validate_native_installation_read_only(
                 "--preflight",
                 "--service-profile",
                 options.service_profile,
+                *_guided_preflight_args(options),
             ),
             env={**effective, "TSW_READ_ONLY_PREFLIGHT": "1"},
             check=False,
@@ -134,6 +136,18 @@ def _validate_native_installation_read_only(
         raise InstallerError(
             "Native setup preflight failed; run the setup preflight command for diagnostics."
         )
+
+    if options.guided_plan_nonce is None:
+        return None
+    from tiny_swarm_world.infrastructure.adapters.installation.guided_observation import verified_guided_observation
+
+    return verified_guided_observation(options, options.guided_plan_nonce, effective, cwd, result.stdout)
+
+
+def _guided_preflight_args(options: InstallerOptions) -> tuple[str, ...]:
+    if options.guided_resume:
+        return "--json", "--recovery-port-preflight"
+    return ("--json",) if options.guided_plan_nonce is not None else ()
 
 
 @contextmanager
@@ -348,5 +362,5 @@ class ConfigurationPreparationAdapter:
         env: Mapping[str, str],
         cwd: Path,
         host_runtime: HostRuntime,
-    ) -> None:
+    ) -> GuidedObservation | None:
         return _validate_native_installation_read_only(options, env, cwd, host_runtime)
