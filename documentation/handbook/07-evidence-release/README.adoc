@@ -63,6 +63,7 @@ Cross-references from other parts do not change that ownership.
 * link:{handbook-root}handbook/07-evidence-release/evidence/issue-450-epic-audit.md[issue-450-epic-audit.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/issue-450-requirement-matrix.md[issue-450-requirement-matrix.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/issue-462-bootstrap-completion-audit.md[issue-462-bootstrap-completion-audit.md]
+* link:{handbook-root}handbook/07-evidence-release/evidence/issue-496-native-setup-acceptance.md[Native setup release acceptance]
 * link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-ac5-traceability.md[lcm-w09-ac5-traceability.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-blocker-refinement.md[lcm-w09-blocker-refinement.md]
 * link:{handbook-root}handbook/07-evidence-release/evidence/lcm-w09-q12-design-proposal.md[lcm-w09-q12-design-proposal.md]
