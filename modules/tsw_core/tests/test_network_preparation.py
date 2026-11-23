@@ -19,6 +19,7 @@ from contextlib import ExitStack
 from tiny_swarm_world.application.ports.network_preparation import NetworkPreparationFailure
 from tiny_swarm_world.application.services.network_preparation import NetworkPreparationService
 from tiny_swarm_world.infrastructure.adapters.network_preparation.adapter import LocalNetworkPreparation
+from tiny_swarm_world.infrastructure.adapters.network_preparation import runtime
 from tiny_swarm_world.infrastructure.adapters.network_preparation.files import FileObservation
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import Bridge, forwarding_rules, input_rules
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inventory import verify_nft
@@ -262,6 +263,13 @@ class BridgeTimerPreparationTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(host.calls, [])
 
 class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_ufw_runs_with_c_locale_inside_sudo(self):
+        with patch(PACKAGE + ".runtime.command", return_value="Status: inactive\n") as command:
+            self.assertEqual(await runtime.privileged(("ufw", "status", "verbose")), "Status: inactive\n")
+        command.assert_awaited_once_with(
+            ("/usr/bin/sudo", "-n", "LC_ALL=C", "LANGUAGE=C", "--", "/usr/sbin/ufw", "status", "verbose"), 5.0,
+        )
+
     async def test_stopped_daemon_does_not_query_or_activate_in_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory))
@@ -525,6 +533,37 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
 
 
 class FirewallNegativeTests(unittest.TestCase):
+    def test_docker_bridge_deny_must_be_exact_and_disjoint(self):
+        interface = "br-99f26cd1e511"
+        deny = ("!", "-i", interface, "-o", interface, "-j", "DROP")
+        dispatch = ("-o", interface, "-j", "DOCKER")
+        verify_no_foreign_denies({"DOCKER": [deny], "DOCKER-BRIDGE": [dispatch]}, ufw=False, bridges=(BRIDGE,))
+        for rules, bridges in (
+            ({"DOCKER": [deny]}, (BRIDGE,)),
+            ({"DOCKER": [("-o", interface, "-j", "DROP")], "DOCKER-BRIDGE": [dispatch]}, (BRIDGE,)),
+            ({"DOCKER": [deny], "DOCKER-BRIDGE": [dispatch]}, (Bridge(interface, BRIDGE.subnet, BRIDGE.gateway, BRIDGE.egress),)),
+            ({"DOCKER": [deny], "DOCKER-BRIDGE": [dispatch]}, (Bridge(BRIDGE.name, BRIDGE.subnet, BRIDGE.gateway, interface),)),
+        ):
+            with self.assertRaisesRegex(NetworkPreparationFailure, "Foreign explicit firewall deny"):
+                verify_no_foreign_denies(rules, ufw=False, bridges=bridges)
+
+    def test_canonical_nat_jumps_accept_an_empty_declared_docker_chain(self):
+        from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_conflicts import verify
+
+        saved = (
+            "*filter\n:FORWARD DROP [0:0]\nCOMMIT\n"
+            "*nat\n:DOCKER - [0:0]\n"
+            "-A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER\n"
+            "-A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER\n"
+            "COMMIT\n"
+        )
+        verify(saved, (BRIDGE,), (80, 443))
+        with self.assertRaises(NetworkPreparationFailure):
+            verify(saved.replace(":DOCKER - [0:0]\n", ""), (BRIDGE,), (80, 443))
+        duplicate_nat = "-A POSTROUTING -s 10.231.50.0/24 ! -o incusbr0 -j MASQUERADE\nCOMMIT\n"
+        with self.assertRaisesRegex(NetworkPreparationFailure, "Competing existing NAT"):
+            verify(saved.removesuffix("COMMIT\n") + duplicate_nat, (BRIDGE,), (80, 443))
+
     def test_early_ufw_policy_drop_cannot_be_hidden_by_present_exact_rules(self):
         with tempfile.TemporaryDirectory() as directory:
             host = MockHost(Path(directory), ufw=True)
@@ -582,6 +621,9 @@ class FirewallNegativeTests(unittest.TestCase):
         source = guard.split("\n", 1)[1].rsplit("\nTSW_GUARD", 1)[0]
         saved = "*filter\n:INPUT ACCEPT [0:0]\n:OUTPUT ACCEPT [0:0]\n:FORWARD DROP [0:0]\nCOMMIT\n"
         def run(args, **kwargs):
+            if args[0] == "ufw":
+                self.assertEqual(kwargs["env"]["LC_ALL"], "C")
+                self.assertEqual(kwargs["env"]["LANGUAGE"], "C")
             outputs = {"iptables": "iptables v1.8 (nf_tables)", "systemctl": "ActiveState=inactive\nUnitFileState=disabled\n",
                        "ufw": "Status: inactive\n", "iptables-save": saved, "nft": json.dumps(nft_fixture()),
                        "ip": '[{"dst":"default","dev":"eth0"}]'}

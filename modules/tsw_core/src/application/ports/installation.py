@@ -51,6 +51,19 @@ class InstallerOptions:
     native_reconcile: bool = True
     preflight_only: bool = False
     dry_run: bool = False
+    guided_plan_nonce: str | None = None
+    expected_guided_plan: str | None = None
+    guided_resume: bool = False
+
+
+@dataclass(frozen=True)
+class CommittedGuidedInstallation:
+    service_profile: str
+    manifest_sha256: str
+
+
+GuidedObservation = tuple[str, bool | CommittedGuidedInstallation]
+GUIDED_COMMITTED_PREFIX = "Guided committed installation: "
 
 
 @dataclass(frozen=True)
@@ -142,6 +155,10 @@ class InstallerError(RuntimeError):
     pass
 
 
+class GuidedPlanRefused(InstallerError):
+    """Guided inventory refused the request before the installer took effects."""
+
+
 class HostPreparation(Protocol):
     def require_repository(self, cwd: Path) -> None: ...
 
@@ -188,7 +205,7 @@ class ConfigurationPreparation(Protocol):
         env: Mapping[str, str],
         cwd: Path,
         host_runtime: HostRuntime,
-    ) -> None: ...
+    ) -> GuidedObservation | None: ...
 
 
 class PhaseRunner(Protocol):

@@ -157,24 +157,36 @@ class BootstrapState:
         finally:
             os.close(source)
 
-    def validate(self, capability: str, identity: dict[str, str]) -> None:
+    def read(self, capability: str, identity: dict[str, str]) -> dict[str, Any] | None:
         with directory(self.root, create=False) as fd:
-            if fd is not None:
-                self._read(fd, capability, identity)
+            return self._read(fd, capability, identity) if fd is not None else None
+
+    def validate(self, capability: str, identity: dict[str, str]) -> None:
+        self.read(capability, identity)
+
+    def _acquire(self, fd: int) -> int:
+        if self._lock is None:
+            lock = os.open("checkpoint.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=fd)
+            try:
+                _private(os.fstat(lock), directory=False)
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                os.close(lock)
+                raise
+            self._lock = lock
+        return self._lock
+
+    def acquire(self) -> int:
+        """Serialize a multi-stage operation, including observation and consent."""
+        with directory(self.root, create=True) as fd:
+            assert fd is not None
+            return self._acquire(fd)
 
     def publish(self, capability: str, identity: dict[str, str], record: dict[str, Any]) -> None:
         _validate_record(record)
         with directory(self.root, create=True) as fd:
             assert fd is not None
-            if self._lock is None:
-                lock = os.open("checkpoint.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=fd)
-                try:
-                    _private(os.fstat(lock), directory=False)
-                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                except OSError:
-                    os.close(lock)
-                    raise
-                self._lock = lock
+            self._acquire(fd)
             try:
                 self._read(fd, capability, identity)
                 self._publish(fd, capability + ".state.json", {

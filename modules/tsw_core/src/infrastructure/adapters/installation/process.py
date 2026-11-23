@@ -388,6 +388,8 @@ class PhaseRunnerAdapter:
         arguments = f"--live{approval_argument}"
         if phase == "reset":
             arguments += f" --confirm {RESET_CONFIRMATION}"
+        elif options.guided_resume:
+            arguments += " --recover"
         arguments += f" --service-profile {shlex.quote(options.service_profile)}{_filesystem_override_argument(options)}"
         return _workflow_command(
             python_bin, "platform reset" if phase == "reset" else "setup run", arguments

@@ -1,12 +1,15 @@
 """Read-only persisted own-profile verification, without live-write authority."""
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.services.installation_profile import require_running
+from tiny_swarm_world.application.services.platform.preflight_service import RecoveryPortProof
+from tiny_swarm_world.domain.deployment import ServiceStackProfile
 from tiny_swarm_world.domain.lifecycle.profile_lifecycle import ProfileCapabilityMatrix
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.command.node_command import AsyncLxcNodeCommandRunner
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle import IncusProfileLifecycleRuntime
 from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_change import current_evidence
 from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_setup import clean_source_revision
 from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository import IncusProfileCapabilityRepository
+from tiny_swarm_world.infrastructure.composition_profile import selected_listen_address
 
 
 class ScopedProfileObserver:
@@ -15,7 +18,23 @@ class ScopedProfileObserver:
         self.runtime = IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner()) if runtime is None else runtime
         self.capabilities = IncusProfileCapabilityRepository(root) if capabilities is None else capabilities
 
-    async def observe(self):
+    async def observe(self, *, expected_revision: str | None = None):
+        template, _, _ = await self._observe(expected_revision=expected_revision)
+        return template
+
+    async def observe_port_ownership(self, profile: ServiceStackProfile | str) -> RecoveryPortProof | None:
+        try:
+            template, observed, manifest = await self._observe()
+            routes = template.profile.profile.routes
+            listen_address = selected_listen_address()
+            if (manifest.host != 'native-linux' or manifest.service_preset != profile
+                    or any(route.listen_address != listen_address for route in routes)):
+                return None
+            return RecoveryPortProof(frozenset(route.listen_port for route in routes), observed.observation_sha256)
+        except (OSError, RuntimeError, ValueError):
+            return None
+
+    async def _observe(self, *, expected_revision: str | None = None):
         matrix = ProfileCapabilityMatrix.model_validate_json(self.capabilities.load().model_dump_json())
         if not matrix.admitted_versions:
             raise LifecycleStateError('Scoped profile verification has no qualified version observation contract.')
@@ -25,7 +44,9 @@ class ScopedProfileObserver:
             raise LifecycleStateError('No persisted installation-owned profile is available for verification.')
         template, manager_uuid, worker_uuids = current_evidence(self.root, manifest)
         runtime = self.runtime.for_observation(template)
-        await clean_source_revision(runtime, self.root)
+        revision = await clean_source_revision(runtime, self.root)
+        if expected_revision is not None and revision != expected_revision:
+            raise LifecycleStateError('Original guided installation source changed.')
         observed = await runtime.inspect(template)
         if (not matrix.admits(observed.client_version, observed.server_version)
                 or observed.client_version != template.profile.incus_version or observed.server_version != template.profile.incus_version
@@ -42,7 +63,7 @@ class ScopedProfileObserver:
         if (after.token != snapshot.token or after.manifest != manifest
                 or current_evidence(self.root, manifest) != (template, manager_uuid, worker_uuids)):
             raise LifecycleStateError('Persisted profile authority changed during read-only verification.')
-        return template
+        return template, observed, manifest
 
     async def verify_node(self, node_name):
         template = await self.observe()

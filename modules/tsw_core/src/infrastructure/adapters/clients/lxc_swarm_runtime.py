@@ -90,6 +90,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
         shell_gateway: LxcManagerShellGateway | None = None,
         process_runner: ProcessRunner | None = None,
         tls_contract_resolver: PortTlsContractResolver,
+        verified_reconcile: bool = False,
     ):
         if timeout_seconds <= 0:
             raise ValueError("Swarm runtime timeout must be positive.")
@@ -139,6 +140,7 @@ class LxcSwarmRuntime(PortSwarmStackRuntime):
                 definition,
             ),
             external_secret_exists=lambda name: self.external_secret_exists(name),
+            verified_reconcile=verified_reconcile,
         )
 
     def prepare_stack_assets(self, stack_name: str) -> None:

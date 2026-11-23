@@ -38,7 +38,7 @@ async def inventory(bridges: tuple[Bridge, ...], ports: tuple[int, ...] = (), *,
     nat_conflicts.verify(saved, bridges, ports)
     if status.startswith("Status: absent") and any(chain.startswith("ufw-") for chain in rules):
         raise NetworkPreparationFailure("Residual UFW rules without its executable; preserve that owner.")
-    verify_no_foreign_denies(rules, ufw=ufw)
+    verify_no_foreign_denies(rules, ufw=ufw, bridges=managed_owners or bridges)
     nft = await runtime.json_command(("nft", "-j", "list", "ruleset"), privileged_read=True)
     verify_nft(nft, bridges, owners=managed_owners)
     verify_compatibility(nft, saved)

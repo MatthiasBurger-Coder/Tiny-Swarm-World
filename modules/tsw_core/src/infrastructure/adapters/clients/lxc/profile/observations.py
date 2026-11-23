@@ -463,17 +463,13 @@ async def owned_runtime_read(runtime, intent, expected_uuid):
     return row, state_pid(runtime_state)
 
 
-async def listener_proof(runtime, pid, daemon_pid, intent, expected_uuid):
-    before, manager_pid = await owned_runtime_read(runtime, intent, expected_uuid)
+async def listener_proof(runtime, pid, daemon_pid, manager_pid):
     raw = await runtime.run(('/usr/bin/sudo', '-n', '--', '/usr/bin/python3', '-I', '-B', '-c',
                              PROBE, str(pid), str(daemon_pid), str(manager_pid)))
     proof = json.loads(raw, object_pairs_hook=unique)
     if not _complete_proof(proof, {'listener': pid, 'daemon': daemon_pid, 'manager': manager_pid}):
         raise LifecycleStateError(_ERROR)
-    after, after_pid = await owned_runtime_read(runtime, intent, expected_uuid)
-    if after != before or after_pid != manager_pid:
-        raise LifecycleStateError(_ERROR)
-    return digest(proof)
+    return proof
 
 
 def listener_rows(raw, intent):
@@ -497,8 +493,27 @@ def listener_rows(raw, intent):
     return output
 
 
+async def read_listeners(runtime, intent):
+    return listener_rows(await runtime.run(('/usr/bin/sudo', '-n', '--', '/usr/bin/ss', '-H', '-O', '-ltnp')), intent)
+
+
+async def prove_listeners(runtime, intent, daemon_pid, uuid, observed):
+    manager = await owned_runtime_read(runtime, intent, uuid)
+    proofs = []
+    owners = set()
+    # Bracket the full listener inventory while checking each socket owner's process identity.
+    for _, _, pid in observed:
+        proof = await listener_proof(runtime, pid, daemon_pid, manager[1])
+        proofs.append(digest(proof))
+        owners.add(digest((proof['daemon'], proof['manager'])))
+    if (len(owners) > 1 or await owned_runtime_read(runtime, intent, uuid) != manager
+            or sorted(await read_listeners(runtime, intent)) != sorted(observed)):
+        raise LifecycleStateError(_ERROR)
+    return tuple(proofs)
+
+
 async def listeners(runtime, intent, daemon_pid, running, effective, uuid):
-    observed = listener_rows(await runtime.run(('/usr/bin/sudo', '-n', '--', '/usr/bin/ss', '-H', '-O', '-ltnp')), intent)
+    observed = await read_listeners(runtime, intent)
     binding = intent.profile.profile
     if binding is None:
         raise LifecycleStateError(_ERROR)
@@ -506,11 +521,8 @@ async def listeners(runtime, intent, daemon_pid, running, effective, uuid):
     tuples = [(row[0], row[1]) for row in observed]
     forbidden = any(endpoint not in expected for endpoint in tuples)
     matches = running and effective and not forbidden and len(tuples) == len(set(tuples)) and set(tuples) == set(expected)
-    proofs = []
-    if matches:
-        for address, port, pid in observed:
-            proofs.append(await listener_proof(runtime, pid, daemon_pid, intent, uuid))
-    return forbidden, matches, not observed, tuple(proofs)
+    proofs = await prove_listeners(runtime, intent, daemon_pid, uuid, observed) if matches and observed else ()
+    return forbidden, matches, not observed, proofs
 
 
 async def inspect_runtime(runtime, intent):

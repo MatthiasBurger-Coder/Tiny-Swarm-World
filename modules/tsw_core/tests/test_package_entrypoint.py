@@ -1298,6 +1298,31 @@ class TestPackageEntrypoint(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Static checks passed", output.getvalue())
         self.assertIn("does not claim live provider readiness", output.getvalue())
 
+    async def test_recovery_port_preflight_requests_read_only_ownership_observation(self):
+        preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
+        with (
+            patch.object(cli_commands, "build_preflight_service", return_value=preflight) as build,
+            patch.object(cli_dispatcher, "build_platform_services") as build_platform,
+            patch.object(cli_dispatcher, "build_application_logger") as build_logger,
+            redirect_stdout(io.StringIO()),
+        ):
+            await entrypoint.main(["setup", "run", "--preflight", "--recovery-port-preflight"])
+        self.assertTrue(build.call_args.kwargs["recover_scoped_setup"])
+        preflight.run.assert_awaited_once_with(None)
+        build_platform.assert_not_called()
+        build_logger.assert_not_called()
+
+    async def test_recovery_port_preflight_cannot_enable_a_live_workflow(self):
+        preflight = ["setup", "run", "--preflight", "--recovery-port-preflight"]
+        with (
+            patch.object(cli_commands, "build_preflight_service") as build,
+            redirect_stderr(io.StringIO()),
+            self.assertRaises(SystemExit) as rejected,
+        ):
+            await entrypoint.main([*preflight, "--live", "--approve-live"])
+        self.assertEqual(rejected.exception.code, 2)
+        build.assert_not_called()
+
     async def test_preflight_json_mode_emits_structured_payload(self):
         preflight = SimpleNamespace(run=AsyncMock(return_value=_FakePreflightResult(True)))
         output = io.StringIO()

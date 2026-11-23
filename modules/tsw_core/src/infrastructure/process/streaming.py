@@ -57,6 +57,60 @@ def run_bounded_process(
         return BoundedProcessResult(process.returncode if process.returncode is not None else 130, interrupted=True)
 
 
+
+def run_foreground_process(
+    command: Sequence[str],
+    *,
+    timeout_seconds: float | None,
+    capture: bool,
+    lease: tuple[int, ...],
+    env: Mapping[str, str] | None = None,
+) -> tuple[int, str]:
+    """Keep interactive children in the terminal group and retain their lease."""
+    if timeout_seconds is not None:
+        validate_timeout(timeout_seconds)
+    child = subprocess.Popen(
+        command, stdout=subprocess.PIPE if capture else None, text=True,
+        pass_fds=lease, env=env,
+    )
+    try:
+        output, _ = child.communicate(timeout=timeout_seconds)
+        code = child.returncode
+        assert code is not None
+        return code if code >= 0 else 128 - code, output or ""
+    except KeyboardInterrupt as error:
+        # A terminal interrupt normally reaches both processes. Give the child
+        # time to drain its bounded worker before relaying a targeted interrupt.
+        if not isinstance(error, ForegroundTerminationRequested):
+            try:
+                child.communicate(timeout=7)
+                return 130, ""
+            except subprocess.TimeoutExpired:
+                pass
+        _finish_foreground_child(child)
+        return 130, ""
+    except subprocess.TimeoutExpired:
+        _finish_foreground_child(child)
+        return 124, ""
+    finally:
+        if child.stdout is not None:
+            child.stdout.close()
+
+
+def _finish_foreground_child(child: subprocess.Popen[str]) -> None:
+    with suppress(ProcessLookupError):
+        child.send_signal(signal.SIGINT)
+    try:
+        child.communicate(timeout=15)
+    except subprocess.TimeoutExpired:
+        with suppress(ProcessLookupError):
+            child.kill()
+        child.wait(timeout=5)
+
+
+class ForegroundTerminationRequested(KeyboardInterrupt):
+    """SIGTERM delivered to the wrapper while its child may still be running."""
+
 def terminate_process(process: subprocess.Popen[bytes]) -> None:
     """Terminate a session without losing timeout outcomes to exit races."""
     process_group = process.pid if os.name != "nt" else None

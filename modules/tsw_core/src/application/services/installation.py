@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from collections.abc import Mapping
+from hmac import compare_digest
 from pathlib import Path
 from tiny_swarm_world.application.ports.installation import (
     InstallerOptions,
@@ -10,6 +11,10 @@ from tiny_swarm_world.application.ports.installation import (
     HostRuntime,
     InstallReporter,
     InstallerError,
+    GuidedPlanRefused,
+    CommittedGuidedInstallation,
+    GuidedObservation,
+    GUIDED_COMMITTED_PREFIX,
     _InstallRunContext,
     HostPreparation,
     ConfigurationPreparation,
@@ -32,6 +37,38 @@ def _validate_read_only_bridge(host: HostPreparation, runtime: HostRuntime,
                                env: Mapping[str, str], cwd: Path) -> None:
     if runtime.name == "wsl2" and not host.bridge(runtime, env, cwd).passed:
         raise InstallerError("Windows <-> WSL bridge is not prepared; rerun Windows preparation.")
+
+
+def _validate_guided_observation(
+    options: InstallerOptions, observation: GuidedObservation | None,
+    presentation: InstallationPresentation,
+) -> bool:
+    if options.guided_plan_nonce is None:
+        return False
+    if observation is None:
+        raise GuidedPlanRefused("Installation observation is unavailable.")
+    fingerprint, scoped_recovery = observation
+    if isinstance(scoped_recovery, CommittedGuidedInstallation):
+        if options.guided_resume:
+            if (not options.dry_run or options.expected_guided_plan is not None
+                    or options.service_profile != scoped_recovery.service_profile):
+                raise GuidedPlanRefused("Committed installation can only complete the matching read-only recovery plan.")
+            presentation.message(GUIDED_COMMITTED_PREFIX + fingerprint)
+            return True
+        scoped_recovery = False
+    if scoped_recovery and not options.guided_resume:
+        raise GuidedPlanRefused("A scoped lifecycle operation is pending. Use its original recovery entry point.")
+    if options.guided_resume and not scoped_recovery:
+        raise GuidedPlanRefused(
+            "No unsettled scoped installation intent was found. Review protected logs and managed runtime "
+            "ownership before an operator-led reconciliation."
+        )
+    expected = options.expected_guided_plan
+    if expected is not None and not compare_digest(expected, fingerprint):
+        raise GuidedPlanRefused("Installation observations changed after consent. Review a fresh preview.")
+    if options.dry_run:
+        presentation.message("Guided plan fingerprint: " + fingerprint)
+    return False
 
 
 class InstallationService:
@@ -67,7 +104,9 @@ class InstallationService:
         _validate_install_mode(options, host_runtime)
         if options.native_reconcile:
             self.host.validate_native(options, env, cwd)
-            self.configuration.validate_read_only(options, env, cwd, host_runtime)
+            observation = self.configuration.validate_read_only(options, env, cwd, host_runtime)
+            if _validate_guided_observation(options, observation, self.presentation):
+                return 0
             if options.preflight_only or options.dry_run:
                 _validate_read_only_bridge(self.host, host_runtime, env, cwd)
                 self.presentation.message(

@@ -131,6 +131,8 @@ class DockerTransport:
             return SimpleNamespace(returncode=0, stdout='fixture-local-swarm\n')
         argv = shlex.split(command)
         if argv[:3] == ['docker', 'node', 'ls']:
+            if argv != ['docker', 'node', 'ls', '--quiet']:
+                return SimpleNamespace(returncode=125, stdout='')
             return SimpleNamespace(returncode=0, stdout='\n'.join(self.server.nodes) + '\n')
         if argv[:3] == ['docker', 'node', 'inspect']:
             rows = [{'id': node, 'hostname': self.server.nodes[node], 'state': 'ready', 'availability': 'active'}

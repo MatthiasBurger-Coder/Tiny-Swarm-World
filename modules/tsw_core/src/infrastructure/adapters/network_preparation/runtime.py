@@ -34,7 +34,8 @@ async def privileged(args: tuple[str, ...], timeout: float = 5.0) -> str:
     executable = TOOLS.get(args[0])
     if executable is None:
         raise NetworkPreparationFailure("Unrecognized privileged network command.")
-    return await command(("/usr/bin/sudo", "-n", "--", executable, *args[1:]), timeout)
+    locale = ("LC_ALL=C", "LANGUAGE=C") if args[0] == "ufw" else ()
+    return await command(("/usr/bin/sudo", "-n", *locale, "--", executable, *args[1:]), timeout)
 
 
 async def json_command(args: tuple[str, ...], *, privileged_read: bool = False) -> Any:

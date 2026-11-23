@@ -4,7 +4,7 @@ from __future__ import annotations
 import inspect
 from dataclasses import asdict
 
-from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import Bridge, parse_rules, verify_no_foreign_denies, exact_present, equivalent, forwarding_rules, input_rules, verify_ufw_traversal
+from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import Bridge, disjoint_docker_deny, parse_rules, verify_no_foreign_denies, exact_present, equivalent, forwarding_rules, input_rules, verify_ufw_traversal
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inventory import managed_nat, verify_chain, verify_nft, verify_compatibility
 from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, legacy_nat, verify_filter, checked_expressions, validate_bridge_scope
 from tiny_swarm_world.infrastructure.adapters.network_preparation.configuration import managed_bridge_owners, incus_owner_identity
@@ -13,17 +13,18 @@ from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_conflicts 
 
 def render_guard(bridges: tuple[Bridge, ...], ufw: bool, *, absent: bool = False, ports: tuple[int, ...] = (), owners: tuple[Bridge, ...] | None = None) -> str:
     prefix = """from __future__ import annotations
-import json, shlex, subprocess, pathlib
+import json, os, shlex, subprocess, pathlib
 from ipaddress import ip_network, ip_address
 from types import SimpleNamespace
 Bridge = SimpleNamespace
 class NetworkPreparationFailure(RuntimeError): pass
 def command(args):
-    result = subprocess.run(args, check=True, capture_output=True, text=True, timeout=5)
+    result = subprocess.run(args, check=True, capture_output=True, text=True, timeout=5,
+                            env={**os.environ, 'LC_ALL': 'C', 'LANGUAGE': 'C'})
     if result.stderr: raise RuntimeError('Incomplete firewall conversion inventory')
     return result.stdout
 """
-    functions = "\n".join(inspect.getsource(function) for function in (parse_rules, verify_ufw_traversal, verify_no_foreign_denies, equivalent, exact_present, forwarding_rules, input_rules, managed_nat, verify_chain, bypass, bridge_set, legacy_nat, verify_filter, checked_expressions, validate_bridge_scope, managed_bridge_owners, incus_owner_identity, verify_nft, verify_compatibility, verify_masquerade, verify_dnat, verify))
+    functions = "\n".join(inspect.getsource(function) for function in (parse_rules, verify_ufw_traversal, disjoint_docker_deny, verify_no_foreign_denies, equivalent, exact_present, forwarding_rules, input_rules, managed_nat, verify_chain, bypass, bridge_set, legacy_nat, verify_filter, checked_expressions, validate_bridge_scope, managed_bridge_owners, incus_owner_identity, verify_nft, verify_compatibility, verify_masquerade, verify_dnat, verify))
     owner_records = None if owners is None else tuple(asdict(owner) for owner in owners)
     tail = f"""
 bridges = tuple(SimpleNamespace(**item) for item in {tuple(asdict(bridge) for bridge in bridges)!r})
@@ -51,7 +52,7 @@ saved = command(['iptables-save'])
 if not saved.strip(): saved = command(['iptables-save', '-t', 'filter'])
 rules = parse_rules(saved)
 verify(saved, bridges, {ports!r})
-verify_no_foreign_denies(rules, ufw={ufw!r})
+verify_no_foreign_denies(rules, ufw={ufw!r}, bridges=observed_owners or bridges)
 if not {ufw!r}:
     for bridge in bridges:
         for chain, candidates in [('FORWARD', forwarding_rules(bridge)), ('INPUT', input_rules(bridge) if ':INPUT ACCEPT ' not in saved else ())]:

@@ -25,6 +25,7 @@ from tiny_swarm_world.infrastructure.adapters.cli.commands import (
     _run_network_doctor_command,
     _run_network_repair_command,
     _run_preflight_command,
+    _run_read_only_recovery_inventory,
 )
 from tiny_swarm_world.infrastructure.adapters.cli.consent import (
     _enforce_workflow_confirmation,
@@ -135,6 +136,9 @@ async def main(argv: Sequence[str] | None = None) -> None:
 
 
 async def _run_early_workflow(args: Namespace) -> bool:
+    if args.recovery_port_preflight:
+        await _run_read_only_recovery_inventory(args)
+        return True
     if args.workflow is not None and args.workflow.run_early(args):
         return True
 

@@ -8,6 +8,8 @@ from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall impor
 def verify(saved, bridges, ports) -> None:
     networks = tuple(ip_network(bridge.subnet) for bridge in bridges)
     parsed = parse_rules(saved)
+    nat_table = ("\n" + saved).partition("\n*nat\n")[2].partition("\nCOMMIT\n")[0]
+    docker_declared = ":DOCKER - [0:0]" in nat_table.splitlines()
     for chain, rules in parsed.items():
         if not chain.startswith("nat:"):
             continue
@@ -17,7 +19,7 @@ def verify(saved, bridges, ports) -> None:
             target = rule[rule.index("-j") + 1]
             if target in {"ACCEPT", "RETURN"}:
                 continue
-            if target == "DOCKER" and "nat:DOCKER" in parsed:
+            if target == "DOCKER" and (docker_declared or "nat:DOCKER" in parsed):
                 canonical = {"nat:PREROUTING": ("-m", "addrtype", "--dst-type", "LOCAL", "-j", "DOCKER"),
                              "nat:OUTPUT": ("!", "-d", "127.0.0.0/8", "-m", "addrtype", "--dst-type", "LOCAL", "-j", "DOCKER")}
                 if rule == canonical.get(chain):

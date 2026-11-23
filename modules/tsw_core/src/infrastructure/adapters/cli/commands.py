@@ -1,6 +1,7 @@
 """Host and network command adapter invocation."""
 
 from argparse import Namespace
+import os
 
 from tiny_swarm_world.application.ports.repositories.port_compose_file_repository import (
     PortComposeFileRepository,
@@ -124,12 +125,26 @@ async def _run_host_preparation_command(args: Namespace) -> None:
         raise SystemExit(1)
 
 
+async def _run_read_only_recovery_inventory(args: Namespace) -> None:
+    key = "TSW_READ_ONLY_PREFLIGHT"
+    previous = os.environ.get(key)
+    os.environ[key] = "1"
+    try:
+        await _run_preflight_command(args)
+    finally:
+        if previous is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = previous
+
+
 async def _run_preflight_command(args: Namespace) -> None:
     node_provider_request = _node_provider_request_from_args(args)
     preflight = build_preflight_service(
         service_profile=args.service_profile,
         node_provider_request=node_provider_request,
         allow_wsl_windows_filesystem=args.allow_wsl_windows_filesystem,
+        **({"recover_scoped_setup": True} if getattr(args, "recovery_port_preflight", False) else {}),
     )
     live_consent = _live_consent_from_args(args) if args.live else None
     result = await preflight.run(live_consent)

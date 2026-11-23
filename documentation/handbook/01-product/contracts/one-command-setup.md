@@ -5,12 +5,12 @@
 > not runnable interfaces in this checkout. Use the [installation guide](../../03-user-guide/user_guide/installation.adoc)
 > for current Linux entry points. Historical acceptance does not qualify current source.
 
-Contract version: **1.0.0**. Status: **specified, with a native Linux handoff implemented by UX-04**.
+Contract version: **1.0.0**. Status: **specified, with a native Linux handoff and guarded resume**.
 Issue [#489](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/489),
 parent [#488](https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/488).
 Audited source: `ca6902579f51c2c6d9439bf9c58dec02bfb45a93`, 2026-11-14.
 Normative words below constrain subsequent implementation. The UX-04 status
-below describes the flags and behavior currently delivered. Release
+and UX-06 status below describe delivered flags and behavior. Release
 qualification remains subject to exact-source live evidence.
 Incompatible flags, state meanings or exit changes require a major version;
 additive optional fields require a minor version; clarifications require a patch.
@@ -23,21 +23,49 @@ separate consent before invoking `./install.sh`. Both stages use the same
 checkout and compatibility preset. Preparation keeps its stage-specific consent
 and the installer keeps its live approval. Preparation failure or a required
 login refresh stops before installation. After the requested login refresh,
-rerun the same setup command with the same options.
+review the plan, then add `--resume` to the same setup command.
 
-Delivered flags are `--help`, `--preflight`, `--dry-run`, `--profile
-default|service-access` and `--verbose`. The default is `service-access`.
+Delivered recovery and apply flags are `--help`, `--preflight`, `--dry-run`,
+`--resume`, `--profile default|service-access` and `--verbose`. The default is
+`service-access`. UX-05 also exposes read-only selection previews for minimal
+and custom profiles.
 Read-only modes stop at the first prerequisite blocker and display the plans
 the delegated commands can observe at that stage. Apply requires an interactive
 ordinary-user terminal. Privileged preparation commands may require `sudo -v`
 in the same terminal. An existing headless override can prevent the installer
 from reading live approval.
 
-Explicit service selection, implicit persisted selection, structured reports
-and checkpoint-specific resume stay with UX-05 and UX-06. The current install
-preview summarizes reconciliation and the installer revalidates prerequisites
-on entry. A changed Git HEAD invalidates the wrapper's install consent. Exact
-plan drift detection and release qualification remain open.
+## UX-06 guarded native recovery
+
+The guided handoff uses the existing bootstrap storage adapter and leaves owner
+checkpoints, protected configuration backups and install logs with their
+original stages. It records mutating stage intent before delegation. Resume
+uses the same checkout and compatibility preset, verifies checkpoint identity,
+runs preparation inventory and requires fresh consent. A verified preparation
+stage is a no-op on repeat. Installation rechecks effective configuration,
+observed port state and the lifecycle manifest/journals after consent. An
+interrupted scoped installation can enter its existing lifecycle recovery
+path. For unfinished scoped creation, the installer and runtime preflights
+recognize the recorded manager's socket reservations only after the exact
+Incus listener ownership checks pass. That evidence is bound to consent.
+Service readiness remains a separate check. An interrupted legacy installation with uncertain effects blocks guided
+replay pending operator review of managed runtime ownership.
+
+If the scoped installer committed before the wrapper saved success, resume
+checks the original manifest and journal, then verifies the retained Incus
+scope and deployed Swarm selection. When those checks match, the wrapper
+records success under its existing lock without prompting or deploying again.
+
+Fresh or repeated installation delegates to existing guarded reconciliation.
+On repeat, preflight checks occupied proxy ports against the completed
+installation's persisted profile and current Incus listener ownership.
+Scoped Swarm reconciliation skips a stack deploy when the current Compose
+inputs, transferred assets and observed Swarm definitions match its protected
+deployment record.
+Install-wide no-op, authenticated service access and release qualification
+require separate runtime evidence. Protected records use checkout/host/account
+and profile identity. Read-only modes inspect state without creating evidence
+or taking a mutation lock. See the installation guide for operator commands.
 
 ## Baseline audit and compatibility matrix
 

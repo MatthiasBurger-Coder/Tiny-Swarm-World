@@ -57,8 +57,38 @@ command reviews and runs the existing package, Python, Incus and network stages
 before previewing installation. Each mutating stage requires its own approval.
 If a preparation stage reports an authentication problem, run `sudo -v` in the
 same terminal and retry. If Incus requests a login refresh, log out and back in,
-then rerun the same setup command. Use the terminal installer so it can read
-live approval.
+then resume from the same checkout and profile. Inspect the read-only plan first.
+
+[source,bash]
+----
+./setup_linux.sh --profile service-access --dry-run
+./setup_linux.sh --profile service-access --resume
+----
+
+Resume re-inventories preparation and skips changes when it observes readiness.
+It requests fresh installation consent and rechecks the observed plan before
+starting the installer. A pending scoped installation uses its existing
+lifecycle recovery checks. During recovery of an unfinished scoped
+installation, occupied proxy ports pass preflight only with current proof of
+the recorded manager and its exact listeners. Service readiness is checked
+later, after deployment. An ordinary repeat checks occupied proxy ports
+against the completed installation's profile and current Incus listeners.
+Scoped Swarm stack deployment runs again when its inputs or observed stack
+definitions differ from the protected deployment record.
+If an interrupted legacy installation lacks a
+scoped checkpoint, inspect the protected installer logs and managed runtime
+ownership before reconciling through the advanced installation commands.
+
+Preparation and installation can leave partial effects after interruption,
+timeout or a login boundary. Use the stage and next command shown by setup.
+Preserve the guided checkpoint under
+`${XDG_STATE_HOME:-$HOME/.local/state}/tiny-swarm-world/guided-setup/`,
+the preparation backups and the installer logs. If the checkpoint belongs to
+another checkout, host or profile, or its source has changed, resume blocks.
+Review and explicitly archive invalidated records in protected storage only
+after resolving any pending effects. APT recovery requires operator review
+when `dpkg --audit` reports unfinished work. Use the terminal installer so it
+can read its own live approval.
 
 With Python dependencies already prepared, preview minimal or custom component
 selection through the Classic service catalog.
@@ -399,10 +429,11 @@ isolated host; do not delete LXD state to make preflight pass.
 The default provider is `lxc_native` through the managed Incus backend. An
 Incus host management layer is therefore a hard prerequisite before a live
 Tiny Swarm World run. The separate `modules/tsw_native_linux/boostrap/prepare_linux.sh` step can install the
-Ubuntu Incus package and its bridge dependency `dnsmasq-base` after operator
-confirmation. After package/Python readiness, it explicitly plans and separately
-confirms Incus daemon startup, current-user group access and missing resolved
-storage/network/Swarm profiles. It never runs `admin init`, edits the global
+Ubuntu packages `incus`, `dnsmasq-base` for its bridge and `apparmor` for the
+policy parser after operator confirmation. After package/Python readiness, it
+explicitly plans and separately confirms Incus daemon startup, current-user
+group access and missing resolved storage/network/Swarm profiles. It never
+runs `admin init`, edits the global
 default profile, replaces an existing pool/bridge, or repairs/restarts a failed
 daemon. Compatible resources are reused; incompatible names, settings, host
 interfaces or overlapping subnets block with remediation. Initial setup uses

@@ -147,6 +147,7 @@ def build_platform_services(
         project_paths=project_paths,
         allow_wsl_windows_filesystem=allow_wsl_windows_filesystem,
         **selection_options(resolved_services, service_exposure),
+        recover_scoped_setup=bool(getattr(profile_operation, "recovery", False)),
     )
     post_install_preflight = _build_post_install_preflight_service_for_request(
         service_profile,

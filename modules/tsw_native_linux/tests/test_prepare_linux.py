@@ -265,8 +265,11 @@ class NativePreparationServiceTests(unittest.TestCase):
         self.assertEqual(PROFILE_MINIMUM_MEMORY_BYTES["service-access"], expected.memory_bytes)
         self.assertEqual(PROFILE_MINIMUM_FREE_DISK_BYTES["service-access"], expected.free_disk_bytes)
 
-    def test_incus_bridge_dependency_is_in_host_package_plan(self) -> None:
-        self.assertIn("dnsmasq-base", HOST_PACKAGES_BY_PROFILE["service-access"])
+    def test_incus_bridge_and_apparmor_dependencies_are_in_both_host_package_plans(self) -> None:
+        for profile in ("default", "service-access"):
+            with self.subTest(profile=profile):
+                self.assertIn("dnsmasq-base", HOST_PACKAGES_BY_PROFILE[profile])
+                self.assertIn("apparmor", HOST_PACKAGES_BY_PROFILE[profile])
 
     def test_occupied_port_is_detected(self) -> None:
         import socket

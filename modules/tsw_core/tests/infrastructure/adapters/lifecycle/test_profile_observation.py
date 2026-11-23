@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -25,6 +26,7 @@ from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_l
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import JsonProfileLifecycleJournal
 from tiny_swarm_world.infrastructure.composition_platform import build_platform_services
+from tiny_swarm_world.infrastructure.composition_profile_runtime import recovery_port_observer
 
 _ROOT = Path(__file__).resolve().parents[6]
 _LISTENER_ARGS = ('/usr/bin/sudo', '-n', '--', '/usr/bin/ss', '-H', '-O', '-ltnp')
@@ -141,6 +143,19 @@ class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(services.lxc_node_provider.allow_live_mutation)
                 self.assertIsNotNone(services.lxc_node_provider.profile_observer)
                 self.assertIs(services.lxc_node_provider.profile_observer, services.lxc_service_exposure.profile_observer)
+                observer = recovery_port_observer(False, root, manifest.service_preset)
+                assert observer is not None
+                with patch.dict(os.environ, {'TSW_LXC_PROXY_LISTEN_ADDRESS': '127.0.0.1'}):
+                    proof = await observer()
+                    self.assertIsNotNone(proof)
+                    assert proof is not None
+                    self.assertEqual(proof.ports, frozenset({10001}))
+                with patch.dict(os.environ, {'TSW_LXC_PROXY_LISTEN_ADDRESS': '0.0.0.0'}):
+                    self.assertIsNone(await observer())
+                pending = SimpleNamespace(settled=False)
+                with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.profile_change.JsonProfileChangeJournal.load',
+                           return_value=pending):
+                    self.assertIsNone(recovery_port_observer(False, root, manifest.service_preset))
                 result = await services.lxc_node_provider.verify_node(_node_spec(), _selection(ManagedLxcBackend.INCUS))
                 self.assertEqual(result.status, VerificationStatus.VERIFIED)
                 result = await services.lxc_service_exposure.verify_service_exposure()

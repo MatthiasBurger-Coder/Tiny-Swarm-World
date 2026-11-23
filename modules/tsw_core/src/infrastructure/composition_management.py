@@ -81,7 +81,7 @@ class ManagedDeploymentWriter:
         await managed.apply(target, effective, images, definition_fingerprint(target, effective), owner, verified)
 
 
-async def verify_completed_stacks(root, manifest, backend, *, node_names):
+async def verify_completed_stacks(root, manifest, backend, *, node_names, operator_password: str | None = None):
     """Read-only full selected proof, mandatory gateway included for minimal setup."""
     from tiny_swarm_world.infrastructure.adapters.clients.lxc.services.lxc_portainer_http_client import LxcPortainerHttpClient
     from tiny_swarm_world.infrastructure.adapters.lifecycle.completion_runtime import verify_selected_runtime
@@ -93,5 +93,5 @@ async def verify_completed_stacks(root, manifest, backend, *, node_names):
     gateway = LxcManagerShellGateway(backend=backend, manager_node='swarm-manager', timeout_seconds=15,
                                      logger=logging.getLogger('creation_completion_observer'))
     client = LxcPortainerHttpClient(backend=backend, username='admin',
-        password=_required_operator_secret_value('TSW_PORTAINER_ADMIN_PASSWORD'))
+        password=operator_password if operator_password is not None else _required_operator_secret_value('TSW_PORTAINER_ADMIN_PASSWORD'))
     await settled_blocking(verify_selected_runtime, gateway, client._client(), root, manifest, node_names)
