@@ -6,6 +6,11 @@ are attributable to the release candidate. This audit covers runtime baseline
 `8d79007a2768c2119f1fcd19dc9851755ade3dd3` and its documentation. Release
 `0.5.0` does not contain the guided entry point.
 
+Run the remaining UX-08 acceptance directly on the physical native Ubuntu
+host. Use a safe clean or restorable baseline and preserve the existing
+installation. The isolated UX-06 recovery run is historical evidence for its
+specific scenario.
+
 ## Evidence reviewed
 
 - [UX-04 #492][492] shipped the root handoff to native preparation and ordinary
@@ -52,8 +57,8 @@ are attributable to the release candidate. This audit covers runtime baseline
 | AC08 | README and installation guide use the shipped commands. | **Partial.** The root scripts and arguments match source. UX-07 targeted tests and full quality passed on the runtime baseline. Exact-source fresh-host, repeat and recovery results for the release matrix are incomplete. |
 | AC09 | Guided setup uses the local Classic installation path. Upgrade and component updates have separate commands. | **Satisfied by source and documentation review.** The documented scope excludes upgrade, runtime replacement, destructive reset, generic multi-host provisioning and production or HA guarantees. |
 
-The remaining release evidence includes a clean or restorable, capacity-qualified
-native Ubuntu host per claimed version and preset, and an approved run recording
+The remaining release evidence includes a safe clean or restorable native Ubuntu
+baseline for each claimed version and preset, and an approved direct-host run recording
 the exact SHA, versions, commands, exits, redacted before/after state and service
 observations. Guided minimal and custom apply remain outside the shipped scope.
 
