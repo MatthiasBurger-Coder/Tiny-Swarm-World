@@ -1,7 +1,44 @@
 # Product release upgrades
 
-The product controller implements one prepared-Git transition for Classic:
-**0.4.0 → 0.5.0 (RC-5)**, on native Linux and WSL2 with Python 3.12.
+The controller contains separate prepared-Git transitions for Classic.
+**0.5.0 (RC-5) → 0.6.0 (RC-6)** is implemented for direct native Linux
+installations and awaits exact-candidate release and live qualification.
+The historical **0.4.0 → 0.5.0 (RC-5)** path retains its pinned release policy.
+
+## RC-6 upgrade candidate
+
+Use a directly installed official RC-5 checkout with its verified manifest,
+Python 3.12 and a healthy native Linux Classic installation. RC-5 manifests
+recorded package version `0.2.0`; the controller checks that identity against
+the exact RC-5 Git revision and dependency lock. Chained upgrades of an
+existing managed activation are outside this transition.
+
+The controller requires an official published `0.6.0` release or prerelease.
+Set its GitHub release target to the full commit SHA. The controller compares
+that SHA against the official tag, verifies ancestry and package metadata
+and binds the result to the operation checkpoint. The draft cannot be used
+as an upgrade target. See the [qualification matrix](../../07-evidence-release/release/classic-native-beta-candidate-matrix.md).
+
+From a separate trusted management checkout with this controller installed,
+set `TSW_REPOSITORY_ROOT` to the existing RC-5 installation checkout and use
+`product upgrade --to 0.6.0 --preview --json` before the consented
+`product upgrade --to 0.6.0 --live --json`. Use the same live command for
+repeat verification after completion. For interruption, inspect
+`product upgrade --to 0.6.0 --recover --preview --json`, then recover with
+`--recover --live --json` from the same management checkout. Preserve both
+checkouts and the operation journal.
+
+The migration maps tracked paths from `infra/` to `modules/tsw_core/infra/`.
+It preserves explicitly admitted node-memory overrides in the protected
+configuration copy. The copy carries target defaults for nodes without an
+override. Product activation leaves the live Incus resource limits in place.
+Missing assets and unrelated overrides block migration. Existing service image
+and manifest checks still apply. This candidate path remains subject to the
+native fresh-install, upgrade, repeat and recovery acceptance.
+
+## Historical RC-5 transition
+
+The historical path was implemented for native Linux and WSL2 with Python 3.12.
 The source revision is `346f4a43dbdc43380e7bc703ab185bc06746965b`;
 the target revision is `b3de7fa16e24c5702d61f855851c6c3255871489`.
 Both published revisions have package metadata version `0.2.0`. Release tag,

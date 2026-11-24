@@ -6,6 +6,7 @@ import shlex
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.application.ports.operation_result import OperationError
+from tiny_swarm_world.domain.lifecycle.product_upgrade import RC6_RELEASE
 from tiny_swarm_world.domain.update.runtime_observation import image_matches
 from tiny_swarm_world.infrastructure.adapters.lifecycle.catalog import NativeComponentCatalog
 
@@ -26,7 +27,7 @@ class ClassicProductRuntime:
             raise LifecycleStateError('Selected runtime or authenticated gateway observation failed; inspect access and preserve progress.') from None
 
     async def _verify(self, manifest, *, plan=None):
-        if plan is not None and plan.configuration_source is not None:
+        if plan is not None and (plan.configuration_source is not None or plan.target.product.release == RC6_RELEASE):
             if self.configuration_verifier is None:
                 raise LifecycleStateError('Bound runtime verification requires its explicit configuration adapter.')
             infra = await asyncio.to_thread(self.configuration_verifier, plan, manifest)

@@ -3,6 +3,7 @@ from argparse import ArgumentParser, Namespace
 import json
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.domain.lifecycle.product_upgrade import PRODUCT_UPGRADE_TARGETS
 from tiny_swarm_world.infrastructure import composition
 
 
@@ -12,8 +13,8 @@ def validate_product_args(parser: ArgumentParser, args: Namespace):
         if args.adoption_manifest is not None:
             parser.error('--adoption-manifest requires product upgrade')
         return
-    if args.to != '0.5.0' or args.preview == args.live:
-        parser.error('product upgrade requires --to 0.5.0 and exactly one of --preview or --live')
+    if args.to not in PRODUCT_UPGRADE_TARGETS or args.preview == args.live:
+        parser.error('product upgrade requires --to 0.5.0 or 0.6.0 and exactly one of --preview or --live')
     if (args.preview and args.approve_live) or args.confirm or args.preflight or args.service_profile_explicit:
         parser.error('product upgrade cannot combine preview/approval, confirmation, preflight or preset overrides')
     if args.services or args.minimal or args.selection_config or args.runtime or args.apply or args.incus or args.linux_forwarding:
@@ -36,7 +37,7 @@ async def run_product_upgrade(args):
             service = composition.build_product_upgrade(adoption_file=args.adoption_manifest)
             result = await _run_request(args, service, consent)
     except LifecycleStateError as error:
-        result = _failure_result(service, error)
+        result = _failure_result(service, error, args.to)
     except ValueError:
         # Technical details/configuration/credentials never enter operator evidence.
         result = {'status': 'blocked', 'diagnostics': ['Product operation blocked; preserve source and checkpoint. Inspect release, inventory, host/resources and --recover --preview.']}
@@ -53,9 +54,9 @@ async def _run_request(args, service, consent):
     return await service.run(args.to, consent=consent, recovery=args.recover)
 
 
-def _failure_result(service, error):
+def _failure_result(service, error, target):
     result = {'status': 'blocked', 'diagnostics': [str(error)],
-              'recovery': 'preserve source/checkpoint; use product upgrade --to 0.5.0 --recover --preview from management checkout'}
+              'recovery': f'preserve source/checkpoint; use product upgrade --to {target} --recover --preview from management checkout'}
     if service is None:
         return result
     try:

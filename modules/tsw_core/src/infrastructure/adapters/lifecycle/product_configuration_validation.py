@@ -1,6 +1,7 @@
 """Finite no-follow inspection of an explicitly owned infrastructure input."""
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from io import StringIO
 import os
 from pathlib import Path
 import stat
@@ -169,6 +170,33 @@ def memory_only(source, effective):
             raise refused()
     except Exception:
         # Parser diagnostics may contain operator input; report no raw values.
+        raise refused() from None
+
+
+def migrate_memory_overrides(source, effective, target):
+    """Carry only explicitly changed memory values onto the matching target nodes."""
+    memory_only(source, effective)
+    try:
+        original, local, incoming = (_provider_mapping(value) for value in (source, effective, target))
+        def nodes(data):
+            by_name = {node['name']: node for node in data['nodes']}
+            if len(by_name) != len(data['nodes']):
+                raise refused()
+            return by_name
+
+        original_nodes, local_nodes, incoming_nodes = (nodes(data) for data in (original, local, incoming))
+        if original_nodes.keys() != incoming_nodes.keys():
+            raise refused()
+        for name, node in original_nodes.items():
+            memory = local_nodes[name]['resources']['memory']
+            if memory != node['resources']['memory']:
+                incoming_nodes[name]['resources']['memory'] = memory
+        output = StringIO()
+        YAML(typ='safe').dump(incoming, output)
+        migrated = output.getvalue().encode('utf-8')
+        memory_only(target, migrated)
+        return migrated
+    except Exception:
         raise refused() from None
 
 

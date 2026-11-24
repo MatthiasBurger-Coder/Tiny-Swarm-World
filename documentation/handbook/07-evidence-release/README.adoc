@@ -108,6 +108,7 @@ Cross-references from other parts do not change that ownership.
 
 * link:{handbook-root}handbook/07-evidence-release/release/baseline-policy.md[baseline-policy.md]
 * link:{handbook-root}handbook/07-evidence-release/release/changelog-policy.md[changelog-policy.md]
+* link:{handbook-root}handbook/07-evidence-release/release/classic-native-beta-candidate-matrix.md[Classic Native Linux beta candidate and test matrix]
 * link:{handbook-root}handbook/07-evidence-release/release/rc1-candidate-evidence.md[rc1-candidate-evidence.md]
 * link:{handbook-root}handbook/07-evidence-release/release/rc1-decision.md[rc1-decision.md]
 * link:{handbook-root}handbook/07-evidence-release/release/rc1-release-notes.md[rc1-release-notes.md]

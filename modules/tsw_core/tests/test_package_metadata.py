@@ -1,8 +1,10 @@
 import ast
 import re
+import runpy
 import tomllib
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 from packaging.requirements import Requirement
@@ -113,9 +115,11 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_package_versions_are_aligned(self):
         pyproject = tomllib.loads((REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-        setup_version = ast.literal_eval(self._setup_keyword_values()["version"])
+        with patch("setuptools.setup") as setup:
+            runpy.run_path(str(REPOSITORY_ROOT / "setup.py"))
+        setup.assert_called_once()
 
-        self.assertEqual(pyproject["project"]["version"], setup_version)
+        self.assertEqual(pyproject["project"]["version"], setup.call_args.kwargs["version"])
 
     def test_setup_py_keeps_legacy_console_script_compatible(self):
         keyword_values = self._setup_keyword_values()

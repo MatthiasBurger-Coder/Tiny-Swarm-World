@@ -7,7 +7,10 @@ import requests
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.lifecycle.models import ProductIdentity
-from tiny_swarm_world.domain.lifecycle.product_upgrade import ProductRelease, SOURCE_REVISION, TARGET_RELEASE, TARGET_REVISION
+from tiny_swarm_world.domain.lifecycle.product_upgrade import (
+    PRODUCT_UPGRADE_TARGETS, RC6_RELEASE, ProductRelease, SOURCE_REVISION, TARGET_REVISION,
+)
+from tiny_swarm_world.infrastructure.adapters.lifecycle.product_layout import configuration_member
 
 OFFICIAL_REPOSITORY = 'https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git'
 API = 'https://api.github.com/repos/MatthiasBurger-Coder/Tiny-Swarm-World'
@@ -26,33 +29,38 @@ class OfficialProductSource:
             raise LifecycleStateError('Official release unavailable; publishing a release is a separate operation.') from None
 
     def resolve(self, target):
-        if target != TARGET_RELEASE:
-            raise LifecycleStateError('Unsupported product target; only 0.5.0 is admitted. Downgrade is unsupported.')
+        if target not in PRODUCT_UPGRADE_TARGETS:
+            raise LifecycleStateError('Unsupported product target. Downgrade is unsupported.')
+        rc6 = target == RC6_RELEASE
         try:
             release = self._get(API + '/releases/tags/' + target).json()
-            if release['draft'] or release['prerelease'] or release['tag_name'] != target:
+            if release['draft'] or (release['prerelease'] and not rc6) or release['tag_name'] != target:
                 raise ValueError
             reference = self._get(API + '/git/ref/tags/' + target).json()['object']
             if reference['type'] == 'tag':
                 reference = self._get(API + '/git/tags/' + reference['sha']).json()['object']
             revision = reference['sha']
-            if reference['type'] != 'commit' or re.fullmatch('[0-9a-f]{40}', revision) is None or revision != TARGET_REVISION:
+            expected_revision = release['target_commitish'] if rc6 else TARGET_REVISION
+            if reference['type'] != 'commit' or re.fullmatch('[0-9a-f]{40}', revision) is None or revision != expected_revision:
                 raise ValueError
             base = RAW + '/' + revision + '/'
             project = tomllib.loads(self._get(base + 'pyproject.toml').text)['project']
             lock = self._get(base + 'requirements.lock').content
-            comparison = self._get(API + '/compare/' + SOURCE_REVISION + '...' + revision).json()
+            source_revision = TARGET_REVISION if rc6 else SOURCE_REVISION
+            comparison = self._get(API + '/compare/' + source_revision + '...' + revision).json()
             if comparison['status'] != 'ahead':
                 raise ValueError
-            configuration = self._configuration_changes(revision)
+            if rc6 and project['version'] != RC6_RELEASE:
+                raise ValueError
+            configuration = self._configuration_changes(revision, source_revision=source_revision, relocate=rc6)
             return ProductRelease(product=ProductIdentity(release=target, revision=revision,
                 dependency_lock='sha256:' + hashlib.sha256(lock).hexdigest()), package_version=project['version']), configuration
         except (ValueError, KeyError, TypeError):
             raise LifecycleStateError('Official release metadata, migration policy or ancestry is unsupported; inspect release evidence.') from None
 
-    def _configuration_changes(self, revision):
+    def _configuration_changes(self, revision, *, source_revision=SOURCE_REVISION, relocate=False):
         trees = []
-        for commit in (SOURCE_REVISION, revision):
+        for commit in (source_revision, revision):
             payload = self._get(API + '/git/trees/' + commit + '?recursive=1').json()
             if payload['truncated']:
                 raise ValueError
@@ -62,9 +70,25 @@ class OfficialProductSource:
                 raise ValueError
             trees.append(entries)
         before, after = trees
+        if relocate:
+            return self._relocated_changes(before, after)
         if set(before) - set(after):
             raise ValueError('Configuration removal needs a separately admitted migration.')
         return tuple(sorted(name for name, item in after.items() if before.get(name) != item))
+
+    @staticmethod
+    def _relocated_changes(before, after):
+        legacy_prefix = 'infra/'
+        physical_prefix = 'modules/tsw_core/infra/'
+        if (not before or not after or not all(path.startswith(legacy_prefix) for path in before)
+                or not all(path.startswith(physical_prefix) for path in after)):
+            raise ValueError('Unexpected source or target infrastructure layout.')
+        original = {configuration_member(path): (item['sha'], item['mode']) for path, item in before.items()}
+        installed = {configuration_member(path): (item['sha'], item['mode']) for path, item in after.items()}
+        if original.keys() - installed.keys():
+            raise ValueError('Infrastructure members cannot be removed by layout migration.')
+        return tuple(sorted(path for path in after
+                            if installed[configuration_member(path)] != original.get(configuration_member(path))))
 
 
 def release_policy():

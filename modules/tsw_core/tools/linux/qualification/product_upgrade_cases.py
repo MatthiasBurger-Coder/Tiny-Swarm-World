@@ -235,7 +235,7 @@ def parser_refusal(args: list[str]) -> bytes:
         __main__.__spec__ = previous_spec
     raw = stream.getvalue().encode()
     require(raw.startswith(b'usage: -c ') and raw.endswith(
-        b'-c: error: product upgrade requires --to 0.5.0 and exactly one of --preview or --live\n'),
+        b'-c: error: product upgrade requires --to 0.5.0 or 0.6.0 and exactly one of --preview or --live\n'),
         'REFUSAL_PARSER_CONTRACT')
     return raw
 
