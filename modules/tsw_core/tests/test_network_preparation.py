@@ -415,6 +415,69 @@ class NetworkPreparationTests(unittest.IsolatedAsyncioTestCase):
     async def test_fresh_native_reconciliation_and_zero_mutation_rerun(self):
         await self.exercise()
 
+    async def test_pending_hosts_plan_does_not_query_unconfigured_dns(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = MockHost(Path(directory))
+            adapter = LocalNetworkPreparation(
+                ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
+                proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock(),
+            )
+            original = host.command
+
+            async def command(args, **kwargs):
+                self.assertNotEqual(args[0], "getent")
+                return await original(args, **kwargs)
+
+            with patch.object(host, "command", side_effect=command), host.patches():
+                plan = await NetworkPreparationService(adapter).plan()
+            self.assertFalse(plan.blockers)
+            self.assertIn("file:/etc/hosts", {action.id for action in plan.actions})
+            self.assertEqual(host.calls, [])
+
+    async def test_running_packet_counters_do_not_invalidate_exact_plan(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = MockHost(Path(directory))
+            adapter = LocalNetworkPreparation(
+                ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
+                proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock(),
+            )
+            original = host.saved
+            reads = 0
+
+            def saved():
+                nonlocal reads
+                reads += 1
+                return original().replace("[0:0]", f"[{reads}:{reads * 64}]")
+
+            with patch.object(host, "saved", side_effect=saved), host.patches():
+                service = NetworkPreparationService(adapter)
+                plan = await service.plan()
+                result = await service.apply(plan, approved=True)
+            self.assertEqual(result.status, "READY", result)
+            self.assertGreater(reads, 2)
+
+    async def test_installed_compatibility_guard_survives_absent_optional_rules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            host = MockHost(Path(directory))
+            path = "/usr/local/bin/tsw-apply-incus-forwarding.sh"
+            host.files[path] = (b"fixture compatibility guard", 0o755)
+            adapter = LocalNetworkPreparation(
+                ROOT, ROOT / "modules/tsw_core/infra/config", release="24.04", profile="service-access",
+                proc_root=host.proc, target_snapshot=lambda: (host.source,), evidence=Mock(),
+            )
+
+            def renderer(bridges, firewall):
+                return b"fixture compatibility guard" if firewall.get("compatibility") else b"fixture strict guard"
+
+            with host.patches(), patch(
+                "tiny_swarm_world.infrastructure.adapters.network_preparation.forwarding.render_script",
+                side_effect=renderer,
+            ):
+                plan = await NetworkPreparationService(adapter).plan()
+            self.assertFalse(plan.blockers)
+            self.assertNotIn(f"file:{path}", {action.id for action in plan.actions})
+            self.assertEqual(host.calls, [])
+
     async def test_active_ufw_adds_scoped_dhcp_dns_routes_preserves_policy_and_rerun(self):
         await self.exercise(ufw=True)
 

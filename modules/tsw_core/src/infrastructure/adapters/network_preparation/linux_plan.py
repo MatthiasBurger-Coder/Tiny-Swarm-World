@@ -38,7 +38,7 @@ class LinuxPlanner:
                 self._add(actions, "sysctl:" + control, "sysctl", f"Host-wide {control}: {observations[control]} -> 1", control)
         desired_files = ((SYSCTL_PATH, config, 0o644, False),
                          (MODULES_PATH, modules, 0o644, False),
-                         (FORWARDING_SCRIPT_PATH, forwarding.render_script(bridges, firewall), 0o755, False),
+                         (FORWARDING_SCRIPT_PATH, self._forwarding_content(bridges, firewall), 0o755, False),
                          (FORWARDING_SERVICE_PATH, forwarding.render_service(), 0o644, False))
         for path, content, mode, shared in desired_files:
             self._file(actions, observations, path, content, mode, shared)
@@ -52,12 +52,24 @@ class LinuxPlanner:
         desired = files.desired_hosts(hosts.content, names)
         self._file(actions, observations, Path("/etc/hosts"), desired, hosts.mode, True)
         observations["resolution"] = {}
-        for name in names:
-            output = await runtime.command(("getent", "ahostsv4", name), permit_failure=True)
-            observations["resolution"][name] = output
-            if hosts.content == desired and (not output or any(line.split()[0] != "127.0.0.1" for line in output.splitlines())):
-                raise NetworkPreparationFailure("Canonical names do not resolve to loopback; inspect NSS policy.")
+        if hosts.content == desired:
+            for name in names:
+                output = await runtime.command(("getent", "ahostsv4", name), permit_failure=True)
+                observations["resolution"][name] = output
+                if not output or any(line.split()[0] != "127.0.0.1" for line in output.splitlines()):
+                    raise NetworkPreparationFailure("Canonical names do not resolve to loopback; inspect NSS policy.")
         return actions, observations
+
+    def _forwarding_content(self, bridges, firewall) -> bytes:
+        desired = forwarding.render_script(bridges, firewall)
+        if not firewall.get("compatibility"):
+            installed = files.observe(FORWARDING_SCRIPT_PATH)
+            if installed.exists and installed.content != desired:
+                # An installed compatibility guard can also verify the strict case.
+                compatible = forwarding.render_script(bridges, {**firewall, "compatibility": True})
+                if installed.content == compatible:
+                    return compatible
+        return desired
 
     def _file(self, actions, observations, path, content, mode, shared):
         before = files.observe(path)
