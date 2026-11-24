@@ -12,12 +12,12 @@ MINIMUM_FREE_DISK_BYTES = 60 * GIB
 PROFILE_MINIMUM_CPUS = {"default": MINIMUM_CPUS, "service-access": 8}
 PROFILE_MINIMUM_MEMORY_BYTES = {
     "default": MINIMUM_MEMORY_BYTES,
-    # Host qualification is separate from managed-node capacity checks.
-    "service-access": 15 * GIB,
+    # The standard nodes have 16 GiB of limits. Reserve 2 GiB for the host.
+    "service-access": 18 * GIB,
 }
 PROFILE_MINIMUM_FREE_DISK_BYTES = {
     "default": MINIMUM_FREE_DISK_BYTES,
-    "service-access": 150 * GIB,
+    "service-access": 120 * GIB,
 }
 SUPPORTED_UBUNTU_RELEASES = ("24.04", "26.04")
 HOST_PACKAGES = (
@@ -83,9 +83,9 @@ def qualification_failures(
     if facts.is_wsl and allow_wsl and (not facts.wsl2 or not facts.systemd_ready):
         failures.append("WSL2 with systemd is required for Ubuntu prerequisite preparation.")
     minimum_memory = PROFILE_MINIMUM_MEMORY_BYTES[service_profile]
-    if facts.is_wsl:
-        minimum_memory = max(minimum_memory, 16 * GIB)
     minimum_disk = PROFILE_MINIMUM_FREE_DISK_BYTES[service_profile]
+    if facts.is_wsl and service_profile == "service-access":
+        minimum_memory, minimum_disk = 16 * GIB, 150 * GIB
     if facts.cpu_count < minimum_cpus:
         failures.append(f"At least {minimum_cpus} CPU threads are required for {service_profile}.")
     if facts.memory_bytes < minimum_memory:

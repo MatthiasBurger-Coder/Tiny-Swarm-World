@@ -1,6 +1,6 @@
 # Tiny Swarm World
 
-The [Product Handbook](documentation/README.adocDas is the master documentation
+The [Product Handbook](documentation/README.adoc) is the master documentation
 index for product foundations, architecture, usage, operations, development,
 quality, security, audits and release evidence. Read the
 [continuous edition](documentation/document.adoc) for the assembled handbook.
@@ -14,63 +14,28 @@ Swarm, Portainer, Infisical, Nexus, Jenkins, Pulsar, SonarQube and supporting
 services. It provisions managed Linux containers through Incus and runs Docker
 Engine inside those containers.
 
-The current implementation is the **Classic profile** for internal development
-and testing. Native Ubuntu 24.04/26.04 x86_64 hosts are bootstrap candidates. Historical W09 runs verified bounded scenarios on selected existing Ubuntu 26.04 hosts;
-this candidate has not been live-qualified. Clean-host installation and global release
-qualification remain unverified.
-See the [bootstrap completion audit](documentation/handbook/07-evidence-release/evidence/issue-462-bootstrap-completion-audit.md)
-for exact versions, source revisions and deferred scenarios.
+## Native Linux quick start
 
-## Prepare, then install
+Guided Classic setup is available from a trusted Git checkout on native Ubuntu
+24.04 or 26.04 x86_64. Clean-host release qualification is still open.
+See the [release acceptance matrix](documentation/handbook/07-evidence-release/evidence/issue-496-native-setup-acceptance.md)
+for the exact evidence and open qualification checks.
 
-For an existing prepared-Git installation, see the
-[product upgrade guide](documentation/handbook/03-user-guide/user_guide/product-upgrades.md) for the
-pinned `0.4.0 → 0.5.0 (RC-5)` workflow, explicit legacy inventory and recovery.
-It uses separate management tooling; live qualification remains W09-owned.
-
-Use a complete trusted checkout or release. Enter its root before running these
-commands. For the currently exercised install path, retain Git metadata; a plain
-source archive is insufficient for the installer's secret-ignore check. On Linux,
-clone into your ordinary account's home when Git is available:
+Run from an ordinary sudo-capable account in an interactive terminal with Git
+and internet access. The default preset targets eight CPU threads, at least
+18 GiB RAM and 120 GiB free on the repository filesystem:
 
 ```bash
 git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git ~/Tiny-Swarm-World
 cd ~/Tiny-Swarm-World
+./setup_linux.sh
 ```
 
-**Native Ubuntu:** run as an ordinary sudo-capable user on Ubuntu 24.04 or 26.04
-x86_64. Preparation installs missing packages/Python and its local environment;
-manual pip/venv steps are unnecessary.
-
-```bash
-./modules/tsw_native_linux/boostrap/prepare_linux.sh
-./install.sh
-```
-
-
-Review each plan before typing exact `yes`; installation has its own live approval.
-Use `./modules/tsw_native_linux/boostrap/prepare_linux.sh --dry-run` or `./install.sh --preflight` for read-only checks.
-Do not run the whole installer with sudo. Internet access to Ubuntu packages,
-locked Python dependencies and container registries is required. The current
-service-access plan needs at least 21 GiB RAM for configured nodes/overhead,
-eight CPU threads and 150 GiB usable disk. Inspect the actual capacity plan; customized
-nodes/profiles can differ. Docker runs inside managed Incus nodes.
-
-A reboot, selected-distro restart or new `incus-admin` membership pauses the path.
-Perform only the reported restart/logout action, reopen the ordinary-user shell,
-and rerun preparation with the same distribution, profile and credential/config
-selection. Fresh observation and consent are required; dependent installation
-stays stopped. Ordinary install reconciles and preserves managed data/credentials.
-
-If blocked, follow the named stage and next command: authenticate with `sudo -v`
-in the preparation terminal for elevation failures; log out/in for stale groups;
-resolve active LXD conflicts without deleting instances; free capacity or choose a
-fitting reviewed profile for resource failures. Do not overwrite foreign Incus,
-firewall or bridge resources. See the [installation guide](documentation/handbook/03-user-guide/user_guide/installation.adoc),
-[manual host and certificate checklist](documentation/handbook/03-user-guide/user_guide/manual-host-steps.md)
-and [troubleshooting](documentation/handbook/03-user-guide/user_guide/troubleshooting.adoc#first-response)
-for stage-specific recovery and CA trust. APT/features are not transactional;
-resumption does not promise whole-host rollback.
+The command defaults to `service-access`. Use `./setup_linux.sh --dry-run` to
+inspect the plan first. Read each plan before approving it. For a restart or
+interrupted run, follow the reported next command from the same checkout and
+profile. The [installation guide](documentation/handbook/03-user-guide/user_guide/installation.adoc#native-linux-quick-start)
+covers capacity, profiles, elevation, service access and recovery.
 
 ## Start here
 
@@ -104,20 +69,14 @@ only in an isolated, disposable test environment. Production, shared systems
 and normal local operation require operator-owned credentials.
 
 **Your own credentials take precedence.** If you supplied overrides, use the
-values from your configured credential source. The documented location for
-the protected `live-installation.env` override file is:
-
-```text
-~/.local/state/tiny-swarm-world/live-installation.env
-```
-
-This is `$HOME/.local/state/tiny-swarm-world/live-installation.env` for the
-Linux user who ran the installer. If you selected another location through
-`TSW_INSTALL_ENV_FILE`, use that path instead. In the installation shell, show
-the selected path without printing any passwords:
+values from your configured credential source. The optional installer file
+defaults to `.tiny-swarm-world/local/live-installation.env` under the checkout.
+Set `TSW_INSTALL_ENV_FILE` to select a protected file outside the repository, for
+example `$HOME/.local/state/tiny-swarm-world/live-installation.env`. In the
+installation shell, show the configured path without printing credential values:
 
 ```bash
-printf '%s\n' "${TSW_INSTALL_ENV_FILE:-TSW_INSTALL_ENV_FILE is not set in this shell}"
+printf '%s\n' "${TSW_INSTALL_ENV_FILE:-.tiny-swarm-world/local/live-installation.env}"
 ```
 
 Open the existing file in a private editor to look up your overrides. Exported
@@ -186,6 +145,7 @@ and redact diagnostics before sharing them.
 | `platform verify` | Inspect the existing platform without repairing it. |
 | `platform reconcile --live` | Reconcile managed platform state with explicit consent; it is not a complete application update. |
 | `setup run --live` | Run the broader setup workflow without a reset; it still changes infrastructure. |
+| `setup_linux.sh` | Guided native Ubuntu preparation and installation. |
 | `modules/tsw_native_linux/boostrap/prepare_linux.sh` | Prepare Ubuntu prerequisites and Incus access/resources with staged confirmation. |
 | `install.sh` on native Linux | Verify preparation, then run setup without a reset. |
 | Product upgrade | `product upgrade` controls the bounded TSW release transition; see the [product upgrade guide](documentation/handbook/03-user-guide/user_guide/product-upgrades.md) for prerequisites and qualification limits. |

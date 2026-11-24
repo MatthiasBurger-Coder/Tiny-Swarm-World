@@ -220,8 +220,8 @@ For #440/#444, consume their canonical persisted resolved selection/catalog;
 do not introduce another service graph or arbitrary bootstrap-only selection.
 Until selective setup is delivered, use existing fixed-profile floors and
 label their source. Current native preparation floors (`domain/native_preparation.py`): default 4 threads/16 GiB/60 GiB;
-service-access 8 threads/15 GiB/150 GiB. Shared setup has a separate default 8 GiB floor; WSL service-access uses
-16 GiB (`domain/preflight/resources.py`); do not apply the native amendment to WSL.
+service-access 8 threads/18 GiB/120 GiB. Shared setup retains the default 8 GiB floor;
+WSL service-access retains 16 GiB RAM and 150 GiB free space (`domain/preflight/resources.py`).
 W05 defines capacity adaptation from the catalog while preserving Windows
 reserve and unrelated settings; insufficient capacity blocks, it never silently
 omits requested services. Incus/LXC and Portainer remain mandatory Classic
@@ -485,8 +485,8 @@ managed nodes count. Changed canonical source identities invalidate stale projec
 Windows RAM reserve is max(4 GiB, ceil(physical RAM / 4)); logical CPU planning
 reserve is max(1, ceil(host CPU / 4)). Required configured WSL RAM is
 max(profile RAM, sum node RAM + 2 GiB overhead), and required WSL processors are
-max(profile CPU, sum node CPU limits). Current nodes total 19 GiB RAM and 8 CPU
-limits, so minimum configured WSL RAM is 21 GiB; a 16 GiB physical host cannot fit.
+max(profile CPU, sum node CPU limits). The original WSL qualification used nodes totaling 19 GiB RAM and 8 CPU
+limits, giving a 21 GiB configured WSL RAM requirement for that allocation.
 Swap never substitutes for physical service RAM. Default swap is ceil(WSL RAM / 4).
 Positive integral memory/processor overrides and nonnegative swap overrides must
 retain reserve and profile/node feasibility; they cannot clamp node limits or omit

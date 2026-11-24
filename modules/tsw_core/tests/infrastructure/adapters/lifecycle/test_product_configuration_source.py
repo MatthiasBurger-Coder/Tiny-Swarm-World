@@ -55,7 +55,7 @@ class BoundConfigurationTests(unittest.TestCase):
         shutil.copytree(official, self.external, dirs_exist_ok=True)
         self.external.chmod(0o700)
         provider = self.external / PROVIDER
-        provider.write_bytes(provider.read_bytes().replace(b'memory: 8GiB', b'memory: 6GiB'))
+        provider.write_bytes(provider.read_bytes().replace(b'memory: 4GiB', b'memory: 6GiB'))
         tree = read_tree(official, private=False)
         listing = []
         for name, content in tree.files.items():
@@ -423,7 +423,7 @@ class BoundConfigurationTests(unittest.TestCase):
         (physical_source / '__main__.py').write_text('# release fixture, never executed\n')
         shutil.copytree(self.root / 'modules/tsw_core/infra', target)
         provider = target / PROVIDER
-        provider.write_bytes(provider.read_bytes().replace(b'8GiB', b'7GiB'))
+        provider.write_bytes(provider.read_bytes().replace(b'memory: 4GiB', b'memory: 7GiB'))
         with self.assertRaises(LifecycleStateError):
             migrate_product_infra(self.installation, self.plan)
         self.assertIn(b'6GiB', (self.external / PROVIDER).read_bytes())
@@ -486,7 +486,7 @@ class BoundConfigurationTests(unittest.TestCase):
         migrate_product_infra(self.installation, self.plan)
         effective = self.installation.state / 'infra' / TARGET_REVISION
         provider = YAML(typ='safe').load((effective / PROVIDER).read_text())
-        self.assertEqual([node['resources']['memory'] for node in provider['nodes']], ['10GiB', '6GiB', '1GiB'])
+        self.assertEqual([node['resources']['memory'] for node in provider['nodes']], ['10GiB', '6GiB', '2GiB'])
         self.assertEqual((effective / 'config/ports.yaml').read_bytes(), b'official-target\n')
         self.assertTrue((effective / 'setup.sh').stat().st_mode & 0o100)
         migrate_product_infra(self.installation, self.plan)
@@ -608,7 +608,7 @@ class BoundConfigurationTests(unittest.TestCase):
         self.assertEqual(command.args[0][0], str(self.installation.directory(self.plan) / '.venv/bin/python'))
         self.assertEqual(command.kwargs['env']['TSW_INFRA_ROOT'], str(effective))
         provider = YAML(typ='safe').load((effective / PROVIDER).read_text())
-        self.assertEqual([node['resources']['memory'] for node in provider['nodes']], ['10GiB', '6GiB', '1GiB'])
+        self.assertEqual([node['resources']['memory'] for node in provider['nodes']], ['10GiB', '6GiB', '2GiB'])
         os.environ['TSW_INFRA_ROOT'] = str(self.root / 'modules/tsw_core/infra')
         with self.assertRaises(LifecycleStateError):
             self.installation.activate(self.plan)

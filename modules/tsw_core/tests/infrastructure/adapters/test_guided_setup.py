@@ -84,7 +84,7 @@ class GuidedSetupDecisionTests(unittest.TestCase):
         self.state.acquire.assert_not_called()
 
     def test_success_uses_consent_bound_plan_and_records_both_stages(self):
-        self.assertEqual(self.invoke("apply", ((2, ""), READY, PLAN, READY, READY)), 0)
+        self.assertEqual(self.invoke("apply", ((2, ""), READY, PLAN, READY, READY, READY)), 0)
         self.assertEqual(self.state.checkpoint.call_args_list, [
             call("prepare", "started"), call("prepare", "succeeded", 0),
             call("install", "started"), call("install", "succeeded", 0),
@@ -92,11 +92,13 @@ class GuidedSetupDecisionTests(unittest.TestCase):
         self.package_audit.assert_called_once()
         self.assertIn("Observed plan", self.stdout.getvalue())
         self.assertNotIn(PLAN_DIGEST, self.stdout.getvalue())
-        install = self.children.call_args_list[-1]
+        install, report = self.children.call_args_list[-2:]
         self.assertIn("--guided-report", install.args[0])
         self.assertEqual(install.kwargs["lease"], (99,))
         self.assertIsNone(install.kwargs["timeout_seconds"])
         self.assertEqual(install.kwargs["env"][guided_setup.EXPECTED_ENV], PLAN_DIGEST)
+        self.assertEqual(report.args[0], (guided_setup.INSTALL, "--guided-status", "--service-profile", "service-access"))
+        self.assertEqual(report.kwargs["timeout_seconds"], 240)
 
     def test_work_stops_when_consent_is_denied_or_inventory_changes(self):
         self.assertEqual(self.invoke("apply", (READY, PLAN), answer="no\n"), 2)
@@ -125,11 +127,18 @@ class GuidedSetupDecisionTests(unittest.TestCase):
 
     def test_confirmed_installer_completion_is_recorded_without_reapplying(self):
         self.state.prior.return_value = PARTIAL
-        self.assertEqual(self.invoke("--resume", (READY, COMMITTED), answer="no\n"), 0)
-        self.assertEqual(self.children.call_count, 2)
-        self.assertIn("--guided-resume", self.children.call_args.args[0])
+        self.assertEqual(self.invoke("--resume", (READY, COMMITTED, READY), answer="no\n"), 0)
+        self.assertEqual(self.children.call_count, 3)
+        self.assertIn("--guided-resume", self.children.call_args_list[1].args[0])
+        self.assertIn("--guided-status", self.children.call_args.args[0])
         self.state.checkpoint.assert_called_once_with("install", "succeeded", 0)
         self.assertNotIn("Type yes", self.stderr.getvalue())
+
+    def test_unavailable_report_preserves_completed_installation(self):
+        self.assertEqual(self.invoke("apply", (READY, PLAN, READY, READY, (124, ""))), 124)
+        self.state.checkpoint.assert_called_with("install", "succeeded", 0)
+        self.assertIn("INSTALLATION_COMPLETE", self.stdout.getvalue())
+        self.assertIn("Service access report incomplete", self.stderr.getvalue())
 
     def test_stale_installer_completion_does_not_replace_existing_checkpoint(self):
         self.state.prior.side_effect = [PARTIAL, PARTIAL, {"stage": "install", "status": "started"}]

@@ -67,6 +67,19 @@ require separate runtime evidence. Protected records use checkout/host/account
 and profile identity. Read-only modes inspect state without creating evidence
 or taking a mutation lock. See the installation guide for operator commands.
 
+## Guided completion report
+
+After regular installation and committed recovery, setup reports installation
+completion independently of service access. It checks published URLs and
+health targets from the committed service selection using HTTP from the setup
+host and system trust for HTTPS. A successful HTTP response verifies that
+specific URL or health target. Redirects, access controls and unavailable
+responses have separate outcomes. Browser access and authenticated operations
+require their own checks. The report prints the credential source reference
+and protected checkpoint path. A report failure or timeout leaves the
+installation completion checkpoint intact. Use the displayed read-only
+retry command to collect the report again.
+
 ## Baseline audit and compatibility matrix
 
 Repository paths are relative to its root. Baseline inspection reads source;

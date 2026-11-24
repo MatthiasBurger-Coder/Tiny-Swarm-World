@@ -5,6 +5,9 @@ from enum import StrEnum
 from typing import Mapping
 
 from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
+from tiny_swarm_world.domain.native_preparation import (
+    GIB, PROFILE_MINIMUM_CPUS, PROFILE_MINIMUM_FREE_DISK_BYTES, PROFILE_MINIMUM_MEMORY_BYTES,
+)
 
 
 class ResourceAssessment(StrEnum):
@@ -54,11 +57,15 @@ class PlannedContainerLimit:
 def default_resource_profiles(
     host_environment: HostEnvironmentKind | None = None,
 ) -> dict[str, ResourceProfile]:
-    service_access_memory = 16 if host_environment is HostEnvironmentKind.WSL2 else 15
+    profile = "service-access"
+    memory = PROFILE_MINIMUM_MEMORY_BYTES[profile]
+    free_disk = PROFILE_MINIMUM_FREE_DISK_BYTES[profile]
+    if host_environment is HostEnvironmentKind.WSL2:
+        memory, free_disk = 16 * GIB, 150 * GIB
     return {
         "service-access": ResourceProfile(
             "service-access",
-            ResourceRequirements(8, service_access_memory * 1024**3, 150 * 1024**3),
+            ResourceRequirements(PROFILE_MINIMUM_CPUS[profile], memory, free_disk),
             ResourceRequirements(12, 24 * 1024**3, 250 * 1024**3),
         ),
         "default": ResourceProfile(
