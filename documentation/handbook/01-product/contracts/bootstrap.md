@@ -539,6 +539,13 @@ Only scoped required IPv4 bridge/default-egress/established-return paths and nee
 DHCP/DNS tuples may be added. Unknown owners, earlier deny conflicts, subnet/port
 collisions, unsafe files and incompatible IPv6 bridge configurations block rather
 than disabling or replacing host policy. Incus remains the sole managed-NAT owner.
+The IPv4 compatibility inventory preserves the observed Tailscale rules when
+the complete filter and NAT traversal matches, the Tailscale mark path has
+no competing writer, and the overlay interface and range are disjoint from
+managed Incus bridges and their egress. The persisted guard repeats the proof.
+Unknown variants and duplicate legacy masquerade rules block pending owner
+resolution. Existing canonical names that already map to 127.0.0.1 are
+preserved outside the managed hosts block.
 Persistence has a finite bridge wait, 75-second service deadline and no automatic
 restart loop. Byte-compatible safe files are reused read-only; a filename does not
 confer replacement authority. Shared Linux hosts updates retain unrelated entries

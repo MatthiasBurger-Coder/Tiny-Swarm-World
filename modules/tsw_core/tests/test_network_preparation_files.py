@@ -327,6 +327,21 @@ class PrivilegeBoundaryTests(unittest.TestCase):
 
 
 class HostsPlanningTests(unittest.TestCase):
+    def test_equivalent_external_names_are_preserved_without_adoption(self) -> None:
+        content = b"127.0.0.1 jenkins.local other.local # retained\n127.0.0.1 Jenkins.Local\n"
+        self.assertEqual(content, files.desired_hosts(content, ("jenkins.local",)))
+        payload = files.desired_hosts(content, ("jenkins.local", "nexus.local"))
+        self.assertTrue(payload.startswith(content))
+        self.assertIn(b"127.0.0.1 nexus.local\n", payload)
+        self.assertEqual(payload.count(b"jenkins.local"), 1)
+        self.assertEqual(payload, files.desired_hosts(payload, ("jenkins.local", "nexus.local")))
+
+    def test_complete_external_coverage_cannot_hide_a_conflicting_managed_block(self) -> None:
+        content = (b"127.0.0.1 jenkins.local\n# BEGIN TINY SWARM WORLD\n"
+                   b"192.0.2.1 jenkins.local\n# END TINY SWARM WORLD\n")
+        with self.assertRaisesRegex(ValueError, "Managed hosts block overlaps"):
+            files.desired_hosts(content, ("jenkins.local",))
+
     def test_owned_replacement_preserves_surrounding_crlf_bytes(self) -> None:
         content = (b"# untouched\r\n# BEGIN TINY SWARM WORLD\r\n"
                    b"127.0.0.1 old.local\r\n# END TINY SWARM WORLD\r\n# tail\r\n")

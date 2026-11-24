@@ -129,13 +129,23 @@ def hosts_payload(content: bytes, names: tuple[str, ...]) -> bytes:
         raise ValueError("Invalid canonical hosts names")
     prefix, suffix = _host_parts(content)
     targets = {name.encode().lower() for name in names}
+    equivalent_names: set[bytes] = set()
     for line in (prefix + suffix).splitlines():
         fields = line.split(b"#", 1)[0].split()
-        if targets.intersection(field.lower() for field in fields[1:]):
+        matched = targets.intersection(field.lower() for field in fields[1:])
+        if not matched:
+            continue
+        if fields[0] != b"127.0.0.1":
             raise ValueError("Canonical name conflicts outside the owned hosts block")
+        equivalent_names.update(matched)
+    missing = tuple(name for name in names if name.encode().lower() not in equivalent_names)
+    if not missing:
+        if prefix + suffix == content:
+            return content
+        raise ValueError("Managed hosts block overlaps complete external canonical mappings")
     newline = b"\r\n" if b"\r\n" in content else b"\n"
     separator = newline if prefix and not prefix.endswith((b"\n", b"\r")) else b""
-    block = newline.join([BEGIN, *(b"127.0.0.1 " + name.encode() for name in names), END])
+    block = newline.join([BEGIN, *(b"127.0.0.1 " + name.encode() for name in missing), END])
     return prefix + separator + block + newline + suffix
 
 

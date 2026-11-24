@@ -9,9 +9,13 @@ from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall_inven
 from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, legacy_nat, verify_filter, checked_expressions, validate_bridge_scope
 from tiny_swarm_world.infrastructure.adapters.network_preparation.configuration import managed_bridge_owners, incus_owner_identity
 from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_conflicts import verify, verify_masquerade, verify_dnat
+from tiny_swarm_world.infrastructure.adapters.network_preparation.tailscale_policy import (
+    _disjoint_docker_raw_deny, _docker_host_publication, _tailscale_rules_match,
+    _verify_tailscale_traversal, compatibility_projection, verify_tailscale,
+)
 
 
-def render_guard(bridges: tuple[Bridge, ...], ufw: bool, *, absent: bool = False, ports: tuple[int, ...] = (), owners: tuple[Bridge, ...] | None = None) -> str:
+def render_guard(bridges: tuple[Bridge, ...], ufw: bool, *, absent: bool = False, ports: tuple[int, ...] = (), owners: tuple[Bridge, ...] | None = None, compatibility: bool = False) -> str:
     prefix = """from __future__ import annotations
 import json, os, shlex, subprocess, pathlib
 from ipaddress import ip_network, ip_address
@@ -72,4 +76,14 @@ for bridge in bridges:
     if address.get('local') != bridge.gateway or address.get('prefixlen') != ip_network(bridge.subnet).prefixlen: raise RuntimeError('Bridge address changed')
 if ':OUTPUT ACCEPT ' not in saved and 'allow (outgoing)' not in status: raise RuntimeError('OUTPUT owner changed')
 """
+    if compatibility:
+        extra = (_docker_host_publication, _disjoint_docker_raw_deny, _tailscale_rules_match,
+                 _verify_tailscale_traversal, verify_tailscale, compatibility_projection)
+        functions += "\n" + "\n".join(inspect.getsource(function) for function in extra)
+        tail = tail.replace(
+            f"rules = parse_rules(saved)\nverify(saved, bridges, {ports!r})",
+            f"projected = compatibility_projection(saved, observed_owners or bridges)\n"
+            f"rules = parse_rules(projected)\nverify(projected, observed_owners or bridges, {ports!r})",
+            1,
+        )
     return "timeout 35 /usr/bin/python3 -I -B - <<'TSW_GUARD'\n" + prefix + functions + tail + "TSW_GUARD"

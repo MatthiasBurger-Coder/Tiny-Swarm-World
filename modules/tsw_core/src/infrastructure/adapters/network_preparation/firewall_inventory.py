@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from ipaddress import ip_network
 from typing import Any
 from pathlib import Path
@@ -10,6 +11,7 @@ from tiny_swarm_world.application.ports.network_preparation import NetworkPrepar
 from tiny_swarm_world.infrastructure.adapters.network_preparation import runtime
 from tiny_swarm_world.infrastructure.adapters.network_preparation.nat_policy import bypass, bridge_set, legacy_nat, verify_filter, checked_expressions, validate_bridge_scope
 from tiny_swarm_world.infrastructure.adapters.network_preparation import nat_conflicts
+from tiny_swarm_world.infrastructure.adapters.network_preparation.tailscale_policy import compatibility_projection
 from tiny_swarm_world.infrastructure.adapters.network_preparation.firewall import (
     Bridge, equivalent, exact_present, forwarding_rules, input_rules, parse_rules, verify_no_foreign_denies,
 )
@@ -34,8 +36,9 @@ async def inventory(bridges: tuple[Bridge, ...], ports: tuple[int, ...] = (), *,
         # kernel's filter view explicitly; never invent policies or hide a
         # partial, nonempty dump. Full nft ownership is still verified below.
         saved = await runtime.privileged(("iptables-save", "-t", "filter"))
-    rules = parse_rules(saved)
-    nat_conflicts.verify(saved, bridges, ports)
+    projected = compatibility_projection(saved, managed_owners or bridges)
+    rules = parse_rules(projected)
+    nat_conflicts.verify(projected, managed_owners or bridges, ports)
     if status.startswith("Status: absent") and any(chain.startswith("ufw-") for chain in rules):
         raise NetworkPreparationFailure("Residual UFW rules without its executable; preserve that owner.")
     verify_no_foreign_denies(rules, ufw=ufw, bridges=managed_owners or bridges)
@@ -46,8 +49,16 @@ async def inventory(bridges: tuple[Bridge, ...], ports: tuple[int, ...] = (), *,
         raise NetworkPreparationFailure("Restrictive/unknown OUTPUT prevents DHCP replies; consult firewall owner.")
     added = await runtime.privileged(("ufw", "show", "added")) if ufw else ""
     missing = missing_rules(bridges, rules, input_restricted=ufw or ":INPUT ACCEPT " not in saved, ufw=ufw)
-    return {"ufw": ufw, "status": status, "saved": "\n".join(line for line in saved.splitlines() if not line.startswith("#")), "nft": stable_nft(nft), "missing": missing,
-            "owners": owner_status, "managed_bridge_owners": managed_owners, "added": added, "input_restricted": ufw or ":INPUT ACCEPT " not in saved}
+    return {"ufw": ufw, "status": status, "saved": stable_iptables(saved), "nft": stable_nft(nft), "missing": missing,
+            "owners": owner_status, "compatibility": projected != saved, "managed_bridge_owners": managed_owners, "added": added, "input_restricted": ufw or ":INPUT ACCEPT " not in saved}
+
+
+def stable_iptables(saved: str) -> str:
+    return "\n".join(
+        re.sub(r"\[\d+:\d+\]$", "[0:0]", line) if line.startswith(":") else line
+        for line in saved.splitlines()
+        if not line.startswith("#")
+    )
 
 
 async def ufw_status() -> str:
