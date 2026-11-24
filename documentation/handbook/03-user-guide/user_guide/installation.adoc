@@ -16,7 +16,7 @@ Linux-native filesystem. Have Git installed and allow access to Ubuntu
 packages, locked Python dependencies and container registries. Preparation
 can install missing Python and create its local environment.
 
-The native preparation floors are eight CPU threads, 15 GiB RAM and 150 GiB
+The native preparation floors are eight CPU threads, 18 GiB RAM and 120 GiB
 free space on the repository filesystem for `service-access`, or four threads,
 16 GiB RAM and 60 GiB free for `default`. Review the actual plan for additional
 capacity requirements from the selected nodes and services.
@@ -80,8 +80,10 @@ resources still match, resume can record completion without redeploying.
 
 === Open services and find credentials
 
-`INSTALLATION_COMPLETE` confirms installer completion. Guided setup reports
-service access as unverified. With the `service-access` preset, open
+`INSTALLATION_COMPLETE` confirms installer completion. The report then shows
+HTTP observations for published URLs and health targets in the committed selection.
+Browser access and authenticated use require their own checks. With the
+`service-access` preset, open
 https://service-access.tsw.local and follow the links for your installed
 services. For example, Portainer is configured at https://portainer.tsw.local.
 Check DNS resolution and browser CA trust on the machine opening the URL,
@@ -877,8 +879,8 @@ Use `reset-run.exit`, `setup-run.exit`, and the matching logs to diagnose a
 failed or blocked run.
 
 The WSL2 `service-access` preflight retains its 16 GiB RAM, eight-thread and
-150 GiB free-disk minimum. Native Linux clean-host preparation uses a separate
-15 GiB RAM floor. This host minimum does not reserve managed-node memory or
+150 GiB free-disk minimum. Native Linux clean-host preparation uses
+18 GiB RAM and 120 GiB free space. This host minimum does not reserve managed-node memory or
 establish live qualification at that capacity. Managed node limit checks still protect capacity during
 node creation; a previously installed platform can reconcile when those checks
 and the current resource and memory-pressure checks pass.
@@ -1111,8 +1113,8 @@ automatic reset. A deliberate reset uses the separately confirmed `platform
 reset` command.
 
 The native preflight requires Ubuntu 24.04 or 26.04 LTS on x86_64. For the
-`service-access` profile, provide at least eight CPU threads, 15 GiB RAM and
-150 GiB free space on the repository filesystem. The `default` profile
+`service-access` profile, provide at least eight CPU threads, 18 GiB RAM and
+120 GiB free space on the repository filesystem. The `default` profile
 requires four CPU threads, 16 GiB RAM and 60 GiB free space. Preparation
 checks the selected profile's resource floor before package changes. It
 checks package privilege, repository write access and conflicting runtimes.
@@ -1142,10 +1144,10 @@ configuration are preserved on native installer reruns.
 [[native-node-memory-budget]]
 === Native node memory budget and deliberate fresh installation
 
-The 15 GiB host floor is separate from the configured node limits. The
-repository defaults are manager 10 GiB, worker 1 8 GiB and worker 2 1 GiB
-(19 GiB total). Reducing the host floor does not reduce these limits or
-establish that all services fit on a 15 GiB host.
+The native service-access floor reserves 2 GiB for the host. The shipped
+limits are manager 10 GiB, worker 1 4 GiB and worker 2 2 GiB
+(16 GiB total). The 120 GiB free-space floor leaves 40 GiB above
+the shipped 80 GiB of node disk limits.
 
 For a host-specific allocation, copy the infrastructure configuration and use
 the supported `TSW_INFRA_ROOT` override:

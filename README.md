@@ -22,7 +22,8 @@ See the [release acceptance matrix](documentation/handbook/07-evidence-release/e
 for the exact evidence and open qualification checks.
 
 Run from an ordinary sudo-capable account in an interactive terminal with Git
-and internet access:
+and internet access. The default preset targets eight CPU threads, at least
+18 GiB RAM and 120 GiB free on the repository filesystem:
 
 ```bash
 git clone https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World.git ~/Tiny-Swarm-World

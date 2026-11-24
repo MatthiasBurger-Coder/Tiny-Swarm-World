@@ -69,12 +69,12 @@ class NativeResourceBudgetTests(unittest.TestCase):
             self.assertEqual(repository.path, self.private_config.resolve())
             return repository.load()
 
-    def test_default_nineteen_gib_remains_rejected_on_measured_native_host(self):
+    def test_default_sixteen_gib_fits_the_measured_native_host(self):
         planned = planned_limits(self.baseline)
 
-        self.assertEqual(sum(node.memory_bytes for node in planned), 19 * GIB)
+        self.assertEqual(sum(node.memory_bytes for node in planned), 16 * GIB)
         self.assertEqual(sum(node.cpu_threads for node in planned), 8)
-        self.assertFalse(validate_planned_container_limits(self.resources, planned))
+        self.assertTrue(validate_planned_container_limits(self.resources, planned))
 
     def test_private_seventeen_gib_config_passes_and_preserves_other_authorities(self):
         compact = self.compact_config()
@@ -127,4 +127,4 @@ class NativeResourceBudgetTests(unittest.TestCase):
         resources = replace(self.resources, cgroup_memory_limit_bytes=64 * GIB)
 
         self.assertEqual(resources.effective_memory_bytes, NATIVE_MEMORY_BYTES)
-        self.assertFalse(validate_planned_container_limits(resources, planned_limits(self.baseline)))
+        self.assertTrue(validate_planned_container_limits(resources, planned_limits(self.baseline)))

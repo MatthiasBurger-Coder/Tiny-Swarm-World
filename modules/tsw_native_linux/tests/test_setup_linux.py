@@ -142,6 +142,7 @@ case "$1" in
     fi
     exit "${MOCK_PLAN_EXIT:-0}" ;;
   --selection-plan) exit "${MOCK_SELECTION_EXIT:-0}" ;;
+  --guided-status) exit 0 ;;
   *)
     [[ "$*" == *--guided-report* && "$*" != *--confirm-reset* &&
        "$TSW_GUIDED_PLAN_EXPECTED" == "$(printf %064d 0)" ]] || exit 99
@@ -260,6 +261,7 @@ esac
         inventory = "prepare --dry-run --service-profile service-access"
         preview = "install --dry-run --service-profile service-access --guided-plan"
         install = "install --service-profile service-access --guided-report --guided-plan"
+        report = "install --guided-status --service-profile service-access"
 
         declined = self._guided(b"no\n")
         self.assertEqual(declined.returncode, 2, declined.stderr)
@@ -270,7 +272,7 @@ esac
         for _ in range(2):
             result = self._guided(b"yes\n")
             self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self._observed(), [inventory, preview, inventory, install] * 2)
+        self.assertEqual(self._observed(), [inventory, preview, inventory, install, report] * 2)
         self.assertEqual(json.loads(self.record.read_text())["record"]["status"], "succeeded")
         self.assertEqual(self.record.stat().st_mode & 0o777, 0o600)
 
@@ -345,7 +347,10 @@ esac
         self.env["MOCK_SCOPED"] = "1"
         resumed = self._guided(b"yes\n", "--resume")
         self.assertEqual(resumed.returncode, 0, resumed.stderr)
-        self.assertEqual(self._observed()[-1], "install --service-profile service-access --guided-report --guided-plan --guided-resume")
+        self.assertEqual(self._observed()[-2:], [
+            "install --service-profile service-access --guided-report --guided-plan --guided-resume",
+            "install --guided-status --service-profile service-access",
+        ])
 
     def test_tsw_494_reg_01_resume_after_committed_install_interruption(self) -> None:
         self._require_ordinary_user()
@@ -369,6 +374,7 @@ case "${1:-}" in
   --dry-run|--preflight)
     export PYTHONPATH="$REGRESSION_SOURCE"
     exec "$REGRESSION_PYTHON" -B -c 'from modules.tsw_native_linux.tests.test_setup_linux import _run_committed_install_preview; raise SystemExit(_run_committed_install_preview())' "$@" ;;
+  --guided-status) printf 'observe service access\\n' >> "$CALLS" ;;
   *)
     printf 'unexpected installer apply or reset\n' >> "$CALLS"
     exit 99 ;;
@@ -419,6 +425,7 @@ esac
             "prepare --dry-run --service-profile service-access",
             "inventory install/started",
             "observe installation_committed=True",
+            "observe service access",
         ], resumed.stderr.decode())
         self.assertNotIn(b"Type yes", resumed.stderr)
         self.assertEqual(journal.load(), committed)

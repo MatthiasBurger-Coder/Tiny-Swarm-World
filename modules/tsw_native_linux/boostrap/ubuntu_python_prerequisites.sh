@@ -125,9 +125,12 @@ tsw_python_prerequisites() (
 # Only the minimum interpreter guard lives here; Python owns the full host plan.
 tsw_minimum_capacity() {
   local cpus memory=0 available='' key value rest
-  local minimum_cpus=8 minimum_memory=15728640 minimum_disk=157286400
+  local minimum_cpus=8 minimum_memory=18874368 minimum_disk=125829120
   if [[ "$1" == default ]]; then minimum_cpus=4; minimum_memory=16777216; minimum_disk=62914560; fi
-  if [[ "${2,,}" == *microsoft* || "${2,,}" == *wsl* ]]; then minimum_memory=16777216; fi
+  if [[ "$1" == service-access && ( "${2,,}" == *microsoft* || "${2,,}" == *wsl* ) ]]; then
+    minimum_memory=16777216
+    minimum_disk=157286400
+  fi
   cpus="$(getconf _NPROCESSORS_ONLN)"
   while read -r key value rest; do [[ "$key" == MemTotal: ]] && memory="$value"; done < /proc/meminfo
   available="$(df -Pk . | awk 'NR == 2 {print $4}')"

@@ -36,6 +36,13 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
 class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
+    def setUp(self):
+        directory = self.enterContext(tempfile.TemporaryDirectory())
+        self.enterContext(patch(
+            "tiny_swarm_world.application.ports.installation.DEFAULT_SECRET_ENV_FILE",
+            str(Path(directory) / "absent-operator.env"),
+        ))
+
     def test_guided_observation_binds_effective_configuration_and_port_ownership(self):
         port = {"category": "PORT", "check_id": "PORT-10001", "message": "available",
                 "evidence": {"port": "10001", "service": "Portainer"}}
@@ -92,11 +99,29 @@ class TestSimpleInstallerSecretBootstrap(unittest.TestCase):
             ("--selection-plan", "minimal", "--confirm-reset"),
             ("--selection-plan", "custom"),
             ("--guided-report", "--dry-run"),
+            ("--guided-status", "--confirm-reset"),
+            ("--guided-status", "--guided-report"),
+            ("--guided-status", "--guided-plan"),
         )
         for command in commands:
             with self.subTest(command=command), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as exit:
                 main(command)
             self.assertEqual(exit.exception.code, 2)
+
+    def test_guided_status_does_not_run_installer_or_load_credentials(self):
+        runtime = installer.HostRuntime("native_linux", "test")
+        with (
+            patch("tiny_swarm_world.infrastructure.adapters.installation.host.detect_host_runtime", return_value=runtime),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._ensure_native_python"),
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap._prepare_bootstrap_environment") as credentials,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.bootstrap.build_installation_service") as build,
+            patch("tiny_swarm_world.infrastructure.adapters.installation.guided_report.report_service_access", return_value=True) as report,
+            redirect_stdout(io.StringIO()),
+        ):
+            self.assertEqual(main(("--guided-status", "--service-profile", "default")), 0)
+        report.assert_called_once_with("default", os.environ)
+        credentials.assert_not_called()
+        build.assert_not_called()
 
     def test_native_missing_system_dependencies_restarts_in_prepared_venv(self):
         runtime = installer.HostRuntime("native_linux", "test")

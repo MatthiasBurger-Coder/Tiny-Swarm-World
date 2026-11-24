@@ -23,6 +23,7 @@ GUIDED_COMMITTED_PREFIX = "Guided committed installation: "
 GUIDED_PLAN_REFUSED = 65
 PLAN_ENV = "TSW_GUIDED_PLAN_NONCE"
 EXPECTED_ENV = "TSW_GUIDED_PLAN_EXPECTED"
+READ_ONLY_TIMEOUT_SECONDS = 240
 
 
 class SetupExit(Exception):
@@ -56,7 +57,7 @@ class GuidedSetup:
         if self.verbose:
             print(f"Setup stage: {stage}", file=sys.stderr)
         return run_foreground_process(
-            args, capture=capture, timeout_seconds=240 if read_only else None,
+            args, capture=capture, timeout_seconds=READ_ONLY_TIMEOUT_SECONDS if read_only else None,
             lease=self.lease, env=env,
         )
 
@@ -147,6 +148,20 @@ def preview(setup: GuidedSetup, nonce: str, recovery_args: tuple[str, ...]) -> s
     return stamps[0]
 
 
+def report_completion(setup: GuidedSetup, message: str) -> int:
+    record = setup.state.root / "setup.state.json"
+    print(f"Host preparation: complete.\nINSTALLATION_COMPLETE: {message}\n"
+          f"Protected guided recovery record: {str(record)!r}", flush=True)
+    try:
+        code, _ = setup.run("report", INSTALL, "--guided-status", *setup.profile_args, read_only=True)
+    except (OSError, subprocess.SubprocessError):
+        code = 1
+    if code:
+        retry = shlex.join(("timeout", str(READ_ONLY_TIMEOUT_SECONDS), INSTALL, "--guided-status", *setup.profile_args))
+        print(f"Service access report incomplete (exit {code}). Next: {retry}", file=sys.stderr)
+    return {124: 124, 130: 130, 143: 130}.get(code, 1) if code else 0
+
+
 def apply(setup: GuidedSetup, resume: bool) -> int:
     # Validate existing records before any writes, then re-read under the lease.
     prior = setup.state.prior()
@@ -169,8 +184,7 @@ def apply(setup: GuidedSetup, resume: bool) -> int:
         if not setup.state.unchanged_target() or setup.state.prior() != prior:
             setup.stop("BLOCKED", "Checkout or recovery checkpoint changed during inventory.", 2)
         setup.state.checkpoint("install", "succeeded", 0)
-        print("INSTALLATION_COMPLETE: Recorded the verified installer completion.")
-        return 0
+        return report_completion(setup, "Recorded the verified installer completion.")
     setup.stage = "consent.install"
     print(f"Type yes to proceed to installation for profile {setup.profile}: ",
           end="", flush=True, file=sys.stderr)
@@ -198,9 +212,7 @@ def apply(setup: GuidedSetup, resume: bool) -> int:
     if code:
         setup.child_exit(code, mutating=True)
     setup.state.checkpoint("install", "succeeded", 0)
-    print("Host preparation: complete.\nINSTALLATION_COMPLETE: The installer finished successfully.\n"
-          "Service access: unverified from guided setup. See the installation evidence.")
-    return 0
+    return report_completion(setup, "The installer finished successfully.")
 
 
 def audit_packages(setup: GuidedSetup) -> None:

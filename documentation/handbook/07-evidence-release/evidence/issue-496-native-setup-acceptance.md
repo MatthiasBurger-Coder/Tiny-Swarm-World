@@ -2,7 +2,7 @@
 
 **Decision: BLOCKED.** The checkout quick start is available for candidate use.
 Keep the [one-command setup EPIC #488][488] open until all required live results
-are attributable to the release candidate. This audit covers runtime baseline
+are attributable to the release candidate. The initial audit covers runtime baseline
 `8d79007a2768c2119f1fcd19dc9851755ade3dd3` and its documentation. Release
 `0.5.0` does not contain the guided entry point.
 
@@ -44,6 +44,21 @@ specific scenario.
   concern their own source and workflows. [#313 architecture boundaries][313]
   remain applicable to the guided handoff.
 
+## Direct-host candidate
+
+The candidate uses 10, 4 and 2 GiB node limits. Native `service-access`
+requires eight CPU threads, 18 GiB RAM and 120 GiB free space. On the selected
+physical Ubuntu 26.04 host, the read-only preflight passed the resource check
+and reached privileged network inspection. The available terminal lacked
+sudo authorization for that inspection.
+
+The guided report observes published endpoints from the committed selection
+after apply or recovery. A bounded check on the existing installation found
+four HTTP 200 responses and an HTTP 403 response from Jenkins. A separate
+browser profile loaded the five expected page markers. This observation covers
+the existing installation and leaves clean-host and authenticated acceptance
+open.
+
 ## Parent acceptance matrix
 
 | Criterion | Implemented contract | Evidence and disposition |
@@ -53,7 +68,7 @@ specific scenario.
 | AC04 | Preflight and dry-run use read-only inventory paths. Apply requires scoped consent and unsupported options or profiles are refused. | **Partial.** UX-07 automated checks, insufficient-disk refusal and profile controls are recorded. Live port-conflict, insufficient-RAM and full refusal/preservation controls remain open. |
 | AC05 | Existing network preparation owns bridge planning, ownership guards and backups. | **Open.** The UX-07 default-preset probe stopped at network inspection. Conditional changes, preservation and applicable reversal plus DNS, published ports and browser access need qualifying observations. |
 | AC06 | Ordinary install reconciles. Resume verifies checkpoint and scope, then re-observes pending work. | **Partial.** UX-06 proved bounded post-commit interruption recovery and preservation. Ordinary repeat, login or host restart and other interruption boundaries with preservation of managed and unrelated state remain open. |
-| AC07 | Guided output separates preparation, installation completion and service access. Normal completion references the credential source and reports service access as unverified. | **Partial.** UX-06 observed Portainer and PostgreSQL within its fixture. The guided report still needs per-service health and verified URL output. Recovery of an already completed install reports completion only. Qualify the resulting report, including the protected credential reference, in the release walkthrough. |
+| AC07 | Guided output separates preparation, installation completion and service access. Normal completion references the credential source and reports service access as unverified. | **Partial.** UX-06 observed Portainer and PostgreSQL within its fixture. The candidate reports host-scoped HTTP observations and credential references after apply and recovery. Qualify the resulting report in the full release walkthrough. |
 | AC08 | README and installation guide use the shipped commands. | **Partial.** The root scripts and arguments match source. UX-07 targeted tests and full quality passed on the runtime baseline. Exact-source fresh-host, repeat and recovery results for the release matrix are incomplete. |
 | AC09 | Guided setup uses the local Classic installation path. Upgrade and component updates have separate commands. | **Satisfied by source and documentation review.** The documented scope excludes upgrade, runtime replacement, destructive reset, generic multi-host provisioning and production or HA guarantees. |
 

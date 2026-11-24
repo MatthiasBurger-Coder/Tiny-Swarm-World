@@ -39,11 +39,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         runtime = _authorize_install_runtime(args)
         _ensure_native_python(True, entrypoint_args, is_wsl=runtime.name == "wsl2")
+        profile = "default" if args.profile == "classic" else args.service_profile
+        if args.guided_status:
+            if runtime.name != "native_linux":
+                raise SimpleInstallerError("Guided status requires native Linux.")
+            from tiny_swarm_world.infrastructure.adapters.installation import guided_report
+
+            _print_guided_credential_reference(os.environ)
+            return 0 if guided_report.report_service_access(profile, os.environ) else 1
         env = _prepare_bootstrap_environment(guided.without_binding(os.environ), Path.cwd())
         options = values.InstallerOptions(
-            service_profile="default"
-            if args.profile == "classic"
-            else args.service_profile,
+            service_profile=profile,
             confirm_reset=args.confirm_reset,
             non_interactive_live_approval=args.non_interactive_live_approval,
             headless=args.headless or env.get("TSW_INSTALL_HEADLESS") == "1",
@@ -58,8 +64,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         guided.require_interactive_apply(options, interactive=sys.stdin.isatty())
         exit_code = build_installation_service().run(options, env=env, cwd=Path.cwd())
         if exit_code == 0 and not (args.preflight or args.dry_run):
-            report = _print_guided_credential_reference if args.guided_report else _print_operator_credentials
-            report(env)
+            if not args.guided_report:
+                _print_operator_credentials(env)
+            elif not args.guided_plan:
+                _print_guided_credential_reference(env)
         return guided.installer_exit(exit_code, guided=args.guided_plan)
     except values.GuidedPlanRefused as error:
         print(f"BLOCKED: {error}", file=sys.stderr)
@@ -113,6 +121,7 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         help="Preview Linux/WSL reconciliation without mutation.",
     )
     read_only.add_argument("--selection-plan", choices=("minimal", "custom"), help=argparse.SUPPRESS)
+    read_only.add_argument("--guided-status", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--services", help=argparse.SUPPRESS)
     parser.add_argument("--guided-report", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--guided-plan", action="store_true", help=argparse.SUPPRESS)
@@ -147,6 +156,9 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         parser.error("Selection planning cannot apply changes.")
     if args.guided_report and (args.confirm_reset or args.preflight or args.dry_run):
         parser.error("The guided report requires a reconciliation run.")
+    if args.guided_status and any((args.confirm_reset, args.non_interactive_live_approval,
+                                  args.guided_report, args.guided_plan, args.guided_resume)):
+        parser.error("Guided status only observes an existing installation.")
     guided.parse_guided_binding(parser, args)
     return args
 
