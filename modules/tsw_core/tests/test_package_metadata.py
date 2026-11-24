@@ -1,10 +1,12 @@
 import ast
 import re
 import runpy
+import sys
 import tomllib
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import ModuleType
+from unittest.mock import Mock, patch
 
 import yaml
 from packaging.requirements import Requirement
@@ -115,7 +117,11 @@ class TestPackageMetadata(unittest.TestCase):
 
     def test_package_versions_are_aligned(self):
         pyproject = tomllib.loads((REPOSITORY_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-        with patch("setuptools.setup") as setup:
+        setup = Mock()
+        setuptools = ModuleType("setuptools")
+        setuptools.setup = setup
+        setuptools.find_packages = Mock(return_value=[])
+        with patch.dict(sys.modules, {"setuptools": setuptools}):
             runpy.run_path(str(REPOSITORY_ROOT / "setup.py"))
         setup.assert_called_once()
 
