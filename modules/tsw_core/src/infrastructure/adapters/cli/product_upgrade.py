@@ -14,7 +14,7 @@ def validate_product_args(parser: ArgumentParser, args: Namespace):
             parser.error('--adoption-manifest requires product upgrade')
         return
     if args.to not in PRODUCT_UPGRADE_TARGETS or args.preview == args.live:
-        parser.error('product upgrade requires --to 0.5.0 or 0.6.0 and exactly one of --preview or --live')
+        parser.error(f"product upgrade requires --to {' or '.join(PRODUCT_UPGRADE_TARGETS)} and exactly one of --preview or --live")
     if (args.preview and args.approve_live) or args.confirm or args.preflight or args.service_profile_explicit:
         parser.error('product upgrade cannot combine preview/approval, confirmation, preflight or preset overrides')
     if args.services or args.minimal or args.selection_config or args.runtime or args.apply or args.incus or args.linux_forwarding:

@@ -32,7 +32,7 @@ class ProductUpgradeService:
         if not consent.accepted:
             return {'status': 'refused', 'diagnostics': list(consent.missing_reasons)}
         if target not in PRODUCT_UPGRADE_TARGETS:
-            raise LifecycleStateError('Unsupported product release or downgrade; use target 0.5.0 or 0.6.0.')
+            raise LifecycleStateError(f"Unsupported product release or downgrade; use {', '.join(PRODUCT_UPGRADE_TARGETS)}.")
         with installation_operation(self.operation_lock, 'product-upgrade', self.operation_lease) as lease, lease.journal('product'), self.journal.exclusive():
             from tiny_swarm_world.application.services.runtime_policy import admit_runtime_policy
 

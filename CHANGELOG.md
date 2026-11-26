@@ -6,6 +6,13 @@ release claim.
 
 ## [Unreleased]
 
+### RC-6 follow-up / 0.6.1
+
+- Authenticate sudo inside the recorded guided installation terminal before
+  invoking setup or resume.
+- Admit the published `0.6.1` candidate from direct native RC-5 installations
+  and retain the `0.6.0` transition for its existing operations.
+
 ### RC-6 / 0.6.0
 
 - Set the product package and fresh installation manifest version to `0.6.0`.

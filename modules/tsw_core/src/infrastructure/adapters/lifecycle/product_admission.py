@@ -9,7 +9,7 @@ import tomllib
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.lifecycle.models import ProductIdentity
 from tiny_swarm_world.domain.lifecycle.product_upgrade import (
-    MIGRATIONS, RC6_MIGRATIONS, RC6_RELEASE, SOURCE_RELEASE, TARGET_RELEASE, TARGET_REVISION,
+    MIGRATIONS, RC6_MIGRATIONS, RC6_RELEASES, SOURCE_RELEASE, TARGET_RELEASE, TARGET_REVISION,
     ProductPlan, ProductRelease, admit_release_pair,
 )
 from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import require_settled_updates
@@ -27,7 +27,7 @@ def plan(installation, target):
     if any(item.startswith('interrupted_write') for item in snapshot.diagnostics):
         raise LifecycleStateError('Interrupted manifest write requires review before product upgrade.')
     manifest = snapshot.manifest
-    if target == RC6_RELEASE:
+    if target in RC6_RELEASES:
         active = installation.state / 'active'
         if active.exists() or active.is_symlink():
             raise LifecycleStateError('RC-6 requires a directly installed RC-5 checkout; retain existing managed activation.')
@@ -41,7 +41,7 @@ def plan(installation, target):
     installation.catalog.load().validate_manifest(manifest)
     source = installation._source_identity()
     recorded = manifest.product
-    if target == RC6_RELEASE and recorded.release == '0.2.0':
+    if target in RC6_RELEASES and recorded.release == '0.2.0':
         # Direct RC-5 installs recorded the Python package version as the release.
         recorded = recorded.model_copy(update={'release': TARGET_RELEASE})
     if recorded != source.product:
@@ -50,7 +50,7 @@ def plan(installation, target):
     admit_release_pair(source, target_release)
     plan = ProductPlan(source=source, target=target_release, manifest=manifest, manifest_token=snapshot.token,
                        adoption=snapshot.manifest is None, configuration_changes=changes,
-                       migrations=RC6_MIGRATIONS if target == RC6_RELEASE else MIGRATIONS,
+                       migrations=RC6_MIGRATIONS if target in RC6_RELEASES else MIGRATIONS,
                        configuration_source=binding, resource_bytes=2147483648 + reserve_bytes(binding))
     installation.validate(plan)
     return plan
@@ -88,7 +88,7 @@ def _clean_source(installation, *, allow_external=False):
 def validate(installation, plan):
     # Revalidate persisted reader metadata before source/runtime/staging effects.
     ProductPlan.model_validate(plan.model_dump())
-    if plan.target.product.release == RC6_RELEASE:
+    if plan.target.product.release in RC6_RELEASES:
         admit_release_pair(plan.source, plan.target)
     require_settled_updates(installation.root)
     _clean_source(installation, allow_external=plan.configuration_source is not None)
@@ -112,7 +112,7 @@ def _host_and_resources(installation, plan):
     from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
 
     detected = HostEnvironmentDetector().detect().environment
-    if plan.target.product.release == RC6_RELEASE and plan.manifest.host != 'native-linux':
+    if plan.target.product.release in RC6_RELEASES and plan.manifest.host != 'native-linux':
         raise LifecycleStateError('RC-6 upgrade requires a native Linux installation.')
     expected = {'native-linux': HostEnvironmentKind.NATIVE_LINUX, 'wsl2': HostEnvironmentKind.WSL2}[plan.manifest.host]
     if detected != expected or sys.version_info[:2] != (3, 12):

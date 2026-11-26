@@ -8,7 +8,7 @@ import requests
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.lifecycle.models import ProductIdentity
 from tiny_swarm_world.domain.lifecycle.product_upgrade import (
-    PRODUCT_UPGRADE_TARGETS, RC6_RELEASE, ProductRelease, SOURCE_REVISION, TARGET_REVISION,
+    PRODUCT_UPGRADE_TARGETS, RC6_RELEASES, ProductRelease, SOURCE_REVISION, TARGET_REVISION,
 )
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_layout import configuration_member
 
@@ -31,7 +31,7 @@ class OfficialProductSource:
     def resolve(self, target):
         if target not in PRODUCT_UPGRADE_TARGETS:
             raise LifecycleStateError('Unsupported product target. Downgrade is unsupported.')
-        rc6 = target == RC6_RELEASE
+        rc6 = target in RC6_RELEASES
         try:
             release = self._get(API + '/releases/tags/' + target).json()
             if release['draft'] or (release['prerelease'] and not rc6) or release['tag_name'] != target:
@@ -50,7 +50,7 @@ class OfficialProductSource:
             comparison = self._get(API + '/compare/' + source_revision + '...' + revision).json()
             if comparison['status'] != 'ahead':
                 raise ValueError
-            if rc6 and project['version'] != RC6_RELEASE:
+            if rc6 and project['version'] != target:
                 raise ValueError
             configuration = self._configuration_changes(revision, source_revision=source_revision, relocate=rc6)
             return ProductRelease(product=ProductIdentity(release=target, revision=revision,
