@@ -78,6 +78,24 @@ class OfficialReleaseTests(unittest.TestCase):
             _, changes = self.source.resolve('0.5.0')
         self.assertEqual(changes, ('modules/tsw_core/infra/config/compose/portainer/docker-compose.yml',))
 
+    def test_rc6_resolves_exact_candidate_and_maps_legacy_paths(self):
+        candidate = 'c' * 40
+        self.release.json.return_value.update(tag_name='0.6.0', prerelease=True, target_commitish=candidate)
+        self.ref.json.return_value['object']['sha'] = candidate
+        self.project.text = '[project]\nversion="0.6.0"\n'
+        old_asset = self.before_tree.json.return_value['tree'][0]
+        old_asset['path'] = old_asset['path'].removeprefix('modules/tsw_core/')
+        with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses) as get:
+            release, changes = self.source.resolve('0.6.0')
+        self.assertEqual(release.product.revision, candidate)
+        self.assertEqual(release.package_version, '0.6.0')
+        self.assertEqual(changes, ('modules/tsw_core/infra/config/compose/portainer/docker-compose.yml',))
+        self.assertTrue(get.call_args_list[4].args[0].endswith(f'/compare/{TARGET_REVISION}...{candidate}'))
+        self.release.json.return_value['target_commitish'] = 'main'
+        with patch('tiny_swarm_world.infrastructure.adapters.lifecycle.product_source.requests.get', side_effect=self.responses):
+            with self.assertRaises(LifecycleStateError):
+                self.source.resolve('0.6.0')
+
     def test_support_asset_matches_machine_policy(self):
         root = Path(__file__).resolve().parents[6]
         self.assertEqual(json.loads((root / 'modules/tsw_core/infra/config/product-releases.json').read_text()), release_policy())

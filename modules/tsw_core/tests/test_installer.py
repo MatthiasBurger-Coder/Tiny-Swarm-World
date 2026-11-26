@@ -1107,6 +1107,30 @@ class TestInstaller(unittest.TestCase):
                 self.assertEqual(expected_status, event.status.value)
                 run_process.assert_called_once()
 
+    def test_guided_install_authenticates_inside_the_recorded_terminal(self):
+        for expected_plan, expected_command in (
+            (None, "echo setup"),
+            ("a" * 64, "/usr/bin/sudo -v && echo setup"),
+        ):
+            with (
+                self.subTest(guided=expected_plan is not None),
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(process, "_run_bounded_process", return_value=(1, False, False)) as run_process,
+                redirect_stdout(io.StringIO()),
+            ):
+                root = Path(directory)
+                log_file = root / "phase.log"
+                options = installer.InstallerOptions(
+                    service_profile="service-access", confirm_reset=False,
+                    non_interactive_live_approval=False, headless=False,
+                    allow_wsl_windows_filesystem=False, expected_guided_plan=expected_plan,
+                )
+                code = process._run_phase("live setup", "echo setup", log_file, options, {}, root, Mock())
+                self.assertEqual(code, 1)
+                self.assertEqual(run_process.call_args.args[0],
+                                 ["script", "-q", "-e", "-c", expected_command, str(log_file)])
+                self.assertIsNone(run_process.call_args.kwargs["stdin"])
+
     def test_run_phase_emits_distinct_timeout_and_terminates_process(self):
         class Reporter:
             def __init__(self) -> None:

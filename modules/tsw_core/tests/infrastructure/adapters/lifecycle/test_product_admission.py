@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 
 from modules.tsw_core.tests.application.services.test_product_upgrade import product_plan
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.domain.lifecycle.product_upgrade import TARGET_REVISION
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import JsonManifestRepository
 from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_installation import PreparedProductInstallation
@@ -126,6 +127,24 @@ class ProductAdmissionTests(unittest.TestCase):
         self.manifests.save(self.manifest.model_copy(update={'product': plan.target.product}),
                             expected_token=plan.manifest_token)
         self.installation.validate(plan)
+
+    def test_rc6_admits_rc5_manifest_with_legacy_package_version(self):
+        revision = 'c' * 40
+        self.revision = TARGET_REVISION
+        manifest = self.manifest.model_copy(update={'product': self.manifest.product.model_copy(
+            update={'release': '0.2.0', 'revision': self.revision})})
+        self.manifests.save(manifest, expected_token=self.manifests.load().token)
+        target = self.fixture.target.model_copy(update={'package_version': '0.6.0', 'product':
+            self.fixture.target.product.model_copy(update={'release': '0.6.0', 'revision': revision})})
+        self.source.resolve.return_value = (target, ())
+
+        plan = self.installation.plan('0.6.0')
+
+        self.assertEqual(plan.source.product.release, '0.5.0')
+        self.assertEqual(plan.manifest, manifest)
+        self.assertEqual(plan.committed_manifest().product, target.product)
+        self.assertIn('physical-infra-layout-v1', plan.migrations)
+        self.assertEqual(self.manifests.load().manifest, manifest)
 
     def test_foreign_origin_or_wrong_checkout_root_is_rejected(self):
         for origin, root in (('https://example.invalid/other.git', str(self.root)),

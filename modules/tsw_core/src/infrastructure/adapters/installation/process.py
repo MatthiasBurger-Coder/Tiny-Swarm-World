@@ -191,6 +191,13 @@ def _workflow_command(python_bin: str, workflow: str, args: str) -> str:
     return f"PYTHONPATH=. {shlex.quote(python_bin)} -m tiny_swarm_world {workflow} {args}"
 
 
+def _recorded_phase_command(command: str, log_file: Path, options: InstallerOptions) -> list[str]:
+    if options.expected_guided_plan is not None:
+        # The recorder allocates its own terminal and therefore its own sudo timestamp.
+        command = f"/usr/bin/sudo -v && {command}"
+    return ["script", "-q", "-e", "-c", command, log_file.as_posix()]
+
+
 def _run_phase(
     name: str,
     command: str,
@@ -261,7 +268,7 @@ def _run_phase(
             )
     else:
         exit_code, timed_out, interrupted = _run_bounded_process(
-            ["script", "-q", "-e", "-c", effective_command, log_file.as_posix()],
+            _recorded_phase_command(effective_command, log_file, options),
             cwd=cwd,
             env=env,
             timeout_seconds=timeout_seconds,

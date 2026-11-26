@@ -3,6 +3,8 @@ import os
 import shutil
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
+from tiny_swarm_world.domain.lifecycle.product_upgrade import RC6_RELEASE
+from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import PROVIDER, migrate_memory_overrides
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_layout import configuration_member, infra_root
 
 
@@ -62,20 +64,30 @@ def _migrate_changed_assets(installation, plan, target, temporary):
         outgoing = temporary / member
         if not incoming.is_file() or incoming.is_symlink():
             raise LifecycleStateError('Release configuration change is unsupported.')
-        if plan.configuration_source is not None:
-            original = infra_root(installation.root) / member
-            if original.exists() and outgoing.read_bytes() != original.read_bytes():
-                if incoming.read_bytes() == original.read_bytes():
-                    continue
-                raise LifecycleStateError('Release asset conflicts with the bound effective override; preserve both for review.')
+        content = _release_asset(installation, plan, member, incoming, outgoing)
         # Existing tracked source is clean. A new target path must not shadow an ignored override.
         anchor_member = str((infra_root(installation.root) / member).relative_to(installation.root))
         tracked = installation._command(('git', 'ls-files', '--', anchor_member))
         if not tracked and outgoing.exists():
             raise LifecycleStateError('New release asset conflicts with a protected local override; preserve both and review.')
         outgoing.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        shutil.copyfile(incoming, outgoing)
+        outgoing.write_bytes(content)
         outgoing.chmod(0o700 if incoming.stat().st_mode & 0o111 else 0o600)
+
+
+def _release_asset(installation, plan, member, incoming, effective):
+    target = incoming.read_bytes()
+    original = infra_root(installation.root) / member
+    if plan.configuration_source is None or not original.exists():
+        return target
+    source, local = original.read_bytes(), effective.read_bytes()
+    if local == source:
+        return target
+    if target == source:
+        return local
+    if plan.target.product.release == RC6_RELEASE and member.as_posix() == PROVIDER:
+        return migrate_memory_overrides(source, local, target)
+    raise LifecycleStateError('Release asset conflicts with the bound effective override; preserve both for review.')
 
 
 def verify_product_infra(installation, plan):
@@ -89,19 +101,17 @@ def verify_product_infra(installation, plan):
     effective = installation.state / 'infra' / plan.target.product.revision
     code = installation.directory(plan)
     expected = {path.relative_to(original): path for path in original.rglob('*') if path.is_file()}
+    changed_content = {}
     for changed in plan.configuration_changes:
         member = configuration_member(changed)
-        if plan.configuration_source is not None:
-            source = infra_root(installation.root) / member
-            if source.exists() and (original / member).read_bytes() != source.read_bytes():
-                if (code / changed).read_bytes() == source.read_bytes():
-                    continue
-                raise LifecycleStateError('Release asset conflicts with the bound effective override; preserve both for review.')
+        changed_content[member] = _release_asset(installation, plan, member, code / changed, original / member)
         expected[member] = code / changed
     if not effective.is_dir() or any(path.is_symlink() for path in effective.rglob('*')):
         raise LifecycleStateError('Protected configuration migration is missing or unsafe.')
     actual = {path.relative_to(effective) for path in effective.rglob('*') if path.is_file()}
-    if actual != set(expected) or any((effective / member).read_bytes() != path.read_bytes() for member, path in expected.items()):
+    if actual != set(expected) or any(
+            (effective / member).read_bytes() != (changed_content[member] if member in changed_content else path.read_bytes())
+            for member, path in expected.items()):
         raise LifecycleStateError('Protected configuration changed; preserve source/snapshot and inspect before recovery.')
     if plan.configuration_source is not None and any(
             bool((effective / member).stat().st_mode & 0o111) != bool(path.stat().st_mode & 0o111)

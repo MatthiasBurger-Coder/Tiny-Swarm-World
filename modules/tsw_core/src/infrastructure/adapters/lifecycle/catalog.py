@@ -41,7 +41,9 @@ class NativeComponentCatalog:
     def _read_compose(self, relative: str) -> str:
         if self._text_reader is not None:
             return self._text_reader(relative)
-        return (self.root / relative).read_text(encoding="utf-8")
+        from tiny_swarm_world.infrastructure.adapters.lifecycle.product_layout import configuration_member, infra_root
+
+        return (infra_root(self.root) / configuration_member(relative)).read_text(encoding="utf-8")
 
     def _load(self) -> ComponentCatalog:
         services = [ServiceDefinition(

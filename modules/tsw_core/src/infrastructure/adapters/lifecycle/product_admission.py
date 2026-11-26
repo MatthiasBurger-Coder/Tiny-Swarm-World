@@ -8,9 +8,13 @@ import tomllib
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.lifecycle.models import ProductIdentity
-from tiny_swarm_world.domain.lifecycle.product_upgrade import ProductPlan, ProductRelease, SOURCE_RELEASE, admit_release_pair
+from tiny_swarm_world.domain.lifecycle.product_upgrade import (
+    MIGRATIONS, RC6_MIGRATIONS, RC6_RELEASE, SOURCE_RELEASE, TARGET_RELEASE, TARGET_REVISION,
+    ProductPlan, ProductRelease, admit_release_pair,
+)
 from tiny_swarm_world.infrastructure.adapters.lifecycle.desired_images import require_settled_updates
 from tiny_swarm_world.infrastructure.adapters.lifecycle.manifest import decode_manifest
+from tiny_swarm_world.infrastructure.adapters.lifecycle.product_layout import infra_root
 
 
 def plan(installation, target):
@@ -23,6 +27,10 @@ def plan(installation, target):
     if any(item.startswith('interrupted_write') for item in snapshot.diagnostics):
         raise LifecycleStateError('Interrupted manifest write requires review before product upgrade.')
     manifest = snapshot.manifest
+    if target == RC6_RELEASE:
+        active = installation.state / 'active'
+        if active.exists() or active.is_symlink():
+            raise LifecycleStateError('RC-6 requires a directly installed RC-5 checkout; retain existing managed activation.')
     if manifest is None:
         if installation.adoption_file is None:
             raise LifecycleStateError('Legacy installation needs an explicitly inventoried --adoption-manifest; no state inferred.')
@@ -32,12 +40,17 @@ def plan(installation, target):
             raise LifecycleStateError('Cannot read adoption manifest; supply a verified inventory without credential values.') from None
     installation.catalog.load().validate_manifest(manifest)
     source = installation._source_identity()
-    if manifest.product != source.product:
+    recorded = manifest.product
+    if target == RC6_RELEASE and recorded.release == '0.2.0':
+        # Direct RC-5 installs recorded the Python package version as the release.
+        recorded = recorded.model_copy(update={'release': TARGET_RELEASE})
+    if recorded != source.product:
         raise LifecycleStateError('Installation inventory differs from actual source revision/lock/release; inspect explicit adoption.')
     target_release, changes = installation.source.resolve(target)
     admit_release_pair(source, target_release)
     plan = ProductPlan(source=source, target=target_release, manifest=manifest, manifest_token=snapshot.token,
                        adoption=snapshot.manifest is None, configuration_changes=changes,
+                       migrations=RC6_MIGRATIONS if target == RC6_RELEASE else MIGRATIONS,
                        configuration_source=binding, resource_bytes=2147483648 + reserve_bytes(binding))
     installation.validate(plan)
     return plan
@@ -47,14 +60,15 @@ def _source_identity(installation):
         revision = installation._command(('git', 'rev-parse', '--verify', 'HEAD'))
         package = tomllib.loads((installation.root / 'pyproject.toml').read_text())['project']['version']
         lock = 'sha256:' + hashlib.sha256((installation.root / 'requirements.lock').read_bytes()).hexdigest()
-        return ProductRelease(product=ProductIdentity(release=SOURCE_RELEASE, revision=revision, dependency_lock=lock),
+        release = TARGET_RELEASE if revision == TARGET_REVISION else SOURCE_RELEASE
+        return ProductRelease(product=ProductIdentity(release=release, revision=revision, dependency_lock=lock),
                               package_version=package)
     except (OSError, ValueError, KeyError):
         raise LifecycleStateError('Source checkout identity cannot be verified.') from None
 
 def _clean_source(installation, *, allow_external=False):
     configured_infra = os.environ.get('TSW_INFRA_ROOT')
-    if not allow_external and configured_infra and Path(configured_infra).expanduser().resolve() != installation.root / 'modules/tsw_core/infra':
+    if not allow_external and configured_infra and Path(configured_infra).expanduser().resolve() != infra_root(installation.root):
         raise LifecycleStateError('Product controller requires anchor infrastructure; unset TSW_INFRA_ROOT and inventory effective overrides before upgrading.')
     if installation._command(('git', 'status', '--porcelain', '--untracked-files=normal')):
         raise LifecycleStateError('Dirty checkout or unrelated untracked files; preserve operator work and commit or move it before upgrading.')
@@ -64,7 +78,7 @@ def _clean_source(installation, *, allow_external=False):
 
     if installation._command(('git', 'remote', 'get-url', 'origin')) != OFFICIAL_REPOSITORY:
         raise LifecycleStateError('Source checkout must identify the official product repository without embedded credentials.')
-    for name in ('.tiny-swarm-world', '.tiny-swarm-world/product', 'modules', 'modules/tsw_core', 'modules/tsw_core/infra'):
+    for name in ('.tiny-swarm-world', '.tiny-swarm-world/product', 'infra', 'modules', 'modules/tsw_core', 'modules/tsw_core/infra'):
         if (installation.root / name).is_symlink():
             raise LifecycleStateError('Product/state/configuration symlinks require manual review; no upgrade attempted.')
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_paths import require_private_product_paths
@@ -74,6 +88,8 @@ def _clean_source(installation, *, allow_external=False):
 def validate(installation, plan):
     # Revalidate persisted reader metadata before source/runtime/staging effects.
     ProductPlan.model_validate(plan.model_dump())
+    if plan.target.product.release == RC6_RELEASE:
+        admit_release_pair(plan.source, plan.target)
     require_settled_updates(installation.root)
     _clean_source(installation, allow_external=plan.configuration_source is not None)
     from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_source import validate as validate_configuration
@@ -96,6 +112,8 @@ def _host_and_resources(installation, plan):
     from tiny_swarm_world.domain.host_environment import HostEnvironmentKind
 
     detected = HostEnvironmentDetector().detect().environment
+    if plan.target.product.release == RC6_RELEASE and plan.manifest.host != 'native-linux':
+        raise LifecycleStateError('RC-6 upgrade requires a native Linux installation.')
     expected = {'native-linux': HostEnvironmentKind.NATIVE_LINUX, 'wsl2': HostEnvironmentKind.WSL2}[plan.manifest.host]
     if detected != expected or sys.version_info[:2] != (3, 12):
         raise LifecycleStateError('Product upgrade requires matching Linux/WSL2 inventory and Python 3.12.')

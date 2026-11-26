@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 from setuptools import find_packages, setup
@@ -13,9 +14,11 @@ def _runtime_requirements() -> list[str]:
     return requirements
 
 
+project = tomllib.loads(Path(__file__).with_name("pyproject.toml").read_text(encoding="utf-8"))["project"]
+
 setup(
     name="tiny-swarm-world",
-    version="0.2.0",
+    version=project["version"],
     packages=["tiny_swarm_world", "tsw_core"] + [
         f"tiny_swarm_world.{package}"
         for package in find_packages(where="modules/tsw_core/src")

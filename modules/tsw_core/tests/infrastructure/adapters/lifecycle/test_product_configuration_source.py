@@ -24,7 +24,7 @@ from tiny_swarm_world.domain.project_filesystem import ProjectFilesystemKind
 from tiny_swarm_world.domain.preflight.resources import HostResources
 from tiny_swarm_world.infrastructure.adapters.lifecycle import product_configuration_capture as capture_adapter
 from tiny_swarm_world.infrastructure.adapters.lifecycle import product_configuration_source as source_adapter
-from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import PROVIDER, read_tree
+from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import PROVIDER, migrate_memory_overrides, read_tree
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_installation import PreparedProductInstallation
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_journal import JsonProductJournal
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_migration import migrate_product_infra
@@ -427,6 +427,17 @@ class BoundConfigurationTests(unittest.TestCase):
         with self.assertRaises(LifecycleStateError):
             migrate_product_infra(self.installation, self.plan)
         self.assertIn(b'6GiB', (self.external / PROVIDER).read_bytes())
+
+    def test_rc6_memory_migration_preserves_only_the_overridden_node(self):
+        source = (self.root / 'modules/tsw_core/infra' / PROVIDER).read_bytes()
+        local = (self.external / PROVIDER).read_bytes()
+        target = source.replace(b'memory: 4GiB', b'memory: 7GiB').replace(b'memory: 2GiB', b'memory: 3GiB')
+        migrated = YAML(typ='safe').load(migrate_memory_overrides(source, local, target).decode())
+        memory = {node['name']: node['resources']['memory'] for node in migrated['nodes']}
+        self.assertEqual(memory['swarm-worker-1'], '6GiB')
+        self.assertEqual(memory['swarm-worker-2'], '3GiB')
+        with self.assertRaises(LifecycleStateError):
+            migrate_memory_overrides(source, local.replace(b'disk: 50GiB', b'disk: 40GiB'), target)
 
     def test_disk_floor_includes_capture_and_migrated_copy_budget(self):
         from tiny_swarm_world.domain.host_environment import HostEnvironmentKind

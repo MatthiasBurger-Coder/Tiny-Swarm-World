@@ -58,9 +58,11 @@ are available for `service-access` and `default`.
 ----
 
 Setup runs package, Python, Incus and network preparation before previewing
-installation. Type exact `yes` only for changes you approve. Installation has
-its own approvals. If sudo authentication fails, run `sudo -v` in the same
-terminal and review the plan again. Run setup itself as your ordinary user.
+installation. Type exact `yes` only for changes you approve. Host preparation
+may require `sudo -v` in the terminal where you started setup. Installation
+validates sudo again in its recorded terminal and prompts there if required.
+Review the installation's separate live approval before continuing. Run setup
+as your ordinary user.
 
 For a reported login refresh or reboot, complete the requested action and
 return to the same checkout with the same profile and overrides. For a

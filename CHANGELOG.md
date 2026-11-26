@@ -6,6 +6,15 @@ release claim.
 
 ## [Unreleased]
 
+### RC-6 / 0.6.0
+
+- Set the product package and fresh installation manifest version to `0.6.0`.
+- Add prepared-Git RC-5 to RC-6 upgrade admission and preserve admitted
+  node-memory overrides when migrating the infrastructure layout.
+- Include the guided native Ubuntu Classic quick start with plan review,
+  service selection previews and setup resume. Published release readiness
+  remains subject to the Classic beta candidate and live acceptance.
+
 ### Added
 
 - Prepare supported Ubuntu Linux/WSL2 package and Python prerequisites from a
@@ -53,5 +62,5 @@ release claim.
 - Stabilized the governed live Linux installer baseline. Detailed evidence and
   limitations remain attached to the release and repository history.
 
-[Unreleased]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/compare/0.5.0...HEAD
 [0.2.0]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/releases/tag/0.2.0

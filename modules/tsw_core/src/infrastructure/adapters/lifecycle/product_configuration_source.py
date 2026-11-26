@@ -24,7 +24,11 @@ def _external(installation):
     # Never canonicalize away a symlink before descriptor traversal.
     if not path.is_absolute() or path.anchor != '/' or '..' in path.parts:
         raise refused()
-    return None if path == installation.root / 'modules/tsw_core/infra' else path
+    if path == installation.root / 'modules/tsw_core/infra':
+        return None
+    if path == installation.root / 'infra' and path == infra_root(installation.root):
+        return None
+    return path
 
 
 def _matches_git_blob(installation, content, digest, deadline):
@@ -49,8 +53,9 @@ def _matches_git_blob(installation, content, digest, deadline):
 
 
 def _official(installation):
-    tree = read_tree(installation.root / 'modules/tsw_core/infra', private=False)
-    prefix = str(infra_root(installation.root).relative_to(installation.root))
+    root = infra_root(installation.root)
+    tree = read_tree(root, private=False)
+    prefix = str(root.relative_to(installation.root))
     listing = installation._command(('git', 'ls-tree', '-r', 'HEAD', '--', prefix))
     tracked = {}
     try:
@@ -101,7 +106,7 @@ def _source_tree(installation, path):
     if filesystem.kind is not allowed_filesystem:
         raise refused()
     tree = read_tree(path)
-    for protected in (installation.root, installation.root / 'modules/tsw_core/infra', installation.state):
+    for protected in (installation.root, infra_root(installation.root), installation.state):
         if protected.exists() and tree.root[:2] == [protected.stat().st_dev, protected.stat().st_ino]:
             raise refused()
     validate_policy(_official(installation), tree)
@@ -203,12 +208,12 @@ def capture_source(installation, plan):
     if plan.configuration_source is not None:
         directory, record, tree = _bound(installation, plan)
         return capture(directory, record, tree)
-    return installation.root / 'modules/tsw_core/infra'
+    return None
 
 
 def effective_source(installation, plan):
     if plan.configuration_source is None:
-        return installation.root / 'modules/tsw_core/infra'
+        return infra_root(installation.root)
     directory, record, tree = _bound(installation, plan)
     if record['capture_state'] != 'captured':
         raise refused()
@@ -228,6 +233,8 @@ def runtime_source(installation, plan):
 
         verify_product_infra(installation, plan)
         return managed
+    if plan.configuration_source is None:
+        return infra_root(installation.root)
     if _directory(installation, plan).exists():
         directory, record, tree = _bound(installation, plan)
         if record['capture_state'] == 'captured':

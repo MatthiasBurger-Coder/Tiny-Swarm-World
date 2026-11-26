@@ -6,7 +6,7 @@ from tiny_swarm_world.application.services.product_upgrade_preview import previe
 from tiny_swarm_world.application.ports.lifecycle.installation_profile import InstallationLease, InstallationOperationLock, installation_operation
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError, ManifestRepository
 from tiny_swarm_world.application.ports.lifecycle.product_upgrade import ProductInstallation, ProductRuntime, ProductUpgradeJournal
-from tiny_swarm_world.domain.lifecycle.product_upgrade import ProductCheckpoint, ProductPlan, TARGET_RELEASE
+from tiny_swarm_world.domain.lifecycle.product_upgrade import PRODUCT_UPGRADE_TARGETS, ProductCheckpoint, ProductPlan
 from tiny_swarm_world.domain.preflight import LiveConsent
 
 
@@ -31,8 +31,8 @@ class ProductUpgradeService:
     async def run(self, target: str, *, consent: LiveConsent, recovery: bool = False) -> dict[str, object]:
         if not consent.accepted:
             return {'status': 'refused', 'diagnostics': list(consent.missing_reasons)}
-        if target != TARGET_RELEASE:
-            raise LifecycleStateError('Unsupported product release or downgrade; use target 0.5.0.')
+        if target not in PRODUCT_UPGRADE_TARGETS:
+            raise LifecycleStateError('Unsupported product release or downgrade; use target 0.5.0 or 0.6.0.')
         with installation_operation(self.operation_lock, 'product-upgrade', self.operation_lease) as lease, lease.journal('product'), self.journal.exclusive():
             from tiny_swarm_world.application.services.runtime_policy import admit_runtime_policy
 
