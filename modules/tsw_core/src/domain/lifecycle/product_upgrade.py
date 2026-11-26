@@ -8,8 +8,8 @@ SOURCE_RELEASE = '0.4.0'
 SOURCE_REVISION = '346f4a43dbdc43380e7bc703ab185bc06746965b'
 TARGET_RELEASE = '0.5.0'
 TARGET_REVISION = 'b3de7fa16e24c5702d61f855851c6c3255871489'
-RC6_RELEASE = '0.6.0'
-PRODUCT_UPGRADE_TARGETS = (TARGET_RELEASE, RC6_RELEASE)
+RC6_RELEASES = ('0.6.0', '0.6.1')
+PRODUCT_UPGRADE_TARGETS = (TARGET_RELEASE, *RC6_RELEASES)
 MIGRATIONS = ('protected-infra-v1', 'installation-product-v1')
 RC6_MIGRATIONS = ('protected-infra-v1', 'physical-infra-layout-v1', 'installation-product-v1')
 
@@ -112,12 +112,12 @@ class ProductCheckpoint(Contract):
 
 
 def admit_release_pair(source: ProductRelease, target: ProductRelease) -> None:
-    if target.product.release == RC6_RELEASE:
+    if target.product.release in RC6_RELEASES:
         if (source.product.release != TARGET_RELEASE or source.product.revision != TARGET_REVISION
-                or source.package_version != '0.2.0' or target.package_version != RC6_RELEASE
+                or source.package_version != '0.2.0' or target.package_version != target.product.release
                 or target.product.revision == TARGET_REVISION
                 or source.product.config_schema != 1 or target.product.config_schema != 1):
-            raise ValueError('RC-6 requires the official prepared-Git RC-5 source and 0.6.0 package metadata.')
+            raise ValueError('RC-6 requires the official prepared-Git RC-5 source and matching target package metadata.')
         return
     if (source.product.release != SOURCE_RELEASE or source.product.revision != SOURCE_REVISION
             or source.package_version != '0.2.0' or target.product.release != TARGET_RELEASE

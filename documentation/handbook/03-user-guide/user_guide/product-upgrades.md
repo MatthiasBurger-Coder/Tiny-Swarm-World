@@ -1,8 +1,9 @@
 # Product release upgrades
 
 The controller contains separate prepared-Git transitions for Classic.
-**0.5.0 (RC-5) → 0.6.0 (RC-6)** is implemented for direct native Linux
-installations and awaits exact-candidate release and live qualification.
+**0.5.0 (RC-5) → 0.6.1 (RC-6 follow-up)** is implemented for direct native
+Linux installations and needs exact-candidate live qualification.
+The existing `0.6.0` target remains available for its original operations.
 The historical **0.4.0 → 0.5.0 (RC-5)** path retains its pinned release policy.
 
 ## RC-6 upgrade candidate
@@ -13,7 +14,7 @@ recorded package version `0.2.0`; the controller checks that identity against
 the exact RC-5 Git revision and dependency lock. Chained upgrades of an
 existing managed activation are outside this transition.
 
-The controller requires an official published `0.6.0` release or prerelease.
+The controller requires the official published target release or prerelease.
 Set its GitHub release target to the full commit SHA. The controller compares
 that SHA against the official tag, verifies ancestry and package metadata
 and binds the result to the operation checkpoint. The draft cannot be used
@@ -21,10 +22,10 @@ as an upgrade target. See the [qualification matrix](../../07-evidence-release/r
 
 From a separate trusted management checkout with this controller installed,
 set `TSW_REPOSITORY_ROOT` to the existing RC-5 installation checkout and use
-`product upgrade --to 0.6.0 --preview --json` before the consented
-`product upgrade --to 0.6.0 --live --json`. Use the same live command for
+`product upgrade --to 0.6.1 --preview --json` before the consented
+`product upgrade --to 0.6.1 --live --json`. Use the same live command for
 repeat verification after completion. For interruption, inspect
-`product upgrade --to 0.6.0 --recover --preview --json`, then recover with
+`product upgrade --to 0.6.1 --recover --preview --json`, then recover with
 `--recover --live --json` from the same management checkout. Preserve both
 checkouts and the operation journal.
 

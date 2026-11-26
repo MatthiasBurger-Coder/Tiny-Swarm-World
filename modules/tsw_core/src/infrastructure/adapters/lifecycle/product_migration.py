@@ -3,7 +3,7 @@ import os
 import shutil
 
 from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
-from tiny_swarm_world.domain.lifecycle.product_upgrade import RC6_RELEASE
+from tiny_swarm_world.domain.lifecycle.product_upgrade import RC6_RELEASES
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_configuration_validation import PROVIDER, migrate_memory_overrides
 from tiny_swarm_world.infrastructure.adapters.lifecycle.product_layout import configuration_member, infra_root
 
@@ -85,7 +85,7 @@ def _release_asset(installation, plan, member, incoming, effective):
         return target
     if target == source:
         return local
-    if plan.target.product.release == RC6_RELEASE and member.as_posix() == PROVIDER:
+    if plan.target.product.release in RC6_RELEASES and member.as_posix() == PROVIDER:
         return migrate_memory_overrides(source, local, target)
     raise LifecycleStateError('Release asset conflicts with the bound effective override; preserve both for review.')
 
