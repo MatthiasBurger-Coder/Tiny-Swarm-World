@@ -207,6 +207,24 @@ class TestObservedInventoryLocalRepository(unittest.TestCase):
                     )
                 )
 
+    def test_environment_can_use_the_legacy_installation_anchor_for_evidence(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            (root / "src/tiny_swarm_world").mkdir(parents=True)
+            (root / "infra/config").mkdir(parents=True)
+            for marker in ("AGENTS.md", "QUALITY.md"):
+                (root / marker).touch()
+            with patch.dict("os.environ", {"TSW_REPOSITORY_ROOT": str(root)}):
+                repository = VerificationEvidenceLocalRepository()
+                self.assertEqual(
+                    repository.path,
+                    root.resolve() / ".tiny-swarm-world/evidence/verification_results.json",
+                )
+                (root / "infra/config").rmdir()
+                (root / "modules/tsw_core/infra/config").mkdir(parents=True)
+                with self.assertRaises(LocalStatePathError):
+                    VerificationEvidenceLocalRepository()
+
     def test_default_local_state_root_env_must_point_to_verified_repository_root(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             with patch.dict("os.environ", {"TSW_REPOSITORY_ROOT": temporary_directory}):

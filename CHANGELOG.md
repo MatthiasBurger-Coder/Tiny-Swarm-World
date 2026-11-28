@@ -6,6 +6,12 @@ release claim.
 
 ## [Unreleased]
 
+### RC-6 follow-up / 0.6.3
+
+- Recognize the direct RC-5 checkout as the local state anchor during upgrade
+  verification and after activation.
+- Admit 0.6.3 as a direct native RC-5 upgrade target.
+
 ### RC-6 follow-up / 0.6.2
 
 - Default native setup to the IPv4 loopback and refuse a fresh scoped

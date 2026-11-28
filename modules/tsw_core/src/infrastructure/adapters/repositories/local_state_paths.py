@@ -62,11 +62,11 @@ def _contains_infra_config_segment(path: Path) -> bool:
 
 
 def _require_verified_repository_root(root: Path) -> None:
-    required_paths = (
-        root / "AGENTS.md",
-        root / "QUALITY.md",
-        root / "modules/tsw_core/src",
-        root / "modules/tsw_core/infra" / "config",
+    markers = (root / "AGENTS.md", root / "QUALITY.md")
+    layouts = (
+        ("modules/tsw_core/src", "modules/tsw_core/infra/config"),
+        ("src/tiny_swarm_world", "infra/config"),
     )
-    if not all(path.exists() for path in required_paths):
+    has_complete_layout = any(all((root / path).is_dir() for path in layout) for layout in layouts)
+    if not all(marker.is_file() for marker in markers) or not has_complete_layout:
         raise LocalStatePathError("local state repository root is not a Tiny Swarm World root")
