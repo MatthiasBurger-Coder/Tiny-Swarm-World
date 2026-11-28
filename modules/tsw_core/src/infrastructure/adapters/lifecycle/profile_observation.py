@@ -26,7 +26,7 @@ class ScopedProfileObserver:
         try:
             template, observed, manifest = await self._observe()
             routes = template.profile.profile.routes
-            listen_address = selected_listen_address()
+            listen_address = selected_listen_address(routes)
             if (manifest.host != 'native-linux' or manifest.service_preset != profile
                     or any(route.listen_address != listen_address for route in routes)):
                 return None

@@ -1107,10 +1107,37 @@ class TestInstaller(unittest.TestCase):
                 self.assertEqual(expected_status, event.status.value)
                 run_process.assert_called_once()
 
+    def test_recorded_sudo_refresh_does_not_override_workflow_status(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sudo = root / "sudo"
+            records = root / "records"
+            sudo.write_text(
+                '#!/bin/sh\nprintf "%s\\n" "$*" >> "$SUDO_RECORDS"\n'
+                'if [ "$*" = "-v" ]; then exit "${SUDO_INITIAL_EXIT:-0}"; fi\n'
+                'test "$*" = "-n -v"\n'
+            )
+            sudo.chmod(0o700)
+            command = process._RECORDED_SUDO.replace("/usr/bin/sudo", str(sudo)).replace(
+                "/usr/bin/sleep 30", "/usr/bin/sleep 0.02"
+            ) + 'until /usr/bin/grep -qx -- "-n -v" "$SUDO_RECORDS"; do /usr/bin/sleep 0.02; done; exit 37'
+            child_env = {**os.environ, "SUDO_RECORDS": str(records), "SUDO_INITIAL_EXIT": "0"}
+            completed = subprocess.run(["/bin/sh", "-c", command], env=child_env, timeout=5)
+            self.assertEqual(completed.returncode, 37)
+            calls = records.read_text().splitlines()
+            self.assertEqual(calls[0], "-v")
+            self.assertTrue(calls[1:])
+            self.assertEqual(set(calls[1:]), {"-n -v"})
+            records.unlink()
+            refused = subprocess.run(["/bin/sh", "-c", command], timeout=5,
+                                     env={**child_env, "SUDO_INITIAL_EXIT": "23"})
+            self.assertEqual(refused.returncode, 23)
+            self.assertEqual(records.read_text().splitlines(), ["-v"])
+
     def test_guided_install_authenticates_inside_the_recorded_terminal(self):
         for expected_plan, expected_command in (
             (None, "echo setup"),
-            ("a" * 64, "/usr/bin/sudo -v && echo setup"),
+            ("a" * 64, process._RECORDED_SUDO + "echo setup"),
         ):
             with (
                 self.subTest(guided=expected_plan is not None),
@@ -1125,10 +1152,14 @@ class TestInstaller(unittest.TestCase):
                     non_interactive_live_approval=False, headless=False,
                     allow_wsl_windows_filesystem=False, expected_guided_plan=expected_plan,
                 )
-                code = process._run_phase("live setup", "echo setup", log_file, options, {}, root, Mock())
+                code = process._run_phase(
+                    "live setup", "echo setup", log_file, options, {"SHELL": "/usr/bin/fish"}, root, Mock()
+                )
                 self.assertEqual(code, 1)
+                shell_override = ["/usr/bin/env", "SHELL=/bin/sh"] if expected_plan else []
                 self.assertEqual(run_process.call_args.args[0],
-                                 ["script", "-q", "-e", "-c", expected_command, str(log_file)])
+                                 [*shell_override, "script", "-q", "-e", "-c", expected_command, str(log_file)])
+                self.assertEqual(run_process.call_args.kwargs["env"]["SHELL"], "/usr/bin/fish")
                 self.assertIsNone(run_process.call_args.kwargs["stdin"])
 
     def test_run_phase_emits_distinct_timeout_and_terminates_process(self):

@@ -191,11 +191,30 @@ def _workflow_command(python_bin: str, workflow: str, args: str) -> str:
     return f"PYTHONPATH=. {shlex.quote(python_bin)} -m tiny_swarm_world {workflow} {args}"
 
 
+# The recorder owns the terminal and its sudo timestamp. Refresh only an
+# already authorized timestamp, and stop the refresh with the recorded command.
+_RECORDED_SUDO = """/usr/bin/sudo -v || exit "$?"
+(
+    timer_pid=
+    trap 'if [ -n "$timer_pid" ]; then kill "$timer_pid" 2>/dev/null; wait "$timer_pid" 2>/dev/null; fi; exit 0' HUP INT TERM
+    while :; do
+        /usr/bin/sleep 30 &
+        timer_pid=$!
+        wait "$timer_pid" || exit 0
+        timer_pid=
+        /usr/bin/sudo -n -v >/dev/null 2>&1 || exit 0
+    done
+) </dev/null &
+refresh_pid=$!
+trap 'kill "$refresh_pid" 2>/dev/null; wait "$refresh_pid" 2>/dev/null' EXIT
+"""
+
+
 def _recorded_phase_command(command: str, log_file: Path, options: InstallerOptions) -> list[str]:
-    if options.expected_guided_plan is not None:
-        # The recorder allocates its own terminal and therefore its own sudo timestamp.
-        command = f"/usr/bin/sudo -v && {command}"
-    return ["script", "-q", "-e", "-c", command, log_file.as_posix()]
+    if options.expected_guided_plan is None:
+        return ["script", "-q", "-e", "-c", command, log_file.as_posix()]
+    # util-linux script otherwise selects the operator's login shell.
+    return ["/usr/bin/env", "SHELL=/bin/sh", "script", "-q", "-e", "-c", _RECORDED_SUDO + command, log_file.as_posix()]
 
 
 def _run_phase(

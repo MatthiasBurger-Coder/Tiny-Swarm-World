@@ -191,6 +191,7 @@ class BrowserRouteE2EContract:
             )
             raise
         options = selenium_webdriver.FirefoxOptions()
+        options.accept_insecure_certs = False
         options.add_argument("-headless")
 
         driver = None

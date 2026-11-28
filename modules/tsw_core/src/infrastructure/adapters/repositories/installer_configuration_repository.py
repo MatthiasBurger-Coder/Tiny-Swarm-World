@@ -123,7 +123,7 @@ class InstallerConfigurationRepository:
             _number(environment, "TSW_SETUP_HEARTBEAT_INTERVAL_SECONDS", 1)
             _number(environment, "TSW_SETUP_MAX_CONCURRENCY", 1, integer=True)
             _number(environment, "TSW_WINDOWS_BRIDGE_TIMEOUT_SECONDS", 1)
-            if (environment.get("TSW_LXC_PROXY_LISTEN_ADDRESS") or "0.0.0.0").strip() not in {"127.0.0.1", "0.0.0.0"}:
+            if (environment.get("TSW_LXC_PROXY_LISTEN_ADDRESS") or "127.0.0.1").strip() not in {"127.0.0.1", "0.0.0.0"}:
                 raise ValueError("LXC proxy listen address must be 127.0.0.1 or 0.0.0.0.")
             mirror = environment.get("TSW_LXC_DOCKER_REGISTRY_MIRROR", "").strip()
             if mirror:

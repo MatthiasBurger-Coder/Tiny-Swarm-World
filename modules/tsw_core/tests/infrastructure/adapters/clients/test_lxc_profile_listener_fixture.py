@@ -2100,11 +2100,23 @@ if args==['nc','-l','-s','127.0.0.1','-p','8080','-w','15']:
  data=sys.stdin.buffer.read()
  (root/'response.bin').write_bytes(data)
  (root/'ready').write_text('listener')
- if mode=='dead':sys.exit(0)
+ if mode=='dead':
+  (root/'dead-pid').write_text(str(os.getpid()))
+  sys.exit(0)
  deadline=time.monotonic()+3
  while not (root/'finished').exists() and time.monotonic()<deadline:time.sleep(0.01)
  sys.exit(0)
 if args==['netstat','-ltn']:
+ if mode=='dead':
+  deadline=time.monotonic()+2
+  while time.monotonic()<deadline:
+   try:pid=int((root/'dead-pid').read_text())
+   except (FileNotFoundError,ValueError):time.sleep(0.01);continue
+   try:state=Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()[0]
+   except FileNotFoundError:break
+   if state=='Z':break
+   time.sleep(0.01)
+  else:sys.exit(2)
  if mode=='dead' or ((root/'ready').exists() and mode!='absent'):
   address={'foreign':'0.0.0.0:8080','wrong-port':'127.0.0.1:8081'}.get(mode,'127.0.0.1:8080')
   print('tcp 0 0 '+address+' 0.0.0.0:* LISTEN')

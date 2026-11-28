@@ -224,13 +224,15 @@ def build_platform_services(
         runner=lxc_runner,
         allow_live_mutation=False if live_consent is None else live_consent.accepted,
     )
+    # Legacy RC-5 proxy devices retain the fixed wildcard contract.
+    legacy_listen_address = _lxc_proxy_listen_address("0.0.0.0")
     lxc_service_exposure = LxcServiceExposureService(
         lxc_proxy_runtime,
         gateway_node=_lxc_manager_node(),
         manager_profile_name=(DEFAULT_LXC_MANAGER_PROXY_PROFILE if profile_operation is None
                               else profile_operation.intent.profile.profile.profile_name),
         setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services, service_exposure=service_exposure),
-        listen_address=_lxc_proxy_listen_address(),
+        listen_address=legacy_listen_address,
         logger=LoggerFactory.get_logger("LxcServiceExposureService"),
         profile_operation=profile_operation,
         profile_observer=profile_observer,
@@ -247,7 +249,7 @@ def build_platform_services(
         manager_profile_name=(DEFAULT_LXC_MANAGER_PROXY_PROFILE if profile_operation is None
                               else profile_operation.intent.profile.profile.profile_name),
         setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services, service_exposure=service_exposure),
-        listen_address=_lxc_proxy_listen_address(),
+        listen_address=legacy_listen_address,
         logger=LoggerFactory.get_logger("LxcServiceExposureVerifyService"),
         profile_operation=profile_operation,
         profile_observer=profile_observer,
@@ -257,7 +259,7 @@ def build_platform_services(
         gateway_node=_lxc_manager_node(),
         manager_profile_name=DEFAULT_LXC_MANAGER_PROXY_PROFILE,
         setup_manifest=default_setup_manifest(service_profile=service_profile, resolved_services=resolved_services, service_exposure=service_exposure),
-        listen_address=_lxc_proxy_listen_address(),
+        listen_address=legacy_listen_address,
     )
     socat_manager = SocatManager()
     socat_exposure = WslSocatExposureAdapter()

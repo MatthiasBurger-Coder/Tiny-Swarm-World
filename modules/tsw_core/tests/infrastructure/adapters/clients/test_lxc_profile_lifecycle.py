@@ -18,7 +18,7 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile import observa
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.cas import PROFILE_CAS
 from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.lifecycle import _ENV, IncusProfileLifecycleRuntime
 from tiny_swarm_world.infrastructure.adapters.lifecycle.installation_operation_lock import JsonInstallationOperationLock
-from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_setup import clean_source_revision, local_image
+from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_setup import clean_source_revision, fresh_intent, local_image
 from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository import IncusProfileCapabilityRepository
 
 _UUID = '11111111-1111-1111-1111-111111111111'
@@ -61,6 +61,12 @@ def instance_fixture(intent, *, state='Stopped'):
 
 
 class ProfileAdapterTests(unittest.IsolatedAsyncioTestCase):
+    async def test_fresh_profile_refuses_wildcard_before_incus_observation(self):
+        runtime = AsyncMock()
+        with self.assertRaisesRegex(LifecycleStateError, '127.0.0.1'):
+            await fresh_intent(runtime, None, None, None, None, '0.0.0.0')
+        self.assertEqual(runtime.mock_calls, [])
+
     async def test_real_installation_lease_cannot_admit_typed_mutation_without_capability(self):
         runner, intent = effect_runner(), intent_fixture()
         with TemporaryDirectory() as directory, JsonInstallationOperationLock(Path(directory)).exclusive('setup') as lease:
@@ -474,6 +480,22 @@ class RealObservationFrameTests(unittest.IsolatedAsyncioTestCase):
 
 
 class AdapterBudgetTests(unittest.IsolatedAsyncioTestCase):
+    async def test_full_setup_keeps_one_larger_but_bounded_command_budget(self):
+        runner = AsyncMock()
+        runner.run.return_value = LxcNodeCommandResult(0, '')
+        runtime = IncusProfileLifecycleRuntime(runner)
+        with FakeInstallationLock().exclusive('setup') as lease:
+            prepared = runtime.for_preparation(lease, full_setup=True)
+            private = prepared.for_operation(lease, intent_fixture())
+            self.assertIs(private.budget, prepared.budget)
+            self.assertEqual(private.budget.remaining, 300.0)
+            self.assertEqual(runtime.budget.command_limit, 2048)
+            private.budget.commands = 4095
+            await prepared.run(dto._OWNER_ARGS)
+            with self.assertRaises(LifecycleStateError):
+                await private.run(dto._OWNER_ARGS)
+            self.assertEqual(runner.run.call_count, 1)
+
     async def test_foreign_phase_idle_does_not_consume_command_time_and_private_templates_share_budget(self):
         runner = AsyncMock()
         runner.run.return_value = LxcNodeCommandResult(0, '')
