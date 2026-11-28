@@ -1,7 +1,7 @@
 # Product release upgrades
 
 The controller contains separate prepared-Git transitions for Classic.
-**0.5.0 (RC-5) → 0.6.2 (RC-6 follow-up)** is implemented for direct native
+**0.5.0 (RC-5) → 0.6.3 (RC-6 follow-up)** is implemented for direct native
 Linux installations and needs exact-candidate live qualification.
 The existing `0.6.0` and `0.6.1` targets remain available for their original operations.
 The historical **0.4.0 → 0.5.0 (RC-5)** path retains its pinned release policy.
@@ -22,10 +22,10 @@ as an upgrade target. See the [qualification matrix](../../07-evidence-release/r
 
 From a separate trusted management checkout with this controller installed,
 set `TSW_REPOSITORY_ROOT` to the existing RC-5 installation checkout and use
-`product upgrade --to 0.6.2 --preview --json` before the consented
-`product upgrade --to 0.6.2 --live --json`. Use the same live command for
+`product upgrade --to 0.6.3 --preview --json` before the consented
+`product upgrade --to 0.6.3 --live --json`. Use the same live command for
 repeat verification after completion. For interruption, inspect
-`product upgrade --to 0.6.2 --recover --preview --json`, then recover with
+`product upgrade --to 0.6.3 --recover --preview --json`, then recover with
 `--recover --live --json` from the same management checkout. Preserve both
 checkouts and the operation journal.
 

@@ -83,7 +83,7 @@ class OfficialReleaseTests(unittest.TestCase):
         self.ref.json.return_value['object']['sha'] = candidate
         old_asset = self.before_tree.json.return_value['tree'][0]
         old_asset['path'] = old_asset['path'].removeprefix('modules/tsw_core/')
-        for target in ('0.6.0', '0.6.1', '0.6.2'):
+        for target in ('0.6.0', '0.6.1', '0.6.2', '0.6.3'):
             with self.subTest(target=target):
                 self.release.json.return_value.update(tag_name=target, prerelease=True, target_commitish=candidate)
                 self.project.text = f'[project]\nversion="{target}"\n'
