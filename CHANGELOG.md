@@ -11,6 +11,7 @@ release claim.
 - Default native setup to the IPv4 loopback and refuse a fresh scoped
   wildcard binding before it can open dual-stack ports.
 - Size the bounded Incus command budget for the full Classic setup.
+- Refresh the recorded terminal sudo timestamp during long guided installs.
 - Require the browser acceptance tests to validate TLS certificates.
 - Admit 0.6.2 for the direct native RC-5 transition.
 
