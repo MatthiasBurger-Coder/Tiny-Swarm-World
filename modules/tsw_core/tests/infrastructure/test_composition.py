@@ -3285,7 +3285,7 @@ class TestComposition(unittest.TestCase):
             step.service.manager_profile_name,
         )
         self.assertEqual(
-            composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
+            "0.0.0.0",
             step.service.listen_address,
         )
         self.assertEqual(len(step.service.setup_manifest.required_ports), 18)
@@ -3347,7 +3347,7 @@ class TestComposition(unittest.TestCase):
             step.service.manager_profile_name,
         )
         self.assertEqual(
-            composition.DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
+            "0.0.0.0",
             step.service.listen_address,
         )
         self.assertEqual(len(step.service.setup_manifest.required_ports), 18)

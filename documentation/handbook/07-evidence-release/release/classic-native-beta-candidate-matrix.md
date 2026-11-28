@@ -2,14 +2,15 @@
 
 **#514 — RC-6 follow-up qualification matrix.** The [beta epic #513][513]
 uses one published target for guided setup, product upgrade and upgrade
-recovery. The [0.6.1 release record][rc6] binds the follow-up tag, full SHA
+recovery. The [0.6.2 release record][rc6] binds the follow-up tag, full SHA
 and checksums when published. The sudo repair was integrated in [PR #531][531].
 
 | Baseline | Version and revision | Use |
 | --- | --- | --- |
 | [RC-5][rc5] | `0.5.0`, `b3de7fa16e24c5702d61f855851c6c3255871489` | Direct prepared-Git upgrade and recovery source. Its historical package version is `0.2.0`. |
 | [RC-6 initial candidate][rc60] | `0.6.0`, `0cd3d7b306201fe61ade73241bfbec53c8b8e559` | Guided preflight and dry-run passed. The live attempt stopped during scoped Incus admission when the recorded terminal lacked a sudo timestamp. |
-| RC-6 follow-up | `0.6.1`, exact SHA in the [release record][rc6] | Common target for the three #516 cases. The guided recorder now authenticates sudo in its own terminal. |
+| [RC-6.1][rc61] | `0.6.1`, `0103d4f10d5a36b547c87f1ce23de2592ed195c3` | Scoped admission passed after the sudo fix. The manager started before setup stopped on the dual-stack proxy listeners. |
+| RC-6 follow-up | `0.6.2`, exact SHA in the [release record][rc6] | Common target for #516. Guided setup defaults to the local IPv4 loopback. |
 
 ## Source and artifact identity
 
@@ -20,7 +21,7 @@ Record any supplemental package, bundle or image by the digest of the bytes
 actually used.
 
 The documented [upgrade entry point][upgrade] accepts direct native
-`0.5.0 → 0.6.1` and retains recovery for existing `0.6.0` targets. It compares
+`0.5.0 → 0.6.2` and retains recovery for existing `0.6.0` and `0.6.1` targets. It compares
 the official release target commit, tag and package metadata, then binds
 that identity and dependency lock into the checkpoint. Older
 `0.4.0 → 0.5.0` evidence supports the historic transition only.
@@ -58,7 +59,7 @@ The initial RC-6 live attempt is retained as `LIVE_BLOCKED_BEFORE_MUTATION` for 
 | Case | Procedure and prerequisite | Pass condition and retained evidence |
 | --- | --- | --- |
 | BETA-02 · Fresh setup | Use the pinned official checkout on the clean host. An independent operator follows the public Quickstart, including plan review and guided apply through `./setup_linux.sh`. Use only documented operator actions. | Setup completes, swarmed services are healthy, all required functional checks and applicable logins succeed. Retain operator steps, setup outcome, resolved selection and digest inventory, endpoint/authentication results and host ownership comparison. |
-| BETA-03 · Regular upgrade and repeat | Use the healthy RC-5 fixture, known data and credentials, and admitted override. From the separate management checkout use `product upgrade --to 0.6.1` with `--preview`, then with `--live` after consent. Repeat the completed operation. | Activated product reports the candidate SHA/version and lock; runtime, selection, override, data markers, existing credentials and all required endpoints pass. Repeat returns a verified no-op with unchanged identities and state. Retain preview, successful apply, active launcher identity, fixture comparisons and repeat output. |
+| BETA-03 · Regular upgrade and repeat | Use the healthy RC-5 fixture, known data and credentials, and admitted override. From the separate management checkout use `product upgrade --to 0.6.2` with `--preview`, then with `--live` after consent. Repeat the completed operation. | Activated product reports the candidate SHA/version and lock; runtime, selection, override, data markers, existing credentials and all required endpoints pass. Repeat returns a verified no-op with unchanged identities and state. Retain preview, successful apply, active launcher identity, fixture comparisons and repeat output. |
 | BETA-04 · Interrupted upgrade and recovery | Start from a separate restorable source fixture. Use an isolated owned CLI process and a read-only observer of the protected product journal. On the first matching durable `staging` stage, send one SIGINT to the owned CLI. Capture the operation identity and actual exit. A missed stage is inconclusive. Reconfirm the checkpoint and stop mechanism against the selected controller before running. Use documented `--recover --preview`, then consented `--recover --live` from the same management environment; preserve the checkpoint and source. | Prove interruption after upgrade started, recovery to a documented steady version and full service readiness, data and override preservation, and working existing logins. Retain the observer record, retained stage and interruption exit, recovery commands/exits and verification. A supported restoration to the source can satisfy this case with equivalent proof. BETA-03 still requires the target upgrade. |
 
 ## Evidence crosswalk and handoff
@@ -86,7 +87,8 @@ The [release record][rc6] identifies the checks for the released SHA. #517 revie
 [503]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/issues/503
 [rc1]: ../evidence/classic-public-beta-rc1-scenario-contract.md
 [rc5]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/releases/tag/0.5.0
-[rc6]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/releases/tag/0.6.1
+[rc6]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/releases/tag/0.6.2
+[rc61]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/releases/tag/0.6.1
 [rc60]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/releases/tag/0.6.0
 [531]: https://github.com/MatthiasBurger-Coder/Tiny-Swarm-World/pull/531
 [upgrade]: ../../03-user-guide/user_guide/product-upgrades.md

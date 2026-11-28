@@ -82,6 +82,10 @@ resources still match, resume can record completion without redeploying.
 
 === Open services and find credentials
 
+Fresh scoped Incus setup binds service ingress to the IPv4 loopback address
+`127.0.0.1`. Open the service URLs in a browser on the installation host. The
+IPv4 wildcard can open an IPv6 socket as well.
+
 `INSTALLATION_COMPLETE` confirms installer completion. The report then shows
 HTTP observations for published URLs and health targets in the committed selection.
 Browser access and authenticated use require their own checks. With the

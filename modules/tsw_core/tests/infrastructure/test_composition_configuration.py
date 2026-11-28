@@ -44,7 +44,8 @@ class TestCompositionConfiguration(unittest.TestCase):
     def test_registry_and_proxy_values_are_validated_in_configuration_module(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(DEFAULT_SWARM_REGISTRY_ENDPOINT, _swarm_registry_endpoint())
-            self.assertEqual("0.0.0.0", _lxc_proxy_listen_address())
+            self.assertEqual("127.0.0.1", _lxc_proxy_listen_address())
+            self.assertEqual("0.0.0.0", _lxc_proxy_listen_address("0.0.0.0"))
 
         with patch.dict(os.environ, {"TSW_SWARM_REGISTRY_ENDPOINT": "https://unsafe"}, clear=True):
             with self.assertRaisesRegex(ValueError, r"host\[:port\]"):

@@ -77,7 +77,7 @@ def _matches_selection(checkpoint: ProfileLifecycleCheckpoint, plan: SelectionPl
         resolved_services=plan.resolved_services,
         service_exposure=plan.service_exposure,
     )
-    listen_address = selected_listen_address()
+    listen_address = selected_listen_address(binding.routes)
     return (
         routes_from_setup_manifest(setup_manifest, intent) == binding.routes
         and all(route.listen_address == listen_address for route in binding.routes)

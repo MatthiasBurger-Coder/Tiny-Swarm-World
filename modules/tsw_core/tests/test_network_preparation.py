@@ -68,6 +68,21 @@ class LocalNamesTests(unittest.TestCase):
         self.assertEqual(exposure, "127.0.0.1")
 
 
+    def test_existing_wildcard_exposure_is_preserved_and_explicit_scope_wins(self):
+        ports_path = ROOT / "modules/tsw_core/infra/config/ports.yaml"
+        instances = [{
+            "name": "swarm-manager",
+            "expanded_devices": {"https": {
+                "type": "proxy", "listen": "tcp:0.0.0.0:443", "connect": "tcp:127.0.0.1:443",
+            }},
+        }]
+        with patch.dict("os.environ", {"TSW_LXC_PROXY_LISTEN_ADDRESS": ""}):
+            self.assertEqual(local_names(ports_path, "service-access")[2], "127.0.0.1")
+            self.assertEqual(local_names(ports_path, "service-access", instances)[2], "0.0.0.0")
+        with patch.dict("os.environ", {"TSW_LXC_PROXY_LISTEN_ADDRESS": "127.0.0.1"}):
+            self.assertEqual(local_names(ports_path, "service-access", instances)[2], "127.0.0.1")
+
+
 class MockHost:
     def __init__(self, proc, *, ufw=False):
         self.proc = proc

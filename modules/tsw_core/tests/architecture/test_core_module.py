@@ -40,7 +40,7 @@ class CoreModuleTests(unittest.TestCase):
     def test_build_boundary_preserves_namespace_and_excludes_editions(self):
         metadata = tomllib.loads((ROOT / "pyproject.toml").read_text())
         self.assertEqual(metadata["project"]["name"], "tiny-swarm-world")
-        self.assertEqual(metadata["project"]["version"], "0.6.1")
+        self.assertEqual(metadata["project"]["version"], "0.6.2")
         self.assertEqual(metadata["project"]["scripts"], {"tiny-swarm-world": "tiny_swarm_world.__main__:cli"})
         self.assertEqual(metadata["tool"]["setuptools"]["package-dir"], {
             "tiny_swarm_world": "modules/tsw_core/src", "tsw_core": "modules/tsw_core",

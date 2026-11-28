@@ -19,12 +19,12 @@ from tiny_swarm_world.infrastructure.adapters.clients.lxc.profile.observations i
 from tiny_swarm_world.infrastructure.adapters.lifecycle.profile_journal import JsonProfileLifecycleJournal
 from tiny_swarm_world.infrastructure.adapters.repositories.incus_profile_capability_repository import IncusProfileCapabilityRepository
 
-async def prepare_profile_operation(state, config, setup_manifest, consent, lease, *, recovery=False, listen_address='0.0.0.0'):
+async def prepare_profile_operation(state, config, setup_manifest, consent, lease, *, recovery=False, listen_address='127.0.0.1'):
     lease.require_active()
     root = state.root
     capabilities = IncusProfileCapabilityRepository(root)
     service = InstallationProfileService(capabilities,
-        IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner(), capabilities=capabilities).for_preparation(lease),
+        IncusProfileLifecycleRuntime(AsyncLxcNodeCommandRunner(), capabilities=capabilities).for_preparation(lease, full_setup=True),
         JsonProfileLifecycleJournal(root),
         state.lifecycle.manifests, state.lifecycle.operation_lock)
     matrix = admitted_matrix(service.capabilities, consent)
@@ -51,6 +51,10 @@ async def prepare_profile_operation(state, config, setup_manifest, consent, leas
 
 
 async def fresh_intent(runtime, state, config, setup_manifest, lease, listen_address):
+    if listen_address != '127.0.0.1':
+        raise LifecycleStateError(
+            'Fresh scoped Incus setup requires TSW_LXC_PROXY_LISTEN_ADDRESS=127.0.0.1. '
+            'Wildcard proxy listeners can also bind IPv6.')
     revision = await clean_source_revision(runtime, state.root)
     client, server = client_versions(await runtime.run((*_ENV, 'version')))
     if client != server:

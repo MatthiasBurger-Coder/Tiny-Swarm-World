@@ -38,22 +38,42 @@ def resolve_bridges(path: Path, networks: list[dict[str, Any]], routes: list[dic
     return tuple(output)
 
 
-def local_names(path: Path, profile: str) -> tuple[tuple[str, ...], tuple[int, ...], str]:
+def local_names(
+    path: Path, profile: str, instances: list[dict[str, Any]] | None = None,
+) -> tuple[tuple[str, ...], tuple[int, ...], str]:
     registry = PortRegistryYamlRepository(path=path).load()
-    exposure = _lxc_proxy_listen_address()
-    if exposure not in {"127.0.0.1", "0.0.0.0"}:
-        raise NetworkPreparationFailure("Canonical proxy exposure cannot support loopback names.")
+    ports = tuple(item.external_port for item in registry.preflight_ports if item.external_port is not None)
+    devices = manager_devices(instances or [])
+    scopes = {
+        scope
+        for scope in ("127.0.0.1", "0.0.0.0")
+        if any(
+            device.get("type") == "proxy"
+            and device.get("listen") == f"tcp:{scope}:{port}"
+            and device.get("connect") == f"tcp:127.0.0.1:{port}"
+            for device in devices
+            for port in ports
+        )
+    }
+    if len(scopes) > 1:
+        raise NetworkPreparationFailure("Conflicting canonical proxy listen scopes.")
+    existing_scope = next(iter(scopes), None)
+    exposure = _lxc_proxy_listen_address() if existing_scope is None else _lxc_proxy_listen_address(existing_scope)
     ingress = desired_https_ingress_for_profile(profile, port_registry=registry)
     names = tuple(sorted({"tsw.local", *(route.hostname for route in ingress.routes),
                            *(item.route_host for item in registry.preflight_ports if item.route_host)}))
-    return names, tuple(item.external_port for item in registry.preflight_ports if item.external_port is not None), exposure
+    return names, ports, exposure
+
+
+def manager_devices(instances: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [device for item in instances if item.get("name") == "swarm-manager"
+            for device in item.get("expanded_devices", item.get("devices", {})).values()]
 
 
 async def verify_listeners(output: str, ports: tuple[int, ...], instances: list[dict[str, Any]],
                      exposure: str) -> tuple[tuple[object, ...], ...]:
     provenance = []
-    devices = [device for item in instances if item.get("name") == "swarm-manager"
-               for device in item.get("expanded_devices", item.get("devices", {})).values()]
+    devices = manager_devices(instances)
     for line in output.splitlines():
         fields = line.split()
         if len(fields) < 4:

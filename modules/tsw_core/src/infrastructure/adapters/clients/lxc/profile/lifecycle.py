@@ -36,6 +36,7 @@ class Budget:
     busy: bool = False
     commands: int = 0
     output: int = 0
+    command_limit: int = 2048
 
 
 class IncusProfileLifecycleRuntime:
@@ -56,11 +57,12 @@ class IncusProfileLifecycleRuntime:
         private.budget = Budget()
         return private
 
-    def for_preparation(self, lease: InstallationLease) -> 'IncusProfileLifecycleRuntime':
+    def for_preparation(self, lease: InstallationLease, *, full_setup: bool = False) -> 'IncusProfileLifecycleRuntime':
         lease.require_active()
         private = copy(self)
         private.lease, private.intent, private.endpoint_kind = lease, None, None
-        private.budget = Budget()
+        # Setup spans manager and worker creation plus all deployment admissions.
+        private.budget = Budget(command_limit=4096) if full_setup else Budget()
         return private
 
     def for_operation(self, lease: InstallationLease, intent: ManagerCreateIntent) -> 'IncusProfileLifecycleRuntime':
@@ -156,7 +158,7 @@ async def _update_profile(self: IncusProfileLifecycleRuntime, intent: ManagerCre
         raise LifecycleStateError(_ERROR)
     payload = {'endpoint_kind': intent.endpoint_kind, 'path': uri, 'before': row, 'target': {'description': row['description'],
                'config': intent.markers(), 'devices': intent.devices()}}
-    if self.budget.commands + 3 > 2048 or self.budget.output + 3 * 1024 * 1024 > 16 * 1024 * 1024:
+    if self.budget.commands + 3 > self.budget.command_limit or self.budget.output + 3 * 1024 * 1024 > 16 * 1024 * 1024:
         raise LifecycleStateError(_ERROR)
     self.budget.commands += 2
     self.budget.output += 3 * 1024 * 1024  # Bound both HTTP bodies and finite headers, including discarded metadata.
@@ -231,7 +233,7 @@ async def _dispatch_profile_command(self: IncusProfileLifecycleRuntime, args: tu
         args = await _bind_socket(self, args)
     budget = self.budget
     if (budget.busy or not math.isfinite(budget.remaining) or budget.remaining <= 0
-            or budget.commands >= 2048 or type(timeout) is not int or not 1 <= timeout <= 120):
+            or budget.commands >= budget.command_limit or type(timeout) is not int or not 1 <= timeout <= 120):
         raise LifecycleStateError(_ERROR)
     budget.busy = True
     started = time.monotonic()

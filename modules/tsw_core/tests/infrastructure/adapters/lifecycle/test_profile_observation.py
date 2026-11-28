@@ -145,7 +145,7 @@ class PublicScopedVerificationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIs(services.lxc_node_provider.profile_observer, services.lxc_service_exposure.profile_observer)
                 observer = recovery_port_observer(False, root, manifest.service_preset)
                 assert observer is not None
-                with patch.dict(os.environ, {'TSW_LXC_PROXY_LISTEN_ADDRESS': '127.0.0.1'}):
+                with patch.dict(os.environ, {'TSW_LXC_PROXY_LISTEN_ADDRESS': ''}):
                     proof = await observer()
                     self.assertIsNotNone(proof)
                     assert proof is not None

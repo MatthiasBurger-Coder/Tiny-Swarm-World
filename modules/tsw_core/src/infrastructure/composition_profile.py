@@ -3,10 +3,16 @@ from tiny_swarm_world.application.ports.lifecycle import LifecycleStateError
 from tiny_swarm_world.domain.preflight.setup_manifest import default_setup_manifest
 
 
-def selected_listen_address():
-    from tiny_swarm_world.infrastructure.composition_configuration import _lxc_proxy_listen_address
+def selected_listen_address(routes=()):
+    from tiny_swarm_world.infrastructure.composition_configuration import (
+        DEFAULT_LXC_PROXY_LISTEN_ADDRESS,
+        _lxc_proxy_listen_address,
+    )
 
-    return _lxc_proxy_listen_address()
+    addresses = {route.listen_address for route in routes}
+    if len(addresses) > 1:
+        raise LifecycleStateError('Mixed persisted listen scopes require explicit inventory.')
+    return _lxc_proxy_listen_address(next(iter(addresses), DEFAULT_LXC_PROXY_LISTEN_ADDRESS))
 
 
 async def prepare_profile_state(state, config, consent, lease, *, recovery=False):
